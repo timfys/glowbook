@@ -15,5 +15,4 @@ FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 RUN mkdir -p /app/Data
-VOLUME ["/app/Data"]
 ENTRYPOINT ["dotnet", "GlowBook.Web.dll"]

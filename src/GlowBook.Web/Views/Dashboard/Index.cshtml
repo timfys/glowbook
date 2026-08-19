@@ -1,0 +1,47 @@
+﻿@model IEnumerable<Appointment>
+@{
+    ViewData["Title"] = "Кабинет";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-bold mb-0">Сегодня</h2>
+    <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">+ Запись</a>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.TodayCount</div><div class="stat-label">Записей сегодня</div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.ClientsCount</div><div class="stat-label">Клиентов</div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.ServicesCount</div><div class="stat-label">Активных услуг</div></div></div>
+</div>
+@if (ViewBag.IsPremium == true && ViewBag.BookingUrl != null)
+{
+    <div class="panel mb-4">
+        <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
+        <code class="user-select-all">@ViewBag.BookingUrl</code>
+        <div class="small text-muted mt-1">Отправьте клиентам — они смогут записаться сами.</div>
+    </div>
+}
+<div class="panel">
+    @if (!Model.Any())
+    {
+        <p class="text-muted mb-0">На сегодня записей нет. Добавьте первую!</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-gb mb-0">
+                <thead><tr><th>Время</th><th>Клиент</th><th>Услуга</th><th>Статус</th></tr></thead>
+                <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@a.StartsAt.ToString("HH:mm")</td>
+                        <td>@a.Client?.Name</td>
+                        <td>@a.Service?.Name</td>
+                        <td>@a.Status</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

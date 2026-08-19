@@ -1,0 +1,27 @@
+@model GlowBook.Web.ViewComponents.CabinetSidebarModel
+
+<aside class="gb-sidebar" id="gbSidebar">
+    <div class="gb-sidebar-header">
+        <div class="fw-bold">@Model.Profile.BusinessName</div>
+        @if (!string.IsNullOrWhiteSpace(Model.Profile.Specialization))
+        {
+            <div class="text-muted small">@Model.Profile.Specialization</div>
+        }
+        @if (Model.IsPremium)
+        {
+            <span class="badge badge-premium mt-2">Premium</span>
+        }
+    </div>
+    <nav class="nav flex-column">
+        <a class="nav-link @(Model.ActiveController == "Dashboard" ? "active" : "")"
+           asp-controller="Dashboard" asp-action="Index">Обзор</a>
+        <a class="nav-link @(Model.ActiveController == "Appointments" ? "active" : "")"
+           asp-controller="Appointments" asp-action="Index">Записи</a>
+        <a class="nav-link @(Model.ActiveController == "Clients" ? "active" : "")"
+           asp-controller="Clients" asp-action="Index">Клиенты</a>
+        <a class="nav-link @(Model.ActiveController == "Services" ? "active" : "")"
+           asp-controller="Services" asp-action="Index">Услуги</a>
+        <a class="nav-link @(Model.ActiveController == "Subscription" ? "active" : "")"
+           asp-controller="Subscription" asp-action="Index">Подписка</a>
+    </nav>
+</aside>

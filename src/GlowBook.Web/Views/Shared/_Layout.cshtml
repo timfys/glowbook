@@ -1,0 +1,68 @@
+﻿@{
+    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Subscription" };
+    var isCabinet = User.Identity?.IsAuthenticated == true
+        && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlowBook</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="gb-gradient-bg @(isCabinet ? "gb-has-sidebar" : "")">
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-light gb-nav mb-3">
+            <div class="@(isCabinet ? "container-fluid px-3 px-lg-4" : "container")">
+                @if (isCabinet)
+                {
+                    <button type="button" class="gb-sidebar-toggle me-2" id="gbSidebarToggle" aria-label="Меню" aria-expanded="false">
+                        <span></span><span></span><span></span>
+                    </button>
+                }
+                <a class="navbar-brand gb-logo" asp-controller="Home" asp-action="Index">GlowBook</a>
+                @if (!isCabinet)
+                {
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                }
+                <div class="@(isCabinet ? "ms-auto" : "collapse navbar-collapse")" id="mainNav">
+                    @if (!isCabinet && User.Identity?.IsAuthenticated == true)
+                    {
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item"><a class="nav-link" asp-controller="Dashboard" asp-action="Index">Кабинет</a></li>
+                        </ul>
+                    }
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+    @if (isCabinet)
+    {
+        <div class="gb-sidebar-backdrop" id="gbSidebarBackdrop"></div>
+        @await Component.InvokeAsync("CabinetSidebar")
+        <main class="gb-cabinet-main pb-4">
+            <div class="gb-cabinet-content">
+                @RenderBody()
+            </div>
+        </main>
+    }
+    else
+    {
+        <main class="container pb-4">
+            @RenderBody()
+        </main>
+    }
+    <footer class="footer-min text-center">
+        GlowBook — CRM для косметологов и мастеров красоты
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,15 @@
+﻿@model Service
+@{ ViewData["Title"] = "Новая услуга"; }
+<div class="panel" style="max-width:520px">
+    <h2 class="h5 fw-bold mb-3">Новая услуга</h2>
+    <form asp-action="Create" method="post">
+        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="2"></textarea></div>
+        <div class="mb-3"><label asp-for="DurationMinutes" class="form-label"></label><input asp-for="DurationMinutes" class="form-control" type="number" min="15" step="15" /></div>
+        <div class="mb-3"><label asp-for="Price" class="form-label"></label><input asp-for="Price" class="form-control" type="number" min="0" step="50" /></div>
+        <div class="form-check mb-3"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label"></label></div>
+        <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+        <a asp-action="Index" class="btn btn-gb-outline ms-2">Отмена</a>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

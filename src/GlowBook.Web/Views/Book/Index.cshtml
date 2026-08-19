@@ -1,0 +1,61 @@
+﻿@model PublicBookingForm
+@using GlowBook.Web.Models.Booking
+@{ ViewData["Title"] = Model.Profile?.BusinessName ?? "Запись"; var slug = (string)ViewBag.Slug!; }
+<div class="panel mx-auto" style="max-width:560px">
+    <h1 class="h4 fw-bold mb-1">@Model.Profile?.BusinessName</h1>
+    @if (!string.IsNullOrWhiteSpace(Model.Profile?.Specialization))
+    {
+        <p class="text-muted mb-3">@Model.Profile!.Specialization</p>
+    }
+    <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+        <div class="mb-3">
+            <label class="form-label">Услуга</label>
+            <select asp-for="ServiceId" class="form-select" onchange="this.form.submit()">
+                @foreach (var s in Model.Services)
+                {
+                    <option value="@s.Id">@s.Name — @s.DurationMinutes мин, @s.Price.ToString("N0") ₽</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Date" class="form-label">Дата</label>
+            <input asp-for="Date" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Time" class="form-label">Время</label>
+            @if (!Model.AvailableTimes.Any())
+            {
+                <p class="text-muted small mb-0">Нет свободных слотов на эту дату</p>
+            }
+            else
+            {
+                <select asp-for="Time" class="form-select">
+                    @foreach (var t in Model.AvailableTimes)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            }
+        </div>
+        <div class="mb-3">
+            <label asp-for="ClientName" class="form-label">Ваше имя</label>
+            <input asp-for="ClientName" class="form-control" />
+            <span asp-validation-for="ClientName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ClientPhone" class="form-label">Телефон</label>
+            <input asp-for="ClientPhone" class="form-control" placeholder="+7..." />
+            <span asp-validation-for="ClientPhone" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label">Комментарий</label>
+            <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-gb-primary w-100" @(Model.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

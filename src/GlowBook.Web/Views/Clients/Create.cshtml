@@ -1,0 +1,14 @@
+﻿@model Client
+@{ ViewData["Title"] = "Новый клиент"; }
+<div class="panel" style="max-width:520px">
+    <h2 class="h5 fw-bold mb-3">Новый клиент</h2>
+    <form asp-action="Create" method="post">
+        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+        <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>
+        <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+        <a asp-action="Index" class="btn btn-gb-outline ms-2">Отмена</a>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

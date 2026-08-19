@@ -1,0 +1,51 @@
+﻿@model GlowBook.Web.Models.Auth.LoginViewModel
+@{
+    ViewData["Title"] = "Вход";
+    var providers = (GlowBook.Web.Models.Auth.AuthProvidersViewModel)ViewBag.Providers!;
+    var returnUrl = ViewData["ReturnUrl"] as string;
+    var error = ViewData["Error"] as string;
+}
+
+<div class="auth-shell">
+    <div class="auth-card panel">
+        <h1 class="h4 fw-bold mb-1">Вход в GlowBook</h1>
+        <p class="text-muted mb-4">Выберите удобный способ — Google, Mail.ru или Telegram</p>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="alert alert-warning py-2">Не удалось войти (@error)</div>
+        }
+
+        <partial name="_ExternalAuthButtons" model="providers" />
+
+        <div class="auth-divider my-4"><span>или email</span></div>
+
+        <form asp-action="Login" method="post">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="form-check mb-3">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label"></label>
+            </div>
+            <button type="submit" class="btn btn-gb-primary w-100">Войти</button>
+        </form>
+
+        <p class="text-center text-muted mt-3 mb-0">
+            Нет аккаунта? <a asp-action="Register" asp-route-returnUrl="@returnUrl">Регистрация</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

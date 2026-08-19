@@ -1,0 +1,42 @@
+﻿@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Главная";
+}
+
+<section class="hero">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge rounded-pill text-bg-light mb-3">Для косметологов и мастеров</span>
+            <h1>Записи, клиенты и услуги — в одном красивом кабинете</h1>
+            <p class="lead mt-3">GlowBook помогает вести расписание, базу клиентов и прайс без лишней сложности. Работает в браузере и готова к мобильному приложению.</p>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="btn btn-gb-primary" asp-controller="Dashboard" asp-action="Index">Открыть кабинет</a>
+                }
+                else
+                {
+                    <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Register">Начать бесплатно</a>
+                    <a class="btn btn-gb-outline" asp-controller="Auth" asp-action="Login">Войти</a>
+                }
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="feature-card">
+                <h5 class="fw-bold">Премиум — 500 ₽/мес</h5>
+                <ul class="mb-0 mt-3">
+                    <li>Онлайн-запись по ссылке</li>
+                    <li>Напоминания клиентам</li>
+                    <li>Расширенная аналитика</li>
+                    <li>Приоритетная поддержка</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-3 pb-5">
+    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Клиенты</h6><p class="text-muted mb-0">Карточки, телефоны, заметки — всё под рукой.</p></div></div>
+    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Записи</h6><p class="text-muted mb-0">Календарь визитов с услугами и статусами.</p></div></div>
+    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Услуги</h6><p class="text-muted mb-0">Прайс с длительностью и ценой для быстрой записи.</p></div></div>
+</div>

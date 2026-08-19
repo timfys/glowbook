@@ -1,0 +1,16 @@
+﻿@model Appointment
+@{ ViewData["Title"] = "Новая запись"; }
+<div class="panel" style="max-width:560px">
+    <h2 class="h5 fw-bold mb-3">Новая запись</h2>
+    <form asp-action="Create" method="post">
+        <div class="mb-3"><label class="form-label">Клиент</label><select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select"></select></div>
+        <div class="mb-3"><label class="form-label">Услуга</label><select asp-for="ServiceId" asp-items="ViewBag.Services" class="form-select"></select></div>
+        <div class="mb-3"><label asp-for="StartsAt" class="form-label"></label><input asp-for="StartsAt" class="form-control" type="datetime-local" /></div>
+        <div class="mb-3"><label asp-for="EndsAt" class="form-label"></label><input asp-for="EndsAt" class="form-control" type="datetime-local" /><span asp-validation-for="EndsAt" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<AppointmentStatus>()"></select></div>
+        <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+        <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+        <a asp-action="Index" class="btn btn-gb-outline ms-2">Отмена</a>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

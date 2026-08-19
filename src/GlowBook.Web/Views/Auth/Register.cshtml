@@ -1,0 +1,51 @@
+﻿@model GlowBook.Web.Models.Auth.RegisterViewModel
+@{
+    ViewData["Title"] = "Регистрация";
+    var providers = (GlowBook.Web.Models.Auth.AuthProvidersViewModel)ViewBag.Providers!;
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<div class="auth-shell">
+    <div class="auth-card panel">
+        <h1 class="h4 fw-bold mb-1">Регистрация</h1>
+        <p class="text-muted mb-4">Быстрее всего — через соцсети</p>
+
+        <partial name="_ExternalAuthButtons" model="providers" />
+
+        <div class="auth-divider my-4"><span>или email</span></div>
+
+        <form asp-action="Register" method="post">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <div class="mb-3">
+                <label asp-for="DisplayName" class="form-label"></label>
+                <input asp-for="DisplayName" class="form-control" />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-gb-primary w-100">Создать аккаунт</button>
+        </form>
+
+        <p class="text-center text-muted mt-3 mb-0">
+            Уже есть аккаунт? <a asp-action="Login" asp-route-returnUrl="@returnUrl">Войти</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<WorkingHour> WorkingHours => Set<WorkingHour>();
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
+    public DbSet<MasterAvatar> MasterAvatars => Set<MasterAvatar>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -31,6 +32,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.BusinessName).HasMaxLength(200);
             e.Property(x => x.BookingSlug).HasMaxLength(100);
             e.HasOne(x => x.User).WithOne(x => x.MasterProfile).HasForeignKey<MasterProfile>(x => x.UserId);
+        });
+
+        builder.Entity<MasterAvatar>(e =>
+        {
+            e.HasKey(x => x.MasterProfileId);
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.HasOne(x => x.MasterProfile)
+                .WithOne(x => x.Avatar)
+                .HasForeignKey<MasterAvatar>(x => x.MasterProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Client>(e =>

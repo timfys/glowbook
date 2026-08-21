@@ -29,6 +29,7 @@ public class CabinetSidebarViewComponent : ViewComponent
         return View(new CabinetSidebarModel
         {
             Profile = profile,
+            DisplayName = user.DisplayName ?? profile.BusinessName,
             ActiveController = controller,
             IsPremium = profile.Subscription?.IsPremiumActive == true
         });
@@ -38,6 +39,7 @@ public class CabinetSidebarViewComponent : ViewComponent
 public class CabinetSidebarModel
 {
     public MasterProfile Profile { get; set; } = null!;
+    public string DisplayName { get; set; } = "";
     public string ActiveController { get; set; } = "";
     public bool IsPremium { get; set; }
 }

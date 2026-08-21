@@ -1,0 +1,88 @@
+@model ProfileEditViewModel
+@{
+    ViewData["Title"] = "Редактирование профиля";
+    var avatarUrl = Url.Action("Avatar", "Profile", new { id = Model.ProfileId, v = Model.AvatarVersion });
+}
+
+<div class="tg-wrap">
+    <div class="panel profile-edit">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1 class="h4 fw-bold mb-1">Профиль</h1>
+                <p class="text-muted mb-0">Имя, фото и информация о кабинете</p>
+            </div>
+            <a class="btn btn-gb-outline btn-sm" asp-action="Index">Назад</a>
+        </div>
+
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="profile-avatar-editor mb-4">
+                <label class="profile-avatar-picker" for="avatarInput">
+                    @if (Model.HasAvatar)
+                    {
+                        <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="Аватар" />
+                    }
+                    else
+                    {
+                        <div id="avatarFallback" class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
+                        <img id="avatarPreview" class="tg-card-avatar d-none" alt="Аватар" />
+                    }
+                    <span class="profile-avatar-camera" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
+                            <circle cx="12" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </span>
+                </label>
+                <input id="avatarInput" asp-for="Avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="d-none" />
+                <div class="small text-muted mt-2">JPEG, PNG, WebP или GIF, до 2 МБ</div>
+                <span asp-validation-for="Avatar" class="text-danger d-block"></span>
+                @if (Model.HasAvatar)
+                {
+                    <div class="form-check mt-2">
+                        <input asp-for="RemoveAvatar" class="form-check-input" />
+                        <label asp-for="RemoveAvatar" class="form-check-label">Удалить фото</label>
+                    </div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="DisplayName" class="form-label"></label>
+                <input asp-for="DisplayName" class="form-control" />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PhoneNumber" class="form-label"></label>
+                <input asp-for="PhoneNumber" class="form-control" placeholder="+7..." />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="BusinessName" class="form-label"></label>
+                <input asp-for="BusinessName" class="form-control" />
+                <span asp-validation-for="BusinessName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Specialization" class="form-label"></label>
+                <input asp-for="Specialization" class="form-control" placeholder="Косметолог, бровист, мастер маникюра…" />
+            </div>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label asp-for="City" class="form-label"></label>
+                    <input asp-for="City" class="form-control" />
+                </div>
+                <div class="col-md-7">
+                    <label asp-for="Address" class="form-label"></label>
+                    <input asp-for="Address" class="form-control" />
+                </div>
+            </div>
+            <div class="mb-4 mt-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4" placeholder="Коротко расскажите клиентам о себе"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,95 @@
+@model ProfileCardViewModel
+@{
+    ViewData["Title"] = "Профиль";
+    var avatarUrl = Url.Action("Avatar", "Profile", new { id = Model.ProfileId, v = Model.AvatarVersion });
+}
+
+<div class="tg-wrap">
+    @if (TempData["ProfileSaved"] != null)
+    {
+        <div class="alert alert-success py-2 px-3 mb-3">Профиль сохранён</div>
+    }
+
+    <article class="tg-card">
+        <div class="tg-card-cover">
+            <a class="tg-card-edit" asp-action="Edit" title="Изменить">
+                Изменить
+            </a>
+        </div>
+
+        <div class="tg-card-avatar-wrap">
+            @if (Model.HasAvatar)
+            {
+                <img class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+            }
+            else
+            {
+                <div class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
+            }
+        </div>
+
+        <div class="tg-card-body">
+            <h1 class="tg-card-name">@Model.DisplayName</h1>
+            @if (!string.IsNullOrWhiteSpace(Model.Specialization))
+            {
+                <p class="tg-card-sub">@Model.Specialization</p>
+            }
+            else
+            {
+                <p class="tg-card-sub">Мастер GlowBook</p>
+            }
+
+            <div class="tg-card-chips">
+                @if (Model.IsPremium)
+                {
+                    <span class="badge badge-premium">@Model.PremiumLabel</span>
+                }
+                else
+                {
+                    <span class="badge gb-badge-muted">@Model.PremiumLabel</span>
+                }
+            </div>
+
+            <section class="tg-info">
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <div class="tg-info-row">
+                        <div class="tg-info-label">О себе</div>
+                        <div class="tg-info-value">@Model.Description</div>
+                    </div>
+                }
+                <div class="tg-info-row">
+                    <div class="tg-info-label">Кабинет</div>
+                    <div class="tg-info-value">@Model.BusinessName</div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.PhoneNumber))
+                {
+                    <div class="tg-info-row">
+                        <div class="tg-info-label">Телефон</div>
+                        <div class="tg-info-value">@Model.PhoneNumber</div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <div class="tg-info-row">
+                        <div class="tg-info-label">Email</div>
+                        <div class="tg-info-value">@Model.Email</div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Location))
+                {
+                    <div class="tg-info-row">
+                        <div class="tg-info-label">Адрес</div>
+                        <div class="tg-info-value">@Model.Location</div>
+                    </div>
+                }
+                <div class="tg-info-row">
+                    <div class="tg-info-label">Страница записи</div>
+                    <div class="tg-info-value"><code>/book/@Model.BookingSlug</code></div>
+                </div>
+            </section>
+
+            <a class="btn btn-gb-primary w-100 mt-3" asp-action="Edit">Редактировать профиль</a>
+        </div>
+    </article>
+</div>

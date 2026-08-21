@@ -1,17 +1,33 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using GlowBook.Web.Models
+@using GlowBook.Web.Helpers
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject GlowBook.Web.Services.MasterProfileService Profiles
 
-<ul class="navbar-nav align-items-center gap-1">
+<ul class="navbar-nav align-items-center gap-2">
 @if (SignInManager.IsSignedIn(User))
 {
     var user = await UserManager.GetUserAsync(User);
-    <li class="nav-item"><span class="nav-link">@(user?.DisplayName ?? user?.Email)</span></li>
+    var profile = user == null ? null : await Profiles.GetForUserAsync(user.Id);
+    var name = user?.DisplayName ?? user?.Email ?? "Профиль";
+    <li class="nav-item">
+        <a class="gb-nav-user" asp-controller="Profile" asp-action="Index" title="Мой профиль">
+            @if (profile?.HasAvatar == true)
+            {
+                <img class="gb-avatar gb-avatar-sm" src="@Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks })" alt="" />
+            }
+            else
+            {
+                <span class="gb-avatar gb-avatar-sm gb-avatar-fallback">@DisplayHelpers.Initials(name)</span>
+            }
+            <span class="gb-nav-user-name">@name</span>
+        </a>
+    </li>
     <li class="nav-item">
         <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
             @Html.AntiForgeryToken()
-            <button type="submit" class="nav-link btn btn-link">Выйти</button>
+            <button type="submit" class="btn btn-gb-ghost btn-sm">Выйти</button>
         </form>
     </li>
 }

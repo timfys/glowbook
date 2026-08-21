@@ -4,11 +4,11 @@
 }
 
 <section class="hero">
-    <div class="row align-items-center g-4">
+    <div class="row align-items-center g-5">
         <div class="col-lg-7">
-            <span class="badge rounded-pill text-bg-light mb-3">Для косметологов и мастеров</span>
-            <h1>Записи, клиенты и услуги — в одном красивом кабинете</h1>
-            <p class="lead mt-3">GlowBook помогает вести расписание, базу клиентов и прайс без лишней сложности. Работает в браузере и готова к мобильному приложению.</p>
+            <span class="gb-kicker">CRM для бьюти-мастеров</span>
+            <h1>Кабинет, который выглядит так же аккуратно, как ваша работа</h1>
+            <p class="lead mt-3">Записи, клиенты и прайс — в одном месте. Клиенты записываются по ссылке, вы видите день целиком и не теряете контакты.</p>
             <div class="d-flex flex-wrap gap-2 mt-4">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -22,12 +22,14 @@
             </div>
         </div>
         <div class="col-lg-5">
-            <div class="feature-card">
-                <h5 class="fw-bold">Премиум — 500 ₽/мес</h5>
-                <ul class="mb-0 mt-3">
-                    <li>Онлайн-запись по ссылке</li>
-                    <li>Напоминания клиентам</li>
-                    <li>Расширенная аналитика</li>
+            <div class="feature-card pricing-card">
+                <div class="text-muted small fw-bold mb-2">PREMIUM</div>
+                <h5 class="fw-bold mb-1">500 ₽ в месяц</h5>
+                <p class="text-muted mb-3">Онлайн-запись для клиентов без лишних мессенджеров.</p>
+                <ul class="mb-0 ps-3">
+                    <li class="mb-1">Публичная страница записи по ссылке</li>
+                    <li class="mb-1">Свободные слоты по вашему графику</li>
+                    <li class="mb-1">Напоминания клиентам — в планах</li>
                     <li>Приоритетная поддержка</li>
                 </ul>
             </div>
@@ -36,7 +38,31 @@
 </section>
 
 <div class="row g-3 pb-5">
-    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Клиенты</h6><p class="text-muted mb-0">Карточки, телефоны, заметки — всё под рукой.</p></div></div>
-    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Записи</h6><p class="text-muted mb-0">Календарь визитов с услугами и статусами.</p></div></div>
-    <div class="col-md-4"><div class="feature-card h-100"><h6 class="fw-bold">Услуги</h6><p class="text-muted mb-0">Прайс с длительностью и ценой для быстрой записи.</p></div></div>
+    <div class="col-md-4">
+        <div class="feature-card h-100">
+            <div class="feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.4-3.2 2.5-5 5-5s4.6 1.8 5 5"/></svg>
+            </div>
+            <h6 class="fw-bold">Клиенты</h6>
+            <p class="text-muted mb-0">Карточки, телефоны и заметки — всё под рукой, без таблиц в чатах.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card h-100">
+            <div class="feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3.5v3M16 3.5v3M3.5 9.5h17"/></svg>
+            </div>
+            <h6 class="fw-bold">Записи</h6>
+            <p class="text-muted mb-0">Расписание визитов со статусами: ожидает, подтверждена, завершена.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card h-100">
+            <div class="feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5 14.2 8l4.8.7-3.5 3.4.8 4.8L12 14.7 7.7 16.9l.8-4.8L5 8.7 9.8 8 12 3.5z"/></svg>
+            </div>
+            <h6 class="fw-bold">Услуги</h6>
+            <p class="text-muted mb-0">Прайс с длительностью и ценой — клиент выбирает услугу сам.</p>
+        </div>
+    </div>
 </div>

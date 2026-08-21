@@ -1,11 +1,31 @@
 ﻿@model PublicBookingForm
 @using GlowBook.Web.Models.Booking
-@{ ViewData["Title"] = Model.Profile?.BusinessName ?? "Запись"; var slug = (string)ViewBag.Slug!; }
+@using GlowBook.Web.Helpers
+@{ ViewData["Title"] = Model.Profile?.BusinessName ?? "Запись"; var slug = (string)ViewBag.Slug!; var profile = Model.Profile; }
 <div class="panel mx-auto" style="max-width:560px">
-    <h1 class="h4 fw-bold mb-1">@Model.Profile?.BusinessName</h1>
-    @if (!string.IsNullOrWhiteSpace(Model.Profile?.Specialization))
+    @if (profile != null)
     {
-        <p class="text-muted mb-3">@Model.Profile!.Specialization</p>
+        <div class="book-hero">
+            @if (profile.HasAvatar)
+            {
+                <img class="gb-avatar" style="width:64px;height:64px" src="@Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks })" alt="" />
+            }
+            else
+            {
+                <span class="gb-avatar gb-avatar-fallback" style="width:64px;height:64px;font-size:1.1rem">@DisplayHelpers.Initials(profile.BusinessName)</span>
+            }
+            <div>
+                <h1 class="h4 fw-bold mb-0">@profile.BusinessName</h1>
+                @if (!string.IsNullOrWhiteSpace(profile.Specialization))
+                {
+                    <p class="text-muted mb-0">@profile.Specialization</p>
+                }
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(profile.Description))
+        {
+            <p class="text-muted">@profile.Description</p>
+        }
     }
     <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
         @Html.AntiForgeryToken()
@@ -56,6 +76,3 @@
         <button type="submit" class="btn btn-gb-primary w-100" @(Model.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
     </form>
 </div>
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

@@ -21,6 +21,12 @@ public class MasterProfile
 
     public string? AvatarUrl { get; set; }
 
+    public bool HasAvatar { get; set; }
+
+    public DateTime? AvatarUpdatedAt { get; set; }
+
+    public MasterAvatar? Avatar { get; set; }
+
     public required string BookingSlug { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

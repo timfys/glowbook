@@ -59,3 +59,25 @@
 
     setDesktopCollapsed(false);
 })();
+
+(function () {
+    var input = document.getElementById('avatarInput');
+    var preview = document.getElementById('avatarPreview');
+    var fallback = document.getElementById('avatarFallback');
+    if (!input || !preview) {
+        return;
+    }
+
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) {
+            return;
+        }
+
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('d-none');
+        if (fallback) {
+            fallback.classList.add('d-none');
+        }
+    });
+})();

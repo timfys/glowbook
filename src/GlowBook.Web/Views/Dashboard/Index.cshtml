@@ -3,9 +3,12 @@
     ViewData["Title"] = "Кабинет";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h4 fw-bold mb-0">Сегодня</h2>
-    <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">+ Запись</a>
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Сегодня</h2>
+        <div class="text-muted small">@DateTime.Today.ToString("dddd, d MMMM")</div>
+    </div>
+    <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">Новая запись</a>
 </div>
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.TodayCount</div><div class="stat-label">Записей сегодня</div></div></div>
@@ -23,7 +26,11 @@
 <div class="panel">
     @if (!Model.Any())
     {
-        <p class="text-muted mb-0">На сегодня записей нет. Добавьте первую!</p>
+        <div class="empty-state">
+            <div class="fw-semibold text-dark mb-1">На сегодня записей нет</div>
+            <p class="mb-3">Добавьте визит вручную или отправьте клиентам ссылку на запись.</p>
+            <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">Создать запись</a>
+        </div>
     }
     else
     {
@@ -34,10 +41,10 @@
                 @foreach (var a in Model)
                 {
                     <tr>
-                        <td>@a.StartsAt.ToString("HH:mm")</td>
+                        <td class="fw-semibold">@a.StartsAt.ToString("HH:mm")</td>
                         <td>@a.Client?.Name</td>
                         <td>@a.Service?.Name</td>
-                        <td>@a.Status</td>
+                        <td><span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span></td>
                     </tr>
                 }
                 </tbody>

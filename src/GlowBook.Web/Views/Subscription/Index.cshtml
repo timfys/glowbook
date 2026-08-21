@@ -1,10 +1,10 @@
 ﻿@model Subscription
 @{ ViewData["Title"] = "Подписка"; var price = (int?)ViewBag.PremiumPrice ?? 500; var bookingUrl = ViewBag.BookingUrl as string; var yookassaOk = ViewBag.YooKassaConfigured == true; }
-<div class="panel" style="max-width:640px">
-    <h2 class="h4 fw-bold">Подписка GlowBook Premium</h2>
+<div class="panel pricing-card" style="max-width:640px">
+    <h2 class="h4 fw-bold">GlowBook Premium</h2>
     @if (TempData["PaySuccess"] != null || ViewBag.PaySuccess != null)
     {
-        <div class="alert alert-success">Оплата прошла успешно. Premium активирован!</div>
+        <div class="alert alert-success">Оплата прошла успешно. Premium активирован.</div>
     }
     @if (ViewBag.PayError != null)
     {
@@ -12,19 +12,20 @@
     }
     @if (Model?.IsPremiumActive == true)
     {
-        <p class="text-success fw-semibold">Premium активен до @(Model.ExpiresAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "бессрочно")</p>
+        <p class="mb-2"><span class="badge badge-premium">Premium</span></p>
+        <p class="text-muted">Активен до @(Model.ExpiresAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "бессрочно")</p>
         @if (!string.IsNullOrWhiteSpace(bookingUrl))
         {
-            <div class="mt-3 p-3 bg-light rounded">
-                <div class="small text-muted mb-1">Ссылка для клиентов:</div>
+            <div class="mt-3 p-3 rounded-3" style="background:#fbf7fd;border:1px solid var(--gb-border)">
+                <div class="small text-muted mb-1">Ссылка для клиентов</div>
                 <code class="user-select-all">@bookingUrl</code>
             </div>
         }
     }
     else
     {
-        <p class="text-muted">Сейчас у вас бесплатный тариф. Premium — <strong>@price ₽/мес</strong>.</p>
-        <ul>
+        <p class="text-muted">Сейчас бесплатный тариф. Premium — <strong>@price ₽/мес</strong>.</p>
+        <ul class="mb-4">
             <li>Публичная страница онлайн-записи по ссылке</li>
             <li>Клиенты выбирают услугу, дату и время</li>
             <li>SMS/Telegram-напоминания (скоро)</li>

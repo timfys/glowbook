@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNet.Security.OAuth.MailRu" Version="8.3.0" />
     <PackageReference Include="AspNet.Security.OAuth.VkId" Version="8.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.25" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.25" />

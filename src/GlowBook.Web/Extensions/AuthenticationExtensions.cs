@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using AspNet.Security.OAuth.MailRu;
 using AspNet.Security.OAuth.VkId;
 using GlowBook.Web.Configuration;
 
@@ -29,26 +30,14 @@ public static class AuthenticationExtensions
 
         if (authOptions.MailRu.IsConfigured)
         {
-            authBuilder.AddOAuth(AuthProviders.MailRu, options =>
+            // Official handler: Mail.ru expects access_token as query on /userinfo (not Bearer).
+            authBuilder.AddMailRu(AuthProviders.MailRu, options =>
             {
                 options.ClientId = authOptions.MailRu.ClientId!;
                 options.ClientSecret = authOptions.MailRu.ClientSecret!;
-                options.AuthorizationEndpoint = "https://oauth.mail.ru/login";
-                options.TokenEndpoint = "https://oauth.mail.ru/token";
-                options.UserInformationEndpoint = "https://oauth.mail.ru/userinfo";
-                options.CallbackPath = "/signin-mailru";
                 options.SaveTokens = true;
                 options.Scope.Add("userinfo");
-                options.Events.OnCreatingTicket = context =>
-                {
-                    if (context.User.TryGetProperty("id", out var id))
-                        context.Identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, id.GetString() ?? string.Empty));
-                    if (context.User.TryGetProperty("email", out var email))
-                        context.Identity?.AddClaim(new Claim(ClaimTypes.Email, email.GetString() ?? string.Empty));
-                    if (context.User.TryGetProperty("name", out var name))
-                        context.Identity?.AddClaim(new Claim(ClaimTypes.Name, name.GetString() ?? string.Empty));
-                    return Task.CompletedTask;
-                };
+                options.CorrelationCookie.SameSite = SameSiteMode.Lax;
             });
         }
 

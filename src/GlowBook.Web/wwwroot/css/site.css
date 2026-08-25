@@ -626,7 +626,15 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
 .profile-avatar-picker .tg-card-avatar {
     width: 96px;
     height: 96px;
+}
+.profile-avatar-picker img.tg-card-avatar {
     display: block;
+}
+.profile-avatar-picker .tg-card-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 .profile-avatar-hit {
     position: absolute;

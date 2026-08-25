@@ -24,8 +24,5 @@ _*.txt
 _*.log
 *.log
 
-# Secrets / local env
-*.env
-railway-postgres.env
-appsettings.Production.json
+# Local-only overrides (не коммитить)
 appsettings.*.local.json

@@ -6,12 +6,12 @@
     var grouped = Model.GroupBy(a => a.StartsAt.Date).ToDictionary(g => g.Key, g => g.ToList());
 }
 
-<div class="page-head">
+<div class="page-head page-head-calendar">
     <div>
         <h2 class="h4 fw-bold mb-0">Календарь</h2>
         <div class="text-muted small">@weekStart.ToString("d MMMM") — @weekStart.AddDays(6).ToString("d MMMM yyyy")</div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="page-head-actions">
         <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@(((DateTime)ViewBag.PrevWeek).ToString("yyyy-MM-dd"))">←</a>
         <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@DateTime.Today.ToString("yyyy-MM-dd")">Сегодня</a>
         <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@(((DateTime)ViewBag.NextWeek).ToString("yyyy-MM-dd"))">→</a>
@@ -19,6 +19,7 @@
     </div>
 </div>
 
+<div class="week-calendar-wrap">
 <div class="week-calendar">
 @foreach (var day in days)
 {
@@ -62,6 +63,7 @@
         </div>
     </div>
 }
+</div>
 </div>
 
 <div class="mt-3">

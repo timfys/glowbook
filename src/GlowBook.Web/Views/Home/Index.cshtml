@@ -6,9 +6,9 @@
 <section class="hero">
     <div class="row align-items-center g-5">
         <div class="col-lg-7">
-            <span class="gb-kicker">CRM для бьюти-мастеров</span>
-            <h1>Кабинет, который выглядит так же аккуратно, как ваша работа</h1>
-            <p class="lead mt-3">Записи, клиенты и прайс — в одном месте. Клиенты записываются по ссылке, вы видите день целиком и не теряете контакты.</p>
+            <span class="gb-kicker">GlowBook</span>
+            <h1>Записи и клиенты — в одном месте</h1>
+            <p class="lead mt-3">Ведите расписание, храните контакты и дайте клиентам ссылку для онлайн-записи.</p>
             <div class="d-flex flex-wrap gap-2 mt-4">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -16,7 +16,7 @@
                 }
                 else
                 {
-                    <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Register">Начать бесплатно</a>
+                    <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Register">Создать аккаунт</a>
                     <a class="btn btn-gb-outline" asp-controller="Auth" asp-action="Login">Войти</a>
                 }
             </div>
@@ -25,12 +25,12 @@
             <div class="feature-card pricing-card">
                 <div class="text-muted small fw-bold mb-2">PREMIUM</div>
                 <h5 class="fw-bold mb-1">500 ₽ в месяц</h5>
-                <p class="text-muted mb-3">Онлайн-запись для клиентов без лишних мессенджеров.</p>
+                <p class="text-muted mb-3">Онлайн-запись по вашей ссылке.</p>
                 <ul class="mb-0 ps-3">
-                    <li class="mb-1">Публичная страница записи по ссылке</li>
-                    <li class="mb-1">Свободные слоты по вашему графику</li>
-                    <li class="mb-1">Напоминания клиентам — в планах</li>
-                    <li>Приоритетная поддержка</li>
+                    <li class="mb-1">Страница записи для клиентов</li>
+                    <li class="mb-1">Свободные слоты по графику</li>
+                    <li class="mb-1">Напоминания — скоро</li>
+                    <li>Поддержка</li>
                 </ul>
             </div>
         </div>

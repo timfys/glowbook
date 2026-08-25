@@ -1,19 +1,22 @@
-﻿@{
+﻿@inject GlowBook.Web.AssetVersion AssetVersion
+@{
     var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Subscription", "Profile" };
     var isCabinet = User.Identity?.IsAuthenticated == true
         && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
+    var av = AssetVersion.Value;
 }
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <title>@ViewData["Title"] — GlowBook</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css?av=@av" asp-append-version="true" />
 </head>
 <body class="gb-app @(isCabinet ? "gb-has-sidebar" : "")">
     <header>
@@ -60,10 +63,10 @@
     <footer class="footer-min text-center">
         GlowBook — CRM для косметологов и мастеров красоты
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <partial name="_ValidationScriptsPartial" />
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/site.js?av=@av" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

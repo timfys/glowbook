@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using GlowBook.Web;
 using GlowBook.Web.Configuration;
 using GlowBook.Web.Data;
 using GlowBook.Web.Extensions;
@@ -45,7 +46,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 3 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = 8 * 1024 * 1024;
 });
 
 builder.Services.Configure<GlowBookSettings>(builder.Configuration.GetSection(GlowBookSettings.SectionName));
@@ -68,6 +69,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+builder.Services.AddSingleton<AssetVersion>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -75,6 +77,7 @@ var app = builder.Build();
 app.Logger.LogInformation("Database provider: {Provider}; connection: {ConnectionString}",
     db.Provider,
     DatabaseConnectionResolver.Redact(db.ConnectionString));
+app.Logger.LogInformation("Asset version: {AssetVersion}", app.Services.GetRequiredService<AssetVersion>().Value);
 
 await DbInitializer.InitializeAsync(app.Services, dataDir);
 
@@ -91,7 +94,28 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// HTML always revalidated; versioned static assets can be cached hard.
+app.Use(async (context, next) =>
+{
+    await next();
+    var ct = context.Response.ContentType;
+    if (ct != null && ct.StartsWith("text/html", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers.Expires = "0";
+    }
+});
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Safe with ?av= / asp-append-version cache busting
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+    }
+});
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -18,7 +18,7 @@ public class ProfileController : Controller
         "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"
     };
 
-    private const long MaxAvatarBytes = 2 * 1024 * 1024;
+    private const long MaxAvatarBytes = 5 * 1024 * 1024;
 
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
@@ -167,17 +167,20 @@ public class ProfileController : Controller
 
     private async Task<string?> SaveAvatarAsync(MasterProfile profile, IFormFile file)
     {
-        if (file.Length > MaxAvatarBytes)
-            return "Фото не должно быть больше 2 МБ";
+        if (file.Length <= 0)
+            return "Файл пустой";
 
-        var contentType = file.ContentType;
-        if (string.IsNullOrWhiteSpace(contentType) || !AllowedAvatarTypes.Contains(contentType))
-            return "Поддерживаются JPEG, PNG, WebP и GIF";
+        if (file.Length > MaxAvatarBytes)
+            return "Фото не должно быть больше 5 МБ";
 
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         var data = ms.ToArray();
+
+        var contentType = DetectImageContentType(data, file.ContentType);
+        if (contentType == null)
+            return "Поддерживаются JPEG, PNG, WebP и GIF. На iPhone выберите «Самое совместимое» или JPEG.";
 
         var existing = await _db.MasterAvatars.FirstOrDefaultAsync(a => a.MasterProfileId == profile.Id);
         if (existing == null)
@@ -186,17 +189,36 @@ public class ProfileController : Controller
             {
                 MasterProfileId = profile.Id,
                 Data = data,
-                ContentType = NormalizeContentType(contentType)
+                ContentType = contentType
             });
         }
         else
         {
             existing.Data = data;
-            existing.ContentType = NormalizeContentType(contentType);
+            existing.ContentType = contentType;
         }
 
         profile.HasAvatar = true;
         profile.AvatarUpdatedAt = DateTime.UtcNow;
+        return null;
+    }
+
+    private static string? DetectImageContentType(byte[] data, string? reported)
+    {
+        if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+            return "image/jpeg";
+        if (data.Length >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+            return "image/png";
+        if (data.Length >= 6 && data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46)
+            return "image/gif";
+        if (data.Length >= 12
+            && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46
+            && data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50)
+            return "image/webp";
+
+        if (!string.IsNullOrWhiteSpace(reported) && AllowedAvatarTypes.Contains(reported))
+            return NormalizeContentType(reported);
+
         return null;
     }
 

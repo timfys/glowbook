@@ -614,36 +614,37 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
 
 .profile-edit { max-width: 560px; }
 .profile-avatar-editor { text-align: center; position: relative; }
-.profile-avatar-preview {
-    display: inline-block;
-}
-.profile-avatar-native {
-    text-align: left;
-    max-width: 100%;
-}
 .profile-avatar-picker {
     position: relative;
     display: inline-block;
-    cursor: pointer;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    overflow: hidden;
     -webkit-tap-highlight-color: transparent;
 }
-.profile-avatar-file {
-    /* legacy — prefer .profile-avatar-native (visible) for WebView */
+.profile-avatar-picker .tg-card-avatar {
+    width: 96px;
+    height: 96px;
+    display: block;
+}
+.profile-avatar-hit {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     opacity: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    font-size: 100px; /* Android WebView: увеличивает hit-area file input */
+    z-index: 2;
 }
 .profile-avatar-camera {
     position: absolute;
-    right: 6px;
-    bottom: 6px;
+    right: 4px;
+    bottom: 4px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -654,6 +655,7 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     justify-content: center;
     border: 3px solid #fff;
     pointer-events: none;
+    z-index: 1;
 }
 
 .book-hero {

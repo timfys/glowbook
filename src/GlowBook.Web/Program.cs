@@ -4,6 +4,7 @@ using GlowBook.Web.Data;
 using GlowBook.Web.Extensions;
 using GlowBook.Web.Models;
 using GlowBook.Web.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,14 @@ builder.Services.AddScoped<SubscriptionService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddHttpClient<YooKassaService>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Railway / reverse proxies; trust edge headers so OAuth redirect_uri stays https://
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -68,6 +77,8 @@ app.Logger.LogInformation("Database provider: {Provider}; connection: {Connectio
     DatabaseConnectionResolver.Redact(db.ConnectionString));
 
 await DbInitializer.InitializeAsync(app.Services, dataDir);
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {

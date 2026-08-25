@@ -15,22 +15,23 @@ dotnet run
 
 Профиль мастера (карточка как в Telegram, аватар, редактирование): `/profile`
 
-## Авторизация (Google / Mail.ru / VK ID / Telegram)
+## Авторизация (сейчас: Mail.ru)
 
-Ключи храни в `appsettings.Development.json` или User Secrets:
+Ключи Mail.ru лежат в `appsettings.json` / `appsettings.Production.json` / `appsettings.Development.json`.
 
-```bash
-dotnet user-secrets set "Authentication:Google:ClientId" "..."
-dotnet user-secrets set "Authentication:Google:ClientSecret" "..."
-dotnet user-secrets set "Authentication:MailRu:ClientId" "..."
-dotnet user-secrets set "Authentication:MailRu:ClientSecret" "..."
-dotnet user-secrets set "Authentication:VkId:ClientId" "..."
-dotnet user-secrets set "Authentication:VkId:ClientSecret" "..."
-dotnet user-secrets set "Authentication:Telegram:BotToken" "..."
-dotnet user-secrets set "Authentication:Telegram:BotUsername" "your_bot_name"
-```
+В кабинете приложения на [o2.mail.ru](https://o2.mail.ru/) redirect URI должен **точно** совпасть (схема, хост, порт, путь, без лишнего `/` в конце):
 
-**VK ID:** создай приложение на [id.vk.com](https://id.vk.com/about/business), укажи Redirect URI `https://ВАШ-ДОМЕН/signin-vkid` (локально: `https://localhost:ПОРТ/signin-vkid`). В конфиг клади **App ID** → `ClientId` и **Защищённый ключ** → `ClientSecret` (не путать с сервисным ключом).
+| Где | Redirect URI |
+|-----|----------------|
+| Локально (профиль `https`) | `https://localhost:7159/signin-mailru` |
+| Локально (профиль `http`) | `http://localhost:5107/signin-mailru` |
+| Railway / прод | `https://ВАШ-ДОМЕН.up.railway.app/signin-mailru` |
+
+Можно указать несколько URI в приложении Mail.ru — и localhost, и прод.
+
+Ошибка `bad redirect_uri` = URI в запросе ≠ URI в кабинете Mail.ru (не из‑за «локали само по себе»).
+
+Google / VK ID / Telegram пока выключены (пустые ключи + скрыты на логине).
 
 ## Клинический кабинет (как CosmoCare)
 

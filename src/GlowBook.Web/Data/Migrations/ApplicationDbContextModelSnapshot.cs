@@ -131,6 +131,10 @@ namespace GlowBook.Web.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Allergies")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -153,11 +157,119 @@ namespace GlowBook.Web.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SkinConcerns")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MasterProfileId", "Phone");
 
                     b.ToTable("Clients");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.ClientPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("TakenAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterProfileId");
+
+                    b.HasIndex("ClientId", "TakenAt");
+
+                    b.ToTable("ClientPhotos");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.HomeCarePrescription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Instructions")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("PrescribedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Products")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterProfileId");
+
+                    b.HasIndex("ClientId", "PrescribedAt");
+
+                    b.ToTable("HomeCarePrescriptions");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterAvatar", b =>
+                {
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("MasterProfileId");
+
+                    b.ToTable("MasterAvatars");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterProfile", b =>
@@ -213,25 +325,6 @@ namespace GlowBook.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MasterProfiles");
-                });
-
-            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterAvatar", b =>
-                {
-                    b.Property<int>("MasterProfileId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
-
-                    b.HasKey("MasterProfileId");
-
-                    b.ToTable("MasterAvatars");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.PaymentOrder", b =>
@@ -347,6 +440,62 @@ namespace GlowBook.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Subscriptions");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.TreatmentRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AppointmentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EquipmentUsed")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProcedureName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductsUsed")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ServiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("MasterProfileId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("ClientId", "PerformedAt");
+
+                    b.ToTable("TreatmentRecords");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.WorkingHour", b =>
@@ -548,6 +697,44 @@ namespace GlowBook.Web.Data.Migrations
                     b.Navigation("MasterProfile");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.ClientPhoto", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.Client", "Client")
+                        .WithMany("Photos")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany()
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("MasterProfile");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.HomeCarePrescription", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.Client", "Client")
+                        .WithMany("HomeCarePrescriptions")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany()
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("MasterProfile");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterAvatar", b =>
                 {
                     b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
@@ -601,6 +788,39 @@ namespace GlowBook.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("MasterProfile");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.TreatmentRecord", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GlowBook.Web.Models.Entities.Client", "Client")
+                        .WithMany("TreatmentRecords")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany()
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GlowBook.Web.Models.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("MasterProfile");
+
+                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.WorkingHour", b =>
@@ -673,6 +893,12 @@ namespace GlowBook.Web.Data.Migrations
             modelBuilder.Entity("GlowBook.Web.Models.Entities.Client", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("HomeCarePrescriptions");
+
+                    b.Navigation("Photos");
+
+                    b.Navigation("TreatmentRecords");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterProfile", b =>

@@ -6,3 +6,25 @@ obj/
 *.db-wal
 .vs/
 .idea/
+
+# Local JDK / Android SDK caches (never commit)
+.jdk/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.cxx/
+*.apk
+*.aab
+*.keystore
+
+# Build / agent junk logs
+_*.txt
+_*.log
+*.log
+
+# Secrets / local env
+*.env
+railway-postgres.env
+appsettings.Production.json
+appsettings.*.local.json

@@ -1,6 +1,6 @@
 ﻿# GlowBook
 
-CRM для косметологов на **ASP.NET Core 8 + SQLite**.
+CRM для косметологов на **ASP.NET Core 8**. Локально — **SQLite**, на Railway — **PostgreSQL**.
 
 ## Запуск
 
@@ -9,11 +9,13 @@ cd src/GlowBook.Web
 dotnet run
 ```
 
+Локально используется SQLite (`Data/glowbook.db`). В Production / при `DATABASE_URL` — Postgres.
+
 Страницы входа: `/auth/login`, регистрация: `/auth/register`
 
 Профиль мастера (карточка как в Telegram, аватар, редактирование): `/profile`
 
-## Авторизация (Google / Mail.ru / Telegram)
+## Авторизация (Google / Mail.ru / VK ID / Telegram)
 
 Ключи храни в `appsettings.Development.json` или User Secrets:
 
@@ -22,9 +24,20 @@ dotnet user-secrets set "Authentication:Google:ClientId" "..."
 dotnet user-secrets set "Authentication:Google:ClientSecret" "..."
 dotnet user-secrets set "Authentication:MailRu:ClientId" "..."
 dotnet user-secrets set "Authentication:MailRu:ClientSecret" "..."
+dotnet user-secrets set "Authentication:VkId:ClientId" "..."
+dotnet user-secrets set "Authentication:VkId:ClientSecret" "..."
 dotnet user-secrets set "Authentication:Telegram:BotToken" "..."
 dotnet user-secrets set "Authentication:Telegram:BotUsername" "your_bot_name"
 ```
+
+**VK ID:** создай приложение на [id.vk.com](https://id.vk.com/about/business), укажи Redirect URI `https://ВАШ-ДОМЕН/signin-vkid` (локально: `https://localhost:ПОРТ/signin-vkid`). В конфиг клади **App ID** → `ClientId` и **Защищённый ключ** → `ClientSecret` (не путать с сервисным ключом).
+
+## Клинический кабинет (как CosmoCare)
+
+- **Клиенты** — досье: аллергии, проблемы кожи, заметки, быстрый поиск
+- **Карточка клиента** — история процедур (препараты/аппарат), фото до/после, домашний уход
+- **Календарь** — недельный обзор записей, быстрый статус «Готово»
+- **Обзор** — выручка за день и месяц (завершённые записи + процедуры с ценой)
 
 ## Premium + ЮKassa (500 ₽/мес)
 
@@ -56,54 +69,30 @@ dotnet user-secrets set "YooKassa:SecretKey" "..."
 
 | Платформа | Плюсы | Минус |
 |-----------|-------|-------|
-| **Fly.io** | Docker, persistent volume для SQLite, не засыпает | Нужна карта для регистрации |
-| **Railway** | Простой деплой .NET, volume для БД | Лимит free credits |
+| **Railway** | Простой деплой .NET, Postgres | Usage credits |
 | **Render** | Бесплатный web service | Засыпает через ~15 мин без трафика |
 | **Timeweb / Beget VPS** | РФ, рубли, полный контроль | Платно, настраивать самому |
 
-SQLite = один файл `glowbook.db`. На сервере он должен лежать на **persistent disk** (volume), иначе при перезапуске/деплое контейнера данные пропадут.
+### Railway + PostgreSQL (текущий прод)
 
-### Railway: почему данные затираются и куда класть БД
+Креды лежат в репо: [`railway-postgres.env`](railway-postgres.env) и [`src/GlowBook.Web/appsettings.Production.json`](src/GlowBook.Web/appsettings.Production.json).
 
-На Railway контейнер **эфемерный**: каждый деплой собирает новый образ, локальный диск сбрасывается. Файл SQLite внутри `/app` поэтому исчезает.
+**Привязать web-сервис `glowbook` к БД:**
 
-**Что сделать (обязательно):**
-
-1. В проекте Railway открой сервис GlowBook → **Settings → Volumes → Add Volume**.
-2. Mount path укажи `/data` (или любой путь — Railway сам проставит `RAILWAY_VOLUME_MOUNT_PATH`).
-3. Размер: **1 GB** достаточно.
-4. Задеплой ещё раз.
-
-Приложение само кладёт `glowbook.db` на volume:
-- если есть `RAILWAY_VOLUME_MOUNT_PATH` (после добавления volume) — туда;
-- иначе если существует `/data` — туда;
-- иначе `DATA_DIR` из переменных окружения;
-- локально — `src/GlowBook.Web/Data/glowbook.db`.
-
-Можно явно задать переменную:
+1. Открой сервис **glowbook** → **Variables** → **+ New Variable**.
+2. Добавь reference (сервис БД называется **Postgres**):
 
 ```
-DATA_DIR=/data
+DATABASE_URL=${{Postgres.DATABASE_URL}}
 ```
 
-После этого клиенты, записи, аккаунты и аватары переживают деплой.
+Хост: `postgres.railway.internal`. Полный набор переменных — в [`railway-postgres.env`](railway-postgres.env).
 
-**Важно:** volume не восстанавливает уже потерянные данные — только защищает новые. Сделай volume до того, как снова заведёшь мастеров.
+3. Redeploy `glowbook`. При старте `MigrateAsync()` создаст таблицы в Postgres.
 
-**Надёжнее на проде:** Railway **PostgreSQL** (отдельный плагин) + строка `ConnectionStrings__DefaultConnection`. SQLite + volume проще и нормально для старта; Postgres лучше, если будет несколько инстансов или хочется бэкапы из коробки.
+Данные из старого SQLite на volume **сами не переносятся** — Postgres стартует пустым (аккаунты/клиенты заводишь заново). Volume `glowbook-volume` для SQLite после перехода можно удалить.
 
-### Деплой на Fly.io (кратко)
-
-```bash
-cd C:\Users\timofey\RiderProjects\GlowBook
-fly launch
-fly volumes create glowbook_data --size 1 --region ams
-# в fly.toml: mount source=glowbook_data, destination=/app/Data
-fly secrets set YooKassa__ShopId=... YooKassa__SecretKey=...
-fly deploy
-```
-
-Dockerfile уже есть — БД монтируется в `/app/Data`.
+**С другого ПК / снаружи Railway:** во внутренний `postgres.railway.internal` не попасть. В сервисе Postgres → **Settings → Networking → TCP Proxy** → бери `DATABASE_PUBLIC_URL` и подставляй в `ConnectionStrings:DefaultConnection`.
 
 ## Дальше
 - MAUI/Capacitor WebView-приложение

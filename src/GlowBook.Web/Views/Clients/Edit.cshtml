@@ -1,0 +1,16 @@
+@model Client
+@{ ViewData["Title"] = "Редактировать клиента"; }
+<div class="panel" style="max-width:560px">
+    <h2 class="h5 fw-bold mb-3">Редактировать клиента</h2>
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+        <div class="mb-3"><label asp-for="Allergies" class="form-label"></label><textarea asp-for="Allergies" class="form-control" rows="2" placeholder="Например: лидокаин, йод"></textarea></div>
+        <div class="mb-3"><label asp-for="SkinConcerns" class="form-label"></label><textarea asp-for="SkinConcerns" class="form-control" rows="2" placeholder="Акне, пигментация, обезвоженность…"></textarea></div>
+        <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>
+        <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-gb-outline ms-2">Отмена</a>
+    </form>
+</div>

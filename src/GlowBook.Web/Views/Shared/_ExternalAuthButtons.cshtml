@@ -30,6 +30,15 @@
         <button type="submit" class="btn btn-auth btn-auth-mailru w-100">Продолжить с Mail.ru</button>
     </form>
 }
+@if (Model.VkId)
+{
+    <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
+        <input type="hidden" name="provider" value="VkId" />
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-auth btn-auth-vk w-100">Продолжить с VK ID</button>
+    </form>
+}
 @if (authUrl != null)
 {
     <div class="telegram-wrap d-flex justify-content-center py-1">
@@ -40,7 +49,7 @@
                 data-request-access="write"></script>
     </div>
 }
-@if (!Model.Google && !Model.MailRu && !Model.Telegram)
+@if (!Model.Google && !Model.MailRu && !Model.VkId && !Model.Telegram)
 {
     <p class="small text-muted mb-0">OAuth-провайдеры не настроены. Добавьте ключи в User Secrets или appsettings.Development.json</p>
 }

@@ -8,12 +8,16 @@
         <h2 class="h4 fw-bold mb-0">Сегодня</h2>
         <div class="text-muted small">@DateTime.Today.ToString("dddd, d MMMM")</div>
     </div>
-    <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">Новая запись</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-gb-outline btn-sm" asp-controller="Appointments" asp-action="Calendar">Календарь</a>
+        <a class="btn btn-gb-primary btn-sm" asp-controller="Appointments" asp-action="Create">Новая запись</a>
+    </div>
 </div>
 <div class="row g-3 mb-4">
-    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.TodayCount</div><div class="stat-label">Записей сегодня</div></div></div>
-    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.ClientsCount</div><div class="stat-label">Клиентов</div></div></div>
-    <div class="col-md-4"><div class="stat-card"><div class="stat-value">@ViewBag.ServicesCount</div><div class="stat-label">Активных услуг</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@ViewBag.TodayCount</div><div class="stat-label">Записей сегодня</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@(((decimal)ViewBag.RevenueToday).ToString("N0")) ₽</div><div class="stat-label">Выручка сегодня</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@(((decimal)ViewBag.RevenueMonth).ToString("N0")) ₽</div><div class="stat-label">Выручка за месяц</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@ViewBag.ClientsCount</div><div class="stat-label">Клиентов</div></div></div>
 </div>
 @if (ViewBag.IsPremium == true && ViewBag.BookingUrl != null)
 {
@@ -42,7 +46,12 @@
                 {
                     <tr>
                         <td class="fw-semibold">@a.StartsAt.ToString("HH:mm")</td>
-                        <td>@a.Client?.Name</td>
+                        <td>
+                            @if (a.Client != null)
+                            {
+                                <a asp-controller="Clients" asp-action="Details" asp-route-id="@a.ClientId">@a.Client.Name</a>
+                            }
+                        </td>
                         <td>@a.Service?.Name</td>
                         <td><span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span></td>
                     </tr>

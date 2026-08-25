@@ -5,7 +5,7 @@
     <a class="btn btn-gb-primary btn-sm" asp-action="Create">Новый клиент</a>
 </div>
 <form method="get" class="mb-3 search-box">
-    <input class="form-control" name="q" value="@ViewBag.Query" placeholder="Поиск по имени или телефону" />
+    <input class="form-control" name="q" value="@ViewBag.Query" placeholder="Поиск по имени, телефону, аллергиям…" />
 </form>
 <div class="panel">
     @if (!Model.Any())
@@ -20,15 +20,15 @@
     {
         <div class="table-responsive">
             <table class="table table-gb mb-0">
-                <thead><tr><th>Имя</th><th>Телефон</th><th>Email</th><th>Заметки</th></tr></thead>
+                <thead><tr><th>Имя</th><th>Телефон</th><th>Проблемы кожи</th><th>Аллергии</th></tr></thead>
                 <tbody>
                 @foreach (var c in Model)
                 {
-                    <tr>
-                        <td class="fw-semibold">@c.Name</td>
+                    <tr class="client-row" onclick="location.href='@Url.Action("Details", new { id = c.Id })'" style="cursor:pointer">
+                        <td class="fw-semibold"><a asp-action="Details" asp-route-id="@c.Id" class="text-decoration-none text-dark">@c.Name</a></td>
                         <td>@c.Phone</td>
-                        <td>@c.Email</td>
-                        <td class="text-muted">@c.Notes</td>
+                        <td class="text-muted small">@(c.SkinConcerns ?? "—")</td>
+                        <td class="text-muted small">@(c.Allergies ?? "—")</td>
                     </tr>
                 }
                 </tbody>

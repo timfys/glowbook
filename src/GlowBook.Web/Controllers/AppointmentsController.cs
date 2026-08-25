@@ -1,4 +1,5 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Models.Enums;
 using GlowBook.Web.Services;
@@ -7,7 +8,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using GlowBook.Web.Models;
 
 namespace GlowBook.Web.Controllers;
 
@@ -38,6 +38,29 @@ public class AppointmentsController : Controller
             .Take(100)
             .ToListAsync();
 
+        return View(items);
+    }
+
+    public async Task<IActionResult> Calendar(DateTime? week)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var anchor = week?.Date ?? DateTime.Today;
+        var start = StartOfWeek(anchor);
+        var end = start.AddDays(7);
+
+        var items = await _db.Appointments
+            .Include(a => a.Client)
+            .Include(a => a.Service)
+            .Where(a => a.MasterProfileId == profile.Id && a.StartsAt >= start && a.StartsAt < end)
+            .OrderBy(a => a.StartsAt)
+            .ToListAsync();
+
+        ViewBag.WeekStart = start;
+        ViewBag.PrevWeek = start.AddDays(-7);
+        ViewBag.NextWeek = start.AddDays(7);
+        ViewBag.Days = Enumerable.Range(0, 7).Select(i => start.AddDays(i)).ToList();
         return View(items);
     }
 
@@ -74,6 +97,26 @@ public class AppointmentsController : Controller
         model.CreatedAt = DateTime.UtcNow;
         _db.Appointments.Add(model);
         await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Calendar));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetStatus(int id, AppointmentStatus status, string? returnUrl = null)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
+        if (appointment == null) return NotFound();
+
+        appointment.Status = status;
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -87,5 +130,11 @@ public class AppointmentsController : Controller
     {
         var user = await _users.GetUserAsync(User);
         return user == null ? null : await _profiles.EnsureForUserAsync(user);
+    }
+
+    private static DateTime StartOfWeek(DateTime date)
+    {
+        var diff = ((int)date.DayOfWeek + 6) % 7; // Monday = 0
+        return date.Date.AddDays(-diff);
     }
 }

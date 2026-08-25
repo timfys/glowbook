@@ -20,7 +20,12 @@
         <div class="tg-card-avatar-wrap">
             @if (Model.HasAvatar)
             {
-                <img class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+                <button type="button"
+                        class="tg-card-avatar-btn"
+                        data-avatar-zoom="@avatarUrl"
+                        aria-label="Открыть фото крупнее">
+                    <img class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+                </button>
             }
             else
             {

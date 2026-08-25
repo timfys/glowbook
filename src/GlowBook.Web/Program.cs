@@ -17,10 +17,15 @@ var builder = WebApplication.CreateBuilder(args);
 var dataDir = ResolveDataDirectory(builder);
 Directory.CreateDirectory(dataDir);
 
-var connectionString = ResolveSqliteConnection(builder.Configuration, dataDir);
+var db = DatabaseConnectionResolver.Resolve(builder.Configuration, dataDir);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
+{
+    if (db.Provider == DatabaseProviderKind.Postgres)
+        options.UseNpgsql(db.ConnectionString);
+    else
+        options.UseSqlite(db.ConnectionString);
+});
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
@@ -55,7 +60,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
-app.Logger.LogInformation("SQLite: {ConnectionString}", connectionString);
+app.Logger.LogInformation("Database provider: {Provider}; connection: {ConnectionString}",
+    db.Provider,
+    DatabaseConnectionResolver.Redact(db.ConnectionString));
 
 await DbInitializer.InitializeAsync(app.Services);
 
@@ -94,19 +101,4 @@ static string ResolveDataDirectory(WebApplicationBuilder builder)
         return "/data";
 
     return Path.Combine(builder.Environment.ContentRootPath, "Data");
-}
-
-static string ResolveSqliteConnection(IConfiguration configuration, string dataDir)
-{
-    var connectionString = configuration.GetConnectionString("DefaultConnection");
-    var dbPath = Path.Combine(dataDir, "glowbook.db");
-
-    if (string.IsNullOrWhiteSpace(connectionString))
-        return $"Data Source={dbPath}";
-
-    if (connectionString.Contains("Data/glowbook.db", StringComparison.OrdinalIgnoreCase)
-        || connectionString.Contains(@"Data\glowbook.db", StringComparison.OrdinalIgnoreCase))
-        return $"Data Source={dbPath}";
-
-    return connectionString;
 }

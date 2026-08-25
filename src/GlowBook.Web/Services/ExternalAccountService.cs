@@ -42,8 +42,12 @@ public class ExternalAccountService
         }
 
         var email = loginInfo.Principal.FindFirstValue(ClaimTypes.Email);
-        var name = loginInfo.Principal.FindFirstValue(ClaimTypes.Name)
-            ?? loginInfo.Principal.FindFirstValue("given_name");
+        var given = loginInfo.Principal.FindFirstValue(ClaimTypes.GivenName);
+        var surname = loginInfo.Principal.FindFirstValue(ClaimTypes.Surname);
+        var composed = $"{given} {surname}".Trim();
+        var name = loginInfo.Principal.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(composed))
+            name = composed;
 
         ApplicationUser? user = null;
         if (!string.IsNullOrWhiteSpace(email))

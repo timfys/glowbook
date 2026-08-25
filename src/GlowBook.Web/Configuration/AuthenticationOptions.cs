@@ -6,6 +6,7 @@ public class ExternalAuthSettings
 
     public OAuthProviderOptions Google { get; set; } = new();
     public OAuthProviderOptions MailRu { get; set; } = new();
+    public OAuthProviderOptions VkId { get; set; } = new();
     public TelegramOptions Telegram { get; set; } = new();
 }
 

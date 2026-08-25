@@ -1,0 +1,201 @@
+@model GlowBook.Web.Models.Clients.ClientDetailsViewModel
+@{
+    ViewData["Title"] = Model.Client.Name;
+    var treatmentForm = new GlowBook.Web.Models.Clients.TreatmentFormModel { ClientId = Model.Client.Id };
+    var photoForm = new GlowBook.Web.Models.Clients.PhotoUploadModel { ClientId = Model.Client.Id };
+    var homeCareForm = new GlowBook.Web.Models.Clients.HomeCareFormModel { ClientId = Model.Client.Id };
+}
+
+<div class="page-head">
+    <div>
+        <a asp-action="Index" class="small text-muted text-decoration-none">← Клиенты</a>
+        <h2 class="h4 fw-bold mb-0 mt-1">@Model.Client.Name</h2>
+        <div class="text-muted small">@Model.Client.Phone @if (!string.IsNullOrWhiteSpace(Model.Client.Email)) { <span>· @Model.Client.Email</span> }</div>
+    </div>
+    <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@Model.Client.Id">Редактировать</a>
+</div>
+
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="panel h-100">
+            <div class="fw-semibold mb-2">Досье</div>
+            <dl class="row mb-0 small dossier-dl">
+                <dt class="col-4 text-muted">Аллергии</dt>
+                <dd class="col-8">@(string.IsNullOrWhiteSpace(Model.Client.Allergies) ? "—" : Model.Client.Allergies)</dd>
+                <dt class="col-4 text-muted">Проблемы кожи</dt>
+                <dd class="col-8">@(string.IsNullOrWhiteSpace(Model.Client.SkinConcerns) ? "—" : Model.Client.SkinConcerns)</dd>
+                <dt class="col-4 text-muted">Заметки</dt>
+                <dd class="col-8">@(string.IsNullOrWhiteSpace(Model.Client.Notes) ? "—" : Model.Client.Notes)</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel h-100">
+            <div class="fw-semibold mb-2">Последние записи</div>
+            @if (!Model.Appointments.Any())
+            {
+                <p class="text-muted small mb-0">Записей пока нет</p>
+            }
+            else
+            {
+                <ul class="list-unstyled mb-0 small">
+                @foreach (var a in Model.Appointments.Take(5))
+                {
+                    <li class="d-flex justify-content-between gap-2 py-1 border-bottom border-light">
+                        <span>@a.StartsAt.ToString("dd.MM HH:mm") · @a.Service?.Name</span>
+                        <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
+                    </li>
+                }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="panel mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-semibold">История процедур</div>
+    </div>
+    @if (!Model.Treatments.Any())
+    {
+        <p class="text-muted small">Пока нет зафиксированных процедур</p>
+    }
+    else
+    {
+        <div class="table-responsive mb-3">
+            <table class="table table-gb mb-0">
+                <thead><tr><th>Дата</th><th>Процедура</th><th>Препараты / аппарат</th><th>Цена</th><th>Заметки</th></tr></thead>
+                <tbody>
+                @foreach (var t in Model.Treatments)
+                {
+                    <tr>
+                        <td>@t.PerformedAt.ToString("dd.MM.yyyy")</td>
+                        <td class="fw-semibold">@(t.ProcedureName ?? t.Service?.Name ?? "Процедура")</td>
+                        <td class="small text-muted">
+                            @t.ProductsUsed
+                            @if (!string.IsNullOrWhiteSpace(t.EquipmentUsed)) { <span>· @t.EquipmentUsed</span> }
+                        </td>
+                        <td>@(t.Price.HasValue ? $"{t.Price:N0} ₽" : "—")</td>
+                        <td class="small">@t.Notes</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <form asp-action="AddTreatment" method="post" class="border-top pt-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ClientId" value="@Model.Client.Id" />
+        <div class="fw-semibold mb-2">Добавить процедуру</div>
+        <div class="row g-2">
+            <div class="col-md-3"><label class="form-label small">Дата</label><input class="form-control" type="datetime-local" name="PerformedAt" value="@treatmentForm.PerformedAt.ToString("yyyy-MM-ddTHH:mm")" required /></div>
+            <div class="col-md-3"><label class="form-label small">Услуга</label><select class="form-select" name="ServiceId" asp-items="ViewBag.Services"><option value="">— своя —</option></select></div>
+            <div class="col-md-3"><label class="form-label small">Название</label><input class="form-control" name="ProcedureName" placeholder="Если без услуги" /></div>
+            <div class="col-md-3"><label class="form-label small">Стоимость</label><input class="form-control" type="number" step="1" min="0" name="Price" /></div>
+            <div class="col-md-4"><label class="form-label small">Препараты</label><input class="form-control" name="ProductsUsed" /></div>
+            <div class="col-md-4"><label class="form-label small">Аппарат</label><input class="form-control" name="EquipmentUsed" /></div>
+            <div class="col-md-4"><label class="form-label small">Заметки</label><input class="form-control" name="Notes" /></div>
+        </div>
+        <button type="submit" class="btn btn-gb-primary btn-sm mt-3">Сохранить процедуру</button>
+    </form>
+</div>
+
+<div class="panel mb-4">
+    <div class="fw-semibold mb-3">Фото до / после</div>
+    @if (!Model.Photos.Any())
+    {
+        <p class="text-muted small">Фотографий пока нет</p>
+    }
+    else
+    {
+        <div class="photo-grid mb-3">
+        @foreach (var p in Model.Photos)
+        {
+            <figure class="photo-card">
+                <img src="@Url.Action("Photo", new { id = p.Id })" alt="@p.Kind.DisplayName()" />
+                <figcaption>
+                    <span class="badge @(p.Kind == PhotoKind.Before ? "bg-secondary" : "bg-success")">@p.Kind.DisplayName()</span>
+                    <span class="small text-muted">@p.TakenAt.ToString("dd.MM.yyyy")</span>
+                    @if (!string.IsNullOrWhiteSpace(p.Caption)) { <div class="small">@p.Caption</div> }
+                    <form asp-action="DeletePhoto" method="post" class="mt-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <input type="hidden" name="clientId" value="@Model.Client.Id" />
+                        <button type="submit" class="btn btn-link btn-sm text-danger p-0">Удалить</button>
+                    </form>
+                </figcaption>
+            </figure>
+        }
+        </div>
+    }
+
+    <form asp-action="AddPhoto" method="post" enctype="multipart/form-data" class="border-top pt-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ClientId" value="@Model.Client.Id" />
+        <div class="fw-semibold mb-2">Загрузить фото</div>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small">Тип</label>
+                <select class="form-select" name="Kind">
+                    <option value="0">До</option>
+                    <option value="1">После</option>
+                </select>
+            </div>
+            <div class="col-md-3"><label class="form-label small">Файл</label><input class="form-control" type="file" name="File" accept="image/*" required /></div>
+            <div class="col-md-2"><label class="form-label small">Дата</label><input class="form-control" type="date" name="TakenAt" value="@photoForm.TakenAt.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-3"><label class="form-label small">Подпись</label><input class="form-control" name="Caption" /></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-gb-primary w-100">Загрузить</button></div>
+        </div>
+    </form>
+</div>
+
+<div class="panel mb-4">
+    <div class="fw-semibold mb-3">Домашний уход</div>
+    @if (!Model.HomeCare.Any())
+    {
+        <p class="text-muted small">Назначений пока нет</p>
+    }
+    else
+    {
+        <div class="vstack gap-2 mb-3">
+        @foreach (var h in Model.HomeCare)
+        {
+            <div class="home-care-item @(h.IsActive ? "" : "is-inactive")">
+                <div class="d-flex justify-content-between gap-2">
+                    <div>
+                        <div class="fw-semibold">@h.Title</div>
+                        <div class="small text-muted">@h.PrescribedAt.ToString("dd.MM.yyyy") @(h.IsActive ? "" : "· архив")</div>
+                        @if (!string.IsNullOrWhiteSpace(h.Products)) { <div class="small mt-1"><strong>Средства:</strong> @h.Products</div> }
+                        @if (!string.IsNullOrWhiteSpace(h.Instructions)) { <div class="small mt-1">@h.Instructions</div> }
+                    </div>
+                    <form asp-action="ToggleHomeCare" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@h.Id" />
+                        <input type="hidden" name="clientId" value="@Model.Client.Id" />
+                        <button type="submit" class="btn btn-gb-outline btn-sm">@(h.IsActive ? "В архив" : "Активировать")</button>
+                    </form>
+                </div>
+            </div>
+        }
+        </div>
+    }
+
+    <form asp-action="AddHomeCare" method="post" class="border-top pt-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ClientId" value="@Model.Client.Id" />
+        <div class="fw-semibold mb-2">Назначить уход</div>
+        <div class="row g-2">
+            <div class="col-md-4"><label class="form-label small">Название</label><input class="form-control" name="Title" required /></div>
+            <div class="col-md-3"><label class="form-label small">Дата</label><input class="form-control" type="date" name="PrescribedAt" value="@homeCareForm.PrescribedAt.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-5"><label class="form-label small">Средства</label><input class="form-control" name="Products" /></div>
+            <div class="col-12"><label class="form-label small">Инструкции</label><textarea class="form-control" name="Instructions" rows="2"></textarea></div>
+        </div>
+        <button type="submit" class="btn btn-gb-primary btn-sm mt-3">Сохранить назначение</button>
+    </form>
+</div>

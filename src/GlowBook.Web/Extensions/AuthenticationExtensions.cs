@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using AspNet.Security.OAuth.VkId;
 using GlowBook.Web.Configuration;
 
 namespace GlowBook.Web.Extensions;
@@ -46,6 +47,29 @@ public static class AuthenticationExtensions
                         context.Identity?.AddClaim(new Claim(ClaimTypes.Email, email.GetString() ?? string.Empty));
                     if (context.User.TryGetProperty("name", out var name))
                         context.Identity?.AddClaim(new Claim(ClaimTypes.Name, name.GetString() ?? string.Empty));
+                    return Task.CompletedTask;
+                };
+            });
+        }
+
+        if (authOptions.VkId.IsConfigured)
+        {
+            authBuilder.AddVkId(AuthProviders.VkId, "VK ID", options =>
+            {
+                options.ClientId = authOptions.VkId.ClientId!;
+                options.ClientSecret = authOptions.VkId.ClientSecret!;
+                options.SaveTokens = true;
+                options.Events.OnCreatingTicket = context =>
+                {
+                    var given = context.Identity?.FindFirst(ClaimTypes.GivenName)?.Value;
+                    var surname = context.Identity?.FindFirst(ClaimTypes.Surname)?.Value;
+                    var fullName = $"{given} {surname}".Trim();
+                    if (!string.IsNullOrWhiteSpace(fullName)
+                        && context.Identity?.FindFirst(ClaimTypes.Name) == null)
+                    {
+                        context.Identity?.AddClaim(new Claim(ClaimTypes.Name, fullName));
+                    }
+
                     return Task.CompletedTask;
                 };
             });

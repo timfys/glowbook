@@ -2,7 +2,10 @@
 @{ ViewData["Title"] = "Записи"; }
 <div class="page-head">
     <h2 class="h4 fw-bold mb-0">Записи</h2>
-    <a class="btn btn-gb-primary btn-sm" asp-action="Create">Новая запись</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-gb-outline btn-sm" asp-action="Calendar">Календарь</a>
+        <a class="btn btn-gb-primary btn-sm" asp-action="Create">Новая запись</a>
+    </div>
 </div>
 <div class="panel">
     @if (!Model.Any())
@@ -17,15 +20,31 @@
     {
         <div class="table-responsive">
             <table class="table table-gb mb-0">
-                <thead><tr><th>Дата</th><th>Клиент</th><th>Услуга</th><th>Статус</th></tr></thead>
+                <thead><tr><th>Дата</th><th>Клиент</th><th>Услуга</th><th>Статус</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var a in Model)
                 {
                     <tr>
                         <td>@a.StartsAt.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@a.Client?.Name</td>
+                        <td>
+                            @if (a.Client != null)
+                            {
+                                <a asp-controller="Clients" asp-action="Details" asp-route-id="@a.ClientId">@a.Client.Name</a>
+                            }
+                        </td>
                         <td>@a.Service?.Name</td>
                         <td><span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span></td>
+                        <td class="text-end">
+                            @if (a.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
+                            {
+                                <form asp-action="SetStatus" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@a.Id" />
+                                    <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                    <button type="submit" class="btn btn-link btn-sm">Завершить</button>
+                                </form>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>

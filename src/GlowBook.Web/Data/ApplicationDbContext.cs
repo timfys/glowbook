@@ -20,6 +20,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<WorkingHour> WorkingHours => Set<WorkingHour>();
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
     public DbSet<MasterAvatar> MasterAvatars => Set<MasterAvatar>();
+    public DbSet<TreatmentRecord> TreatmentRecords => Set<TreatmentRecord>();
+    public DbSet<ClientPhoto> ClientPhotos => Set<ClientPhoto>();
+    public DbSet<HomeCarePrescription> HomeCarePrescriptions => Set<HomeCarePrescription>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -48,6 +51,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.Property(x => x.Name).HasMaxLength(200);
             e.Property(x => x.Phone).HasMaxLength(30);
+            e.Property(x => x.Allergies).HasMaxLength(1000);
+            e.Property(x => x.SkinConcerns).HasMaxLength(1000);
             e.HasIndex(x => new { x.MasterProfileId, x.Phone });
         });
 
@@ -62,6 +67,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => new { x.MasterProfileId, x.StartsAt });
             e.HasOne(x => x.Client).WithMany(x => x.Appointments).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Service).WithMany(x => x.Appointments).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<TreatmentRecord>(e =>
+        {
+            e.Property(x => x.ProcedureName).HasMaxLength(200);
+            e.Property(x => x.ProductsUsed).HasMaxLength(1000);
+            e.Property(x => x.EquipmentUsed).HasMaxLength(500);
+            e.Property(x => x.Price).HasPrecision(10, 2);
+            e.HasIndex(x => new { x.ClientId, x.PerformedAt });
+            e.HasOne(x => x.Client).WithMany(x => x.TreatmentRecords).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Service).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Appointment).WithMany().OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ClientPhoto>(e =>
+        {
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.Property(x => x.Caption).HasMaxLength(300);
+            e.HasIndex(x => new { x.ClientId, x.TakenAt });
+            e.HasOne(x => x.Client).WithMany(x => x.Photos).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HomeCarePrescription>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.Products).HasMaxLength(1000);
+            e.HasIndex(x => new { x.ClientId, x.PrescribedAt });
+            e.HasOne(x => x.Client).WithMany(x => x.HomeCarePrescriptions).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Subscription>(e =>

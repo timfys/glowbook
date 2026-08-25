@@ -166,6 +166,7 @@ public class AuthController : Controller
     {
         Google = _authSettings.Google.IsConfigured,
         MailRu = _authSettings.MailRu.IsConfigured,
+        VkId = _authSettings.VkId.IsConfigured,
         Telegram = _authSettings.Telegram.IsConfigured,
         TelegramBotUsername = _authSettings.Telegram.BotUsername
     };

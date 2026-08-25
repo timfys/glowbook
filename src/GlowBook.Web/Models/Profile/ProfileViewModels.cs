@@ -81,6 +81,7 @@ public class ProfileEditViewModel
 
     public IFormFile? Avatar { get; set; }
 
+    [Display(Name = "Удалить фото")]
     public bool RemoveAvatar { get; set; }
 
     public bool HasAvatar { get; set; }

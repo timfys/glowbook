@@ -437,6 +437,8 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
 .btn-auth-google:hover { background: #f8f9fa; color: #202124; }
 .btn-auth-mailru { background: #005ff9; color: #fff; border-color: #005ff9; }
 .btn-auth-mailru:hover { background: #0050d4; color: #fff; }
+.btn-auth-vk { background: #0077ff; color: #fff; border-color: #0077ff; }
+.btn-auth-vk:hover { background: #0066dd; color: #fff; }
 .telegram-wrap { min-height: 46px; }
 
 .gb-avatar {
@@ -512,6 +514,20 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     box-shadow: 0 10px 24px rgba(31, 22, 48, 0.16);
 }
 
+.tg-card-avatar-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 50%;
+    cursor: zoom-in;
+    line-height: 0;
+}
+
+.tg-card-avatar-btn:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--gb-primary) 55%, transparent);
+    outline-offset: 2px;
+}
+
 .tg-card-avatar-fallback {
     display: inline-flex;
     align-items: center;
@@ -520,6 +536,47 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     color: #fff;
     font-weight: 800;
     font-size: 2rem;
+}
+
+.avatar-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(16, 12, 24, 0.72);
+    backdrop-filter: blur(6px);
+}
+
+.avatar-lightbox.is-open {
+    display: flex;
+}
+
+.avatar-lightbox img {
+    max-width: min(92vw, 520px);
+    max-height: min(82vh, 520px);
+    width: auto;
+    height: auto;
+    border-radius: 18px;
+    object-fit: cover;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.avatar-lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1f1630;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .tg-card-body { padding: 0.85rem 1.4rem 1.5rem; }
@@ -571,3 +628,74 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
 }
 
 .search-box { max-width: 360px; }
+
+.dossier-dl dt { font-weight: 500; }
+.dossier-dl dd { margin-bottom: .65rem; }
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+}
+.photo-card {
+    margin: 0;
+    background: #fcfafd;
+    border: 1px solid var(--gb-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.photo-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+}
+.photo-card figcaption { padding: .65rem .75rem .8rem; }
+
+.home-care-item {
+    border: 1px solid var(--gb-border);
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    background: #fff;
+}
+.home-care-item.is-inactive { opacity: .55; background: #fafafa; }
+
+.week-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: .75rem;
+}
+.week-day {
+    background: #fff;
+    border: 1px solid var(--gb-border);
+    border-radius: 14px;
+    min-height: 220px;
+    overflow: hidden;
+}
+.week-day.is-today { border-color: var(--gb-primary); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gb-primary) 35%, transparent); }
+.week-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: .7rem .8rem;
+    border-bottom: 1px solid var(--gb-border);
+    background: #fcfafd;
+}
+.week-day-name { font-weight: 700; text-transform: capitalize; }
+.week-day-date { font-size: .8rem; color: var(--gb-muted); }
+.week-day-body { padding: .55rem; display: flex; flex-direction: column; gap: .45rem; }
+.week-empty { color: var(--gb-muted); font-size: .8rem; padding: .4rem; }
+.week-event {
+    background: #f8f4fb;
+    border-radius: 10px;
+    padding: .5rem .55rem;
+    font-size: .85rem;
+}
+.week-event-time { font-size: .75rem; color: var(--gb-muted); font-weight: 600; }
+
+@media (max-width: 992px) {
+    .week-calendar { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 576px) {
+    .week-calendar { grid-template-columns: 1fr; }
+}

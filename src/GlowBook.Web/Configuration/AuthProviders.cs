@@ -4,5 +4,6 @@ public static class AuthProviders
 {
     public const string Google = "Google";
     public const string MailRu = "MailRu";
+    public const string VkId = "VkId";
     public const string Telegram = "Telegram";
 }

@@ -81,3 +81,55 @@
         }
     });
 })();
+
+(function () {
+    var triggers = document.querySelectorAll('[data-avatar-zoom]');
+    if (!triggers.length) {
+        return;
+    }
+
+    var overlay = document.createElement('div');
+    overlay.className = 'avatar-lightbox';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+        '<button type="button" class="avatar-lightbox-close" aria-label="Закрыть">&times;</button>' +
+        '<img alt="" />';
+    document.body.appendChild(overlay);
+
+    var image = overlay.querySelector('img');
+    var closeBtn = overlay.querySelector('.avatar-lightbox-close');
+
+    function openLightbox(src, alt) {
+        image.src = src;
+        image.alt = alt || '';
+        overlay.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        overlay.classList.remove('is-open');
+        image.removeAttribute('src');
+        document.body.style.overflow = '';
+    }
+
+    triggers.forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openLightbox(el.getAttribute('data-avatar-zoom'), (el.querySelector('img') || {}).alt || '');
+        });
+    });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            closeLightbox();
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
+            closeLightbox();
+        }
+    });
+})();

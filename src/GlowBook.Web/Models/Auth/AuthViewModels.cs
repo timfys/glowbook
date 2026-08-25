@@ -1,22 +1,20 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
-using GlowBook.Web.Configuration;
-using GlowBook.Web.Models;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 
 namespace GlowBook.Web.Models.Auth;
 
 public class LoginViewModel
 {
     [Required(ErrorMessage = "Укажите email")]
-    [EmailAddress]
+    [EmailAddress(ErrorMessage = "Некорректный email")]
+    [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Укажите пароль")]
     [DataType(DataType.Password)]
+    [Display(Name = "Пароль")]
     public string Password { get; set; } = string.Empty;
 
+    [Display(Name = "Запомнить меня")]
     public bool RememberMe { get; set; }
 }
 
@@ -27,12 +25,14 @@ public class RegisterViewModel
     public string DisplayName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Укажите email")]
-    [EmailAddress]
+    [EmailAddress(ErrorMessage = "Некорректный email")]
+    [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Укажите пароль")]
-    [StringLength(100, MinimumLength = 6)]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "Пароль не короче 6 символов")]
     [DataType(DataType.Password)]
+    [Display(Name = "Пароль")]
     public string Password { get; set; } = string.Empty;
 
     [DataType(DataType.Password)]
@@ -45,6 +45,7 @@ public class AuthProvidersViewModel
 {
     public bool Google { get; set; }
     public bool MailRu { get; set; }
+    public bool VkId { get; set; }
     public bool Telegram { get; set; }
     public string? TelegramBotUsername { get; set; }
 }

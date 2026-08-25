@@ -8,7 +8,10 @@
         <div class="book-hero">
             @if (profile.HasAvatar)
             {
-                <img class="gb-avatar" style="width:64px;height:64px" src="@Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks })" alt="" />
+                var bookAvatarUrl = Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks });
+                <button type="button" class="tg-card-avatar-btn" data-avatar-zoom="@bookAvatarUrl" aria-label="Открыть фото крупнее">
+                    <img class="gb-avatar" style="width:64px;height:64px" src="@bookAvatarUrl" alt="@profile.BusinessName" />
+                </button>
             }
             else
             {

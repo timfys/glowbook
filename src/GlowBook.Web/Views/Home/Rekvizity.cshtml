@@ -1,0 +1,92 @@
+@using GlowBook.Web.Configuration
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Реквизиты и оферта";
+    var price = (int)(ViewBag.PremiumPrice ?? 500);
+    var days = (int)(ViewBag.PremiumDays ?? 30);
+    var legal = (LegalSettings)ViewBag.Legal;
+    var siteUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
+
+<div class="panel legal-page" style="max-width:720px">
+    <h1 class="h3 fw-bold mb-2">GlowBook — услуги, оплата и реквизиты</h1>
+    <p class="text-muted mb-4">Публичная информация для покупателей и подключения платежей (ЮKassa).</p>
+
+    <section class="mb-4" id="uslugi">
+        <h2 class="h5 fw-bold">1. Услуга и цена</h2>
+        <p class="mb-2"><strong>GlowBook Premium</strong> — подписка на онлайн-сервис для мастеров красоты.</p>
+        <ul>
+            <li>Публичная страница онлайн-записи клиентов по ссылке</li>
+            <li>Клиент выбирает услугу, дату и свободное время</li>
+            <li>Кабинет: клиенты, услуги, записи, календарь</li>
+        </ul>
+        <p class="mb-0"><strong>Стоимость:</strong> @price ₽ за @days дн.</p>
+        <p class="text-muted small mb-0">Оплата банковской картой / СБП через ЮKassa. Доступ открывается автоматически после успешной оплаты.</p>
+    </section>
+
+    <section class="mb-4" id="poluchenie">
+        <h2 class="h5 fw-bold">2. Как получить услугу</h2>
+        <p class="mb-0">
+            Услуга цифровая. Доставка не требуется. После оплаты Premium активируется в личном кабинете
+            на сайте <a href="@siteUrl">@Context.Request.Host</a>. Чек об оплате приходит от ЮKassa.
+        </p>
+    </section>
+
+    <section class="mb-4" id="oferta">
+        <h2 class="h5 fw-bold">3. Публичная оферта</h2>
+        <ol class="ps-3">
+            <li>Исполнитель оказывает доступ к сервису GlowBook на условиях этой оферты.</li>
+            <li>Заказчик — пользователь, оформивший оплату Premium на сайте.</li>
+            <li>Оплата означает согласие с условиями оферты и политикой обработки данных.</li>
+            <li>Подписка действует @days дней с момента успешной оплаты, если иное не указано при оплате.</li>
+            <li>Возврат средств — по обращению на email продавца в течение 14 дней, если услугой не пользовались по существу (нет активной работы в кабинете после оплаты). Споры решаются по закону РФ.</li>
+            <li>Исполнитель может менять функциональность сервиса, сохраняя заявленный смысл Premium.</li>
+        </ol>
+    </section>
+
+    <section class="mb-4" id="rekvizity">
+        <h2 class="h5 fw-bold">4. Контакты и реквизиты</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Продавец</dt>
+            <dd class="col-sm-8">@legal.SellerName</dd>
+            <dt class="col-sm-4">ИНН</dt>
+            <dd class="col-sm-8">
+                @if (string.IsNullOrWhiteSpace(legal.Inn))
+                {
+                    <span class="text-danger">укажите ИНН в настройках (GlowBook:Legal:Inn)</span>
+                }
+                else
+                {
+                    @legal.Inn
+                }
+            </dd>
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8"><a href="mailto:@legal.Email">@legal.Email</a></dd>
+            @if (!string.IsNullOrWhiteSpace(legal.Phone))
+            {
+                <dt class="col-sm-4">Телефон</dt>
+                <dd class="col-sm-8">@legal.Phone</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(legal.Address))
+            {
+                <dt class="col-sm-4">Адрес</dt>
+                <dd class="col-sm-8">@legal.Address</dd>
+            }
+            <dt class="col-sm-4">Сайт</dt>
+            <dd class="col-sm-8"><a href="@siteUrl">@siteUrl</a></dd>
+        </dl>
+    </section>
+
+    <section class="mb-2" id="oplata">
+        <h2 class="h5 fw-bold">5. Оплата Premium</h2>
+        <p class="text-muted">Оформить подписку можно в кабинете после входа.</p>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-gb-primary" asp-controller="Subscription" asp-action="Index">Перейти к оплате</a>
+        }
+        else
+        {
+            <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Login">Войти и оплатить</a>
+        }
+    </section>
+</div>

@@ -23,6 +23,3 @@ android/.kotlin/
 _*.txt
 _*.log
 *.log
-
-# Local-only overrides (не коммитить)
-appsettings.*.local.json

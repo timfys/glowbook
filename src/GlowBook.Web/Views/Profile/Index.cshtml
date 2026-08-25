@@ -9,6 +9,10 @@
     {
         <div class="alert alert-success py-2 px-3 mb-3">Профиль сохранён</div>
     }
+    @if (TempData["AvatarError"] != null)
+    {
+        <div class="alert alert-danger py-2 px-3 mb-3">@TempData["AvatarError"]</div>
+    }
 
     <article class="tg-card">
         <div class="tg-card-cover">
@@ -18,19 +22,37 @@
         </div>
 
         <div class="tg-card-avatar-wrap">
-            @if (Model.HasAvatar)
-            {
-                <button type="button"
-                        class="tg-card-avatar-btn"
-                        data-avatar-zoom="@avatarUrl"
-                        aria-label="Открыть фото крупнее">
-                    <img class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
-                </button>
-            }
-            else
-            {
-                <div class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
-            }
+            <form asp-action="UploadAvatar"
+                  method="post"
+                  enctype="multipart/form-data"
+                  class="profile-avatar-picker profile-avatar-picker-card"
+                  data-avatar-autosubmit="1"
+                  id="avatarQuickForm">
+                @Html.AntiForgeryToken()
+                @if (Model.HasAvatar)
+                {
+                    <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+                }
+                else
+                {
+                    <div id="avatarFallback" class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
+                    <img id="avatarPreview" class="tg-card-avatar d-none" alt="@Model.DisplayName" />
+                }
+                <span class="profile-avatar-camera" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
+                        <circle cx="12" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                </span>
+                <input id="avatarInput"
+                       name="avatar"
+                       type="file"
+                       accept="image/*"
+                       class="profile-avatar-hit"
+                       aria-label="Сменить фото" />
+            </form>
+            <div class="small text-muted mt-2 ms-1">Нажмите на фото, чтобы сменить</div>
+            <div id="avatarClientError" class="text-danger small d-none mt-1 ms-1"></div>
         </div>
 
         <div class="tg-card-body">
@@ -88,10 +110,6 @@
                         <div class="tg-info-value">@Model.Location</div>
                     </div>
                 }
-                <div class="tg-info-row">
-                    <div class="tg-info-label">Страница записи</div>
-                    <div class="tg-info-value"><code>/book/@Model.BookingSlug</code></div>
-                </div>
             </section>
 
             <a class="btn btn-gb-primary w-100 mt-3" asp-action="Edit">Редактировать профиль</a>

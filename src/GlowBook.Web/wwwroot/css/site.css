@@ -519,6 +519,21 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     z-index: 1;
 }
 
+.profile-avatar-picker-card {
+    width: 108px;
+    height: 108px;
+}
+
+.profile-avatar-picker-card .tg-card-avatar {
+    width: 108px;
+    height: 108px;
+}
+
+.profile-avatar-picker-card .profile-avatar-camera {
+    right: 2px;
+    bottom: 2px;
+}
+
 .tg-card-avatar {
     width: 108px;
     height: 108px;

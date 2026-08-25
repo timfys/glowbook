@@ -72,7 +72,7 @@ public class ProfileController : Controller
 
     [HttpPost("edit")]
     [ValidateAntiForgeryToken]
-    [RequestSizeLimit(3 * 1024 * 1024)]
+    [RequestSizeLimit(8 * 1024 * 1024)]
     public async Task<IActionResult> Edit(ProfileEditViewModel model)
     {
         var (user, profile) = await GetCurrentAsync();
@@ -120,6 +120,33 @@ public class ProfileController : Controller
                 model.AvatarVersion = profile.AvatarUpdatedAt?.Ticks;
                 return View(model);
             }
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["ProfileSaved"] = true;
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("avatar")]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    public async Task<IActionResult> UploadAvatar(IFormFile? avatar)
+    {
+        var (user, profile) = await GetCurrentAsync();
+        if (user == null || profile == null)
+            return Challenge();
+
+        if (avatar is not { Length: > 0 })
+        {
+            TempData["AvatarError"] = "Выберите фото";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var error = await SaveAvatarAsync(profile, avatar);
+        if (error != null)
+        {
+            TempData["AvatarError"] = error;
+            return RedirectToAction(nameof(Index));
         }
 
         await _db.SaveChangesAsync();

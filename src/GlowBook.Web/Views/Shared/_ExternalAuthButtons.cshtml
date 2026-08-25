@@ -5,22 +5,9 @@
         returnUrl = Context.Request.Query["returnUrl"].ToString();
     if (string.IsNullOrWhiteSpace(returnUrl))
         returnUrl = null;
-    var telegramReturn = returnUrl ?? "/Dashboard";
-    var authUrl = Model.Telegram && !string.IsNullOrWhiteSpace(Model.TelegramBotUsername)
-        ? Url.Action("TelegramCallback", "Auth", new { returnUrl = telegramReturn }, Context.Request.Scheme)
-        : null;
 }
 
 <div class="d-grid gap-2 auth-providers">
-@if (Model.Google)
-{
-    <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
-        <input type="hidden" name="provider" value="Google" />
-        <input type="hidden" name="returnUrl" value="@returnUrl" />
-        @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-auth btn-auth-google w-100">Продолжить с Google</button>
-    </form>
-}
 @if (Model.MailRu)
 {
     <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
@@ -30,27 +17,8 @@
         <button type="submit" class="btn btn-auth btn-auth-mailru w-100">Продолжить с Mail.ru</button>
     </form>
 }
-@if (Model.VkId)
+else
 {
-    <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
-        <input type="hidden" name="provider" value="VkId" />
-        <input type="hidden" name="returnUrl" value="@returnUrl" />
-        @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-auth btn-auth-vk w-100">Продолжить с VK ID</button>
-    </form>
-}
-@if (authUrl != null)
-{
-    <div class="telegram-wrap d-flex justify-content-center py-1">
-        <script async src="https://telegram.org/js/telegram-widget.js?22"
-                data-telegram-login="@Model.TelegramBotUsername"
-                data-size="large"
-                data-auth-url="@authUrl"
-                data-request-access="write"></script>
-    </div>
-}
-@if (!Model.Google && !Model.MailRu && !Model.VkId && !Model.Telegram)
-{
-    <p class="small text-muted mb-0">OAuth-провайдеры не настроены. Добавьте ключи в User Secrets или appsettings.Development.json</p>
+    <p class="small text-muted mb-0">OAuth Mail.ru не настроен. Нужны ClientId и ClientSecret в User Secrets или appsettings.Development.json</p>
 }
 </div>

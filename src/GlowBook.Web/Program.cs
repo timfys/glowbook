@@ -12,6 +12,9 @@ var ru = new CultureInfo("ru-RU");
 CultureInfo.DefaultThreadCurrentCulture = ru;
 CultureInfo.DefaultThreadCurrentUICulture = ru;
 
+// SQLite-era DateTimes are Unspecified; allow them on timestamptz without forcing UTC rewrite.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 var dataDir = ResolveDataDirectory(builder);

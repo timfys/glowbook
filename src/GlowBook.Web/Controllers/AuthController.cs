@@ -164,10 +164,7 @@ public class AuthController : Controller
 
     private AuthProvidersViewModel BuildProvidersModel() => new()
     {
-        Google = _authSettings.Google.IsConfigured,
-        MailRu = _authSettings.MailRu.IsConfigured,
-        VkId = _authSettings.VkId.IsConfigured,
-        Telegram = _authSettings.Telegram.IsConfigured,
-        TelegramBotUsername = _authSettings.Telegram.BotUsername
+        // Пока только Mail.ru; Google / VK / Telegram скрыты
+        MailRu = _authSettings.MailRu.IsConfigured
     };
 }

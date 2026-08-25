@@ -12,58 +12,18 @@ public static class DbInitializer
         var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
         var config = sp.GetRequiredService<IConfiguration>();
 
-        await db.Database.MigrateAsync();
-
         var provider = DatabaseConnectionResolver.Resolve(config, dataDir).Provider;
-        if (provider != DatabaseProviderKind.Postgres)
-            return;
 
-        var force = string.Equals(config["MIGRATE_FROM_SQLITE"], "1", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(Environment.GetEnvironmentVariable("MIGRATE_FROM_SQLITE"), "1", StringComparison.OrdinalIgnoreCase);
-
-        var marker = Path.Combine(dataDir, ".migrated-from-sqlite");
-        if (!force && File.Exists(marker))
-            return;
-
-        var sqlitePath = FindSqlite(dataDir, config);
-        if (sqlitePath == null)
+        if (provider == DatabaseProviderKind.Postgres)
         {
-            logger.LogWarning("Postgres ready, but no SQLite source found under {DataDir}", dataDir);
+            // Schema only. SQLite→Postgres data import is tools/MigrateNow (not at app startup).
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Postgres schema up to date (MigrateAsync)");
             return;
         }
 
-        var alreadyHasUsers = await db.Users.AnyAsync();
-        if (alreadyHasUsers && !force)
-        {
-            logger.LogInformation("Postgres already has users — skip SQLite import (set MIGRATE_FROM_SQLITE=1 to force)");
-            await File.WriteAllTextAsync(marker, DateTime.UtcNow.ToString("O"));
-            return;
-        }
-
-        logger.LogWarning("Importing SQLite → Postgres from {Path} (force={Force})", sqlitePath, force);
-        var summary = await SqliteToPostgresMigrator.MigrateAsync(db, sqlitePath, logger);
-        await File.WriteAllTextAsync(marker, summary + Environment.NewLine + DateTime.UtcNow.ToString("O"));
-        logger.LogWarning("Import finished: {Summary}", summary);
-    }
-
-    private static string? FindSqlite(string dataDir, IConfiguration config)
-    {
-        var explicitPath = config["SQLITE_PATH"] ?? Environment.GetEnvironmentVariable("SQLITE_PATH");
-        if (!string.IsNullOrWhiteSpace(explicitPath) && File.Exists(explicitPath))
-            return explicitPath;
-
-        foreach (var candidate in new[]
-                 {
-                     Path.Combine(dataDir, "glowbook.db"),
-                     Path.Combine("/data", "glowbook.db"),
-                     Path.Combine(AppContext.BaseDirectory, "Data", "glowbook.db"),
-                     Path.Combine(Directory.GetCurrentDirectory(), "Data", "glowbook.db")
-                 })
-        {
-            if (File.Exists(candidate))
-                return candidate;
-        }
-
-        return null;
+        // Legacy local SQLite: create schema without applying Postgres migrations.
+        await db.Database.EnsureCreatedAsync();
+        logger.LogInformation("SQLite schema ensured at {DataDir}", dataDir);
     }
 }

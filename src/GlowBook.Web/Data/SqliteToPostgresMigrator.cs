@@ -31,7 +31,9 @@ public static class SqliteToPostgresMigrator
         await using var sqlite = new ApplicationDbContext(sqliteOptions);
         logger.LogInformation("SQLite source {Path}: users={Users}", sqlitePath, await sqlite.Users.CountAsync(ct));
 
-        await postgres.Database.MigrateAsync(ct);
+        // Caller (MigrateNow) already applied Postgres migrations.
+        if (!await postgres.Database.CanConnectAsync(ct))
+            throw new InvalidOperationException("Cannot connect to Postgres");
 
         await using var tx = await postgres.Database.BeginTransactionAsync(ct);
         await postgres.Database.ExecuteSqlRawAsync("SET session_replication_role = 'replica';", ct);

@@ -19,27 +19,25 @@
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
             <div class="profile-avatar-editor mb-4">
-                <label class="profile-avatar-picker" for="avatarInput">
+                <div class="profile-avatar-preview" aria-hidden="true">
                     @if (Model.HasAvatar)
                     {
-                        <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="Аватар" />
+                        <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="" />
                     }
                     else
                     {
                         <div id="avatarFallback" class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
-                        <img id="avatarPreview" class="tg-card-avatar d-none" alt="Аватар" />
+                        <img id="avatarPreview" class="tg-card-avatar d-none" alt="" />
                     }
-                    <span class="profile-avatar-camera" aria-hidden="true">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
-                            <circle cx="12" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/>
-                        </svg>
-                    </span>
-                </label>
-                @* Не display:none — на iOS иначе часто не открывается галерея *@
-                <input id="avatarInput" asp-for="Avatar" type="file" accept="image/*" class="profile-avatar-file" />
-                <button type="button" class="btn btn-gb-outline btn-sm mt-2" id="avatarPickBtn">Выбрать фото</button>
-                <div class="small text-muted mt-2">Любое фото с телефона — сожмём сами (до ~1 МБ)</div>
+                </div>
+                @* Видимый input: WebView/APK не умеет открывать спрятанный file через label/click() *@
+                <label class="form-label mt-3 mb-1" for="avatarInput">Фото профиля</label>
+                <input id="avatarInput"
+                       asp-for="Avatar"
+                       type="file"
+                       accept="image/*"
+                       class="form-control profile-avatar-native" />
+                <div class="small text-muted mt-2">JPEG/PNG с галереи. В приложении нужен доступ к файлам.</div>
                 <div id="avatarClientError" class="text-danger small d-none mt-1"></div>
                 <span asp-validation-for="Avatar" class="text-danger d-block"></span>
                 @if (Model.HasAvatar)

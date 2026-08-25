@@ -614,6 +614,13 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
 
 .profile-edit { max-width: 560px; }
 .profile-avatar-editor { text-align: center; position: relative; }
+.profile-avatar-preview {
+    display: inline-block;
+}
+.profile-avatar-native {
+    text-align: left;
+    max-width: 100%;
+}
 .profile-avatar-picker {
     position: relative;
     display: inline-block;
@@ -621,7 +628,7 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     -webkit-tap-highlight-color: transparent;
 }
 .profile-avatar-file {
-    /* iOS: display:none ломает выбор файла — оставляем «невидимый» input */
+    /* legacy — prefer .profile-avatar-native (visible) for WebView */
     position: absolute;
     width: 1px;
     height: 1px;

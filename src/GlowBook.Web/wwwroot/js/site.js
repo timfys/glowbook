@@ -145,24 +145,39 @@
 
     input.addEventListener('change', function () {
         var file = input.files && input.files[0];
+        var form = input.closest('form');
+        var autoSubmit = form && form.getAttribute('data-avatar-autosubmit') === '1';
         showError('');
         if (!file) return;
 
         setPreviewFromFile(file);
 
+        function maybeSubmit() {
+            if (autoSubmit && form) {
+                form.submit();
+            }
+        }
+
         // Optional compress — never wipe the chosen file on failure (critical for Android WebView)
-        if (!canReplaceInputFiles()) return;
+        if (!canReplaceInputFiles()) {
+            maybeSubmit();
+            return;
+        }
 
         resizeImage(file).then(function (ready) {
-            if (!ready || ready === file) return;
-            try {
-                var dt = new DataTransfer();
-                dt.items.add(ready);
-                input.files = dt.files;
-                setPreviewFromFile(ready);
-            } catch (_) {
-                // Keep original file in the input
+            if (ready && ready !== file) {
+                try {
+                    var dt = new DataTransfer();
+                    dt.items.add(ready);
+                    input.files = dt.files;
+                    setPreviewFromFile(ready);
+                } catch (_) {
+                    // Keep original file in the input
+                }
             }
+            maybeSubmit();
+        }).catch(function () {
+            maybeSubmit();
         });
     });
 })();

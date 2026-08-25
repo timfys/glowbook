@@ -64,7 +64,7 @@ app.Logger.LogInformation("Database provider: {Provider}; connection: {Connectio
     db.Provider,
     DatabaseConnectionResolver.Redact(db.ConnectionString));
 
-await DbInitializer.InitializeAsync(app.Services);
+await DbInitializer.InitializeAsync(app.Services, dataDir);
 
 if (app.Environment.IsDevelopment())
 {

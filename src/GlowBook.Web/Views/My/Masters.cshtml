@@ -1,0 +1,67 @@
+@model IEnumerable<GlowBook.Web.Services.ClientMasterView>
+@{
+    ViewData["Title"] = "Мои мастера";
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Мои мастера</h2>
+        <div class="text-muted small">Мастера, у которых вы записаны как клиент</div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel empty-state">
+        <div class="fw-semibold mb-1">Мастеров пока нет</div>
+        <p class="text-muted mb-0 small">Когда мастер укажет в карточке ваш email или телефон, он появится здесь.</p>
+    </div>
+}
+else
+{
+    <div class="gb-master-grid">
+    @foreach (var m in Model)
+    {
+        var avatarUrl = m.HasAvatar
+            ? Url.Action("Avatar", "Profile", new { id = m.MasterProfileId, v = m.AvatarVersion })
+            : null;
+        <article class="gb-master-card panel">
+            <div class="gb-master-card-head">
+                @if (avatarUrl != null)
+                {
+                    <img class="gb-master-card-avatar" src="@avatarUrl" alt="@m.MasterName" />
+                }
+                else
+                {
+                    <div class="gb-master-card-avatar gb-master-card-avatar-fallback">@DisplayHelpers.Initials(m.MasterName)</div>
+                }
+                <div>
+                    <div class="fw-bold">@m.MasterName</div>
+                    @if (!string.IsNullOrWhiteSpace(m.Specialization))
+                    {
+                        <div class="small text-muted">@m.Specialization</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(m.City))
+                    {
+                        <div class="small text-muted">@m.City</div>
+                    }
+                </div>
+            </div>
+            <div class="gb-master-card-meta small text-muted">
+                @if (m.UpcomingAppointments > 0)
+                {
+                    <span>@m.UpcomingAppointments предстоящ@(m.UpcomingAppointments == 1 ? "ая запись" : m.UpcomingAppointments < 5 ? "ие записи" : "их записей")</span>
+                }
+                else
+                {
+                    <span>Нет предстоящих записей</span>
+                }
+            </div>
+            <div class="gb-master-card-actions">
+                <a class="btn btn-gb-outline btn-sm" asp-action="Index" asp-route-record="@m.ClientRecordId">Записи</a>
+                <a class="btn btn-gb-primary btn-sm" asp-action="Chat" asp-route-clientRecordId="@m.ClientRecordId">Чат</a>
+            </div>
+        </article>
+    }
+    </div>
+}

@@ -3,6 +3,7 @@ using GlowBook.Web;
 using GlowBook.Web.Configuration;
 using GlowBook.Web.Data;
 using GlowBook.Web.Extensions;
+using GlowBook.Web.Hubs;
 using GlowBook.Web.Models;
 using GlowBook.Web.Services;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -56,6 +57,7 @@ builder.Services.AddGlowBookAuthentication(builder.Configuration);
 
 builder.Services.AddScoped<MasterProfileService>();
 builder.Services.AddScoped<ClientAccountService>();
+builder.Services.AddScoped<ClientChatService>();
 builder.Services.AddScoped<ExternalAccountService>();
 builder.Services.AddScoped<TelegramAuthService>();
 builder.Services.AddScoped<SubscriptionService>();
@@ -73,6 +75,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddSingleton<AssetVersion>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 app.Logger.LogInformation("Database provider: {Provider}; connection: {ConnectionString}",
@@ -122,6 +125,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapHub<ClientChatHub>("/hubs/chat");
 app.MapRazorPages();
 
 app.Run();

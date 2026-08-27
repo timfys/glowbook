@@ -23,6 +23,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TreatmentRecord> TreatmentRecords => Set<TreatmentRecord>();
     public DbSet<ClientPhoto> ClientPhotos => Set<ClientPhoto>();
     public DbSet<HomeCarePrescription> HomeCarePrescriptions => Set<HomeCarePrescription>();
+    public DbSet<ClientAvatar> ClientAvatars => Set<ClientAvatar>();
+    public DbSet<ClientMessage> ClientMessages => Set<ClientMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -120,6 +122,32 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Status).HasMaxLength(32);
             e.Property(x => x.AmountRub).HasPrecision(10, 2);
             e.HasOne(x => x.MasterProfile).WithMany().HasForeignKey(x => x.MasterProfileId);
+        });
+
+        builder.Entity<ClientAvatar>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.HasOne(x => x.User)
+                .WithOne()
+                .HasForeignKey<ClientAvatar>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ClientMessage>(e =>
+        {
+            e.Property(x => x.Body).HasMaxLength(2000);
+            e.Property(x => x.AttachmentFileName).HasMaxLength(255);
+            e.Property(x => x.AttachmentContentType).HasMaxLength(100);
+            e.HasIndex(x => new { x.ClientId, x.CreatedAt });
+            e.HasOne(x => x.Client)
+                .WithMany(x => x.Messages)
+                .HasForeignKey(x => x.ClientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.SenderUser)
+                .WithMany()
+                .HasForeignKey(x => x.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

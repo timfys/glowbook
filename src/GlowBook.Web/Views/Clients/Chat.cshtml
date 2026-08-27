@@ -1,0 +1,18 @@
+@model GlowBook.Web.Models.Clients.ClientChatViewModel
+@{
+    ViewData["Title"] = "Чат · " + Model.Title;
+}
+
+<div class="page-head">
+    <div>
+        @if (!string.IsNullOrWhiteSpace(Model.BackUrl))
+        {
+            <a href="@Model.BackUrl" class="small text-muted text-decoration-none">← Назад</a>
+        }
+        <h2 class="h4 fw-bold mb-0 mt-1">@Model.Title</h2>
+        <div class="text-muted small">Переписка с клиентом</div>
+    </div>
+    <a class="btn btn-gb-outline btn-sm" asp-action="Account" asp-route-id="@Model.ClientRecordId">Профиль клиента</a>
+</div>
+
+@await Html.PartialAsync("_ClientChat", Model)

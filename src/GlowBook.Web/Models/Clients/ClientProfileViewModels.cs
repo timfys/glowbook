@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GlowBook.Web.Models.Entities;
 
 namespace GlowBook.Web.Models.Clients;
 
@@ -16,4 +17,18 @@ public class ClientProfileEditViewModel
     [Display(Name = "Телефон")]
     [Phone(ErrorMessage = "Некорректный телефон")]
     public string? Phone { get; set; }
+
+    public bool HasAvatar { get; set; }
+
+    public long? AvatarVersion { get; set; }
+}
+
+public class ClientChatViewModel
+{
+    public int ClientRecordId { get; set; }
+    public string Title { get; set; } = "";
+    public string? BackUrl { get; set; }
+    public bool IsMasterView { get; set; }
+    public string CurrentUserId { get; set; } = "";
+    public List<ClientMessage> Messages { get; set; } = [];
 }

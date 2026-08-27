@@ -24,6 +24,11 @@
         }
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @if (linkedAccount != null)
+        {
+            <a class="btn btn-gb-outline btn-sm" asp-action="Account" asp-route-id="@Model.Client.Id">Профиль аккаунта</a>
+            <a class="btn btn-gb-primary btn-sm" asp-action="Chat" asp-route-id="@Model.Client.Id">Чат</a>
+        }
         <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@Model.Client.Id">Редактировать</a>
         <form asp-action="Archive" method="post" onsubmit="return confirm('Убрать клиента из списка? История и записи сохранятся.');">
             @Html.AntiForgeryToken()

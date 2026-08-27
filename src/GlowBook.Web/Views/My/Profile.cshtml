@@ -1,6 +1,7 @@
 @model GlowBook.Web.Models.Clients.ClientProfileEditViewModel
 @{
     ViewData["Title"] = "Мой профиль";
+    var avatarUrl = Url.Action("Avatar", new { v = Model.AvatarVersion });
 }
 
 <div class="page-head">
@@ -11,8 +12,45 @@
 {
     <div class="alert alert-success">@ok</div>
 }
+@if (TempData["AvatarError"] is string avatarErr)
+{
+    <div class="alert alert-danger">@avatarErr</div>
+}
 
 <div class="panel" style="max-width: 520px">
+    <div class="mb-4">
+        <form asp-action="UploadAvatar"
+              method="post"
+              enctype="multipart/form-data"
+              class="profile-avatar-picker"
+              data-avatar-autosubmit="1">
+            @Html.AntiForgeryToken()
+            @if (Model.HasAvatar)
+            {
+                <img id="avatarPreview" class="gb-account-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+            }
+            else
+            {
+                <div id="avatarFallback" class="gb-account-card-avatar gb-account-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
+                <img id="avatarPreview" class="gb-account-card-avatar d-none" alt="@Model.DisplayName" />
+            }
+            <span class="profile-avatar-camera" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
+                    <circle cx="12" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+            </span>
+            <input id="avatarInput"
+                   name="avatar"
+                   type="file"
+                   accept="image/*"
+                   class="profile-avatar-hit"
+                   aria-label="Сменить фото" />
+        </form>
+        <div class="small text-muted mt-2">Нажмите на фото, чтобы сменить</div>
+        <div id="avatarClientError" class="text-danger small d-none mt-1"></div>
+    </div>
+
     <p class="text-muted small">Email и телефон должны совпадать с тем, что указал мастер в карточке клиента — тогда записи будут видны здесь.</p>
     <form asp-action="Profile" method="post">
         @Html.AntiForgeryToken()

@@ -28,13 +28,20 @@ public class ClientsController : Controller
     private readonly UserManager<ApplicationUser> _users;
     private readonly MasterProfileService _profiles;
     private readonly ClientAccountService _clientAccounts;
+    private readonly ClientChatService _chat;
 
-    public ClientsController(ApplicationDbContext db, UserManager<ApplicationUser> users, MasterProfileService profiles, ClientAccountService clientAccounts)
+    public ClientsController(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> users,
+        MasterProfileService profiles,
+        ClientAccountService clientAccounts,
+        ClientChatService chat)
     {
         _db = db;
         _users = users;
         _profiles = profiles;
         _clientAccounts = clientAccounts;
+        _chat = chat;
     }
 
     public async Task<IActionResult> Index(string? q)
@@ -121,6 +128,108 @@ public class ClientsController : Controller
         ViewBag.LinkedAccount = await _clientAccounts.GetLinkedAccountForClientAsync(client);
 
         return View(vm);
+    }
+
+    public async Task<IActionResult> Account(int id)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.MasterProfileId == profile.Id);
+        if (client == null) return NotFound();
+
+        var account = await _clientAccounts.GetLinkedAccountViewAsync(client);
+        if (account == null)
+            return RedirectToAction(nameof(Details), new { id });
+
+        ViewBag.ClientName = client.Name;
+        return View(account);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> LinkedAvatar(int clientId)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var client = await _db.Clients.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.MasterProfileId == profile.Id);
+        if (client == null) return NotFound();
+
+        var linked = await _clientAccounts.GetLinkedAccountForClientAsync(client);
+        if (linked == null) return NotFound();
+
+        var avatar = await _db.ClientAvatars.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.UserId == linked.Id);
+        if (avatar == null || avatar.Data.Length == 0)
+            return NotFound();
+
+        Response.Headers.CacheControl = "public,max-age=86400";
+        return File(avatar.Data, avatar.ContentType);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Chat(int id)
+    {
+        var (profile, user) = await GetProfileAndUserAsync();
+        if (profile == null || user == null) return Challenge();
+
+        var client = await _db.Clients
+            .Include(c => c.MasterProfile)
+            .FirstOrDefaultAsync(c => c.Id == id && c.MasterProfileId == profile.Id);
+        if (client == null) return NotFound();
+
+        if (!await _chat.CanAccessChatAsync(id, user.Id))
+            return Forbid();
+
+        var linked = await _clientAccounts.GetLinkedAccountForClientAsync(client);
+        if (linked == null)
+            return RedirectToAction(nameof(Details), new { id });
+
+        var messages = await _chat.GetMessagesAsync(id);
+
+        return View(new ClientChatViewModel
+        {
+            ClientRecordId = id,
+            Title = linked.DisplayName ?? linked.Email ?? client.Name,
+            BackUrl = Url.Action(nameof(Details), new { id }),
+            IsMasterView = true,
+            CurrentUserId = user.Id,
+            Messages = messages
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Chat(int id, string message)
+    {
+        var (profile, user) = await GetProfileAndUserAsync();
+        if (profile == null || user == null) return Challenge();
+
+        var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.MasterProfileId == profile.Id);
+        if (client == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(message))
+            return RedirectToAction(nameof(Chat), new { id });
+
+        await _chat.SendAsync(id, user.Id, message);
+        return RedirectToAction(nameof(Chat), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ChatMessages(int id, int after = 0)
+    {
+        var (profile, user) = await GetProfileAndUserAsync();
+        if (profile == null || user == null) return Challenge();
+
+        var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.MasterProfileId == profile.Id);
+        if (client == null) return NotFound();
+
+        if (!await _chat.CanAccessChatAsync(id, user.Id))
+            return Forbid();
+
+        var messages = await _chat.GetMessagesAfterAsync(id, after);
+        return Json(messages.Select(m => ClientChatService.ToDto(m, user.Id)));
     }
 
     public async Task<IActionResult> Edit(int id)
@@ -350,6 +459,16 @@ public class ClientsController : Controller
     {
         var user = await _users.GetUserAsync(User);
         return user == null ? null : await _profiles.EnsureForUserAsync(user);
+    }
+
+    private async Task<(MasterProfile? Profile, ApplicationUser? User)> GetProfileAndUserAsync()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null)
+            return (null, null);
+
+        var profile = await _profiles.EnsureForUserAsync(user);
+        return (profile, user);
     }
 
     private static string? NullIfEmpty(string? value) =>

@@ -93,12 +93,14 @@ public class ClientAccountService
             .Select(a => new ClientAppointmentView
             {
                 Id = a.Id,
+                ClientRecordId = a.ClientId,
                 StartsAt = a.StartsAt,
                 EndsAt = a.EndsAt,
                 Status = a.Status,
                 ServiceName = a.Service != null ? a.Service.Name : null,
                 MasterName = a.MasterProfile != null ? a.MasterProfile.BusinessName : null,
                 MasterCity = a.MasterProfile != null ? a.MasterProfile.City : null,
+                MasterProfileId = a.MasterProfileId,
                 Notes = a.Notes
             })
             .ToListAsync(ct);
@@ -142,16 +144,130 @@ public class ClientAccountService
         client.LinkedUserId = user.Id;
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<List<Client>> GetLinkedClientRecordsAsync(ApplicationUser user, CancellationToken ct = default)
+    {
+        await LinkClientsToUserAsync(user, ct);
+
+        var email = user.Email?.Trim();
+        var phone = PhoneHelper.Normalize(user.PhoneNumber);
+
+        var records = await _db.Clients
+            .Include(c => c.MasterProfile)
+            .Where(c => !c.IsArchived && c.LinkedUserId == user.Id)
+            .ToListAsync(ct);
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var byEmail = await _db.Clients
+                .Include(c => c.MasterProfile)
+                .Where(c => !c.IsArchived && c.LinkedUserId == null && c.Email != null && c.Email.ToLower() == email.ToLower())
+                .ToListAsync(ct);
+            records.AddRange(byEmail);
+        }
+
+        if (!string.IsNullOrEmpty(phone))
+        {
+            var unlinked = await _db.Clients
+                .Include(c => c.MasterProfile)
+                .Where(c => !c.IsArchived && c.LinkedUserId == null && c.Phone != null)
+                .ToListAsync(ct);
+            records.AddRange(unlinked.Where(c => PhoneHelper.Match(c.Phone, user.PhoneNumber)));
+        }
+
+        return records
+            .GroupBy(c => c.Id)
+            .Select(g => g.First())
+            .Where(c => c.MasterProfile != null)
+            .ToList();
+    }
+
+    public async Task<List<ClientMasterView>> GetMastersAsync(ApplicationUser user, CancellationToken ct = default)
+    {
+        var records = await GetLinkedClientRecordsAsync(user, ct);
+        if (records.Count == 0)
+            return new List<ClientMasterView>();
+
+        var clientIds = records.Select(c => c.Id).ToList();
+        var apptCounts = await _db.Appointments
+            .Where(a => clientIds.Contains(a.ClientId) && a.StartsAt >= DateTime.UtcNow && a.Status != AppointmentStatus.Cancelled)
+            .GroupBy(a => a.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        return records.Select(c =>
+        {
+            var master = c.MasterProfile!;
+            return new ClientMasterView
+            {
+                ClientRecordId = c.Id,
+                MasterProfileId = master.Id,
+                MasterName = string.IsNullOrWhiteSpace(master.BusinessName) ? "Мастер" : master.BusinessName,
+                Specialization = master.Specialization,
+                City = master.City,
+                HasAvatar = master.HasAvatar,
+                AvatarVersion = master.AvatarUpdatedAt?.Ticks,
+                UpcomingAppointments = apptCounts.GetValueOrDefault(c.Id)
+            };
+        }).OrderBy(m => m.MasterName).ToList();
+    }
+
+    public async Task<LinkedClientAccountView?> GetLinkedAccountViewAsync(Client client, CancellationToken ct = default)
+    {
+        var user = await GetLinkedAccountForClientAsync(client, ct);
+        if (user == null)
+            return null;
+
+        var avatar = await _db.ClientAvatars.AsNoTracking().FirstOrDefaultAsync(a => a.UserId == user.Id, ct);
+
+        return new LinkedClientAccountView
+        {
+            UserId = user.Id,
+            DisplayName = user.DisplayName ?? user.Email ?? client.Name,
+            Email = user.Email,
+            Phone = user.PhoneNumber,
+            HasAvatar = avatar != null,
+            AvatarVersion = avatar?.UpdatedAt.Ticks,
+            ClientRecordId = client.Id,
+            RegisteredAt = null
+        };
+    }
 }
 
 public class ClientAppointmentView
 {
     public int Id { get; set; }
+    public int ClientRecordId { get; set; }
     public DateTime StartsAt { get; set; }
     public DateTime EndsAt { get; set; }
     public AppointmentStatus Status { get; set; }
     public string? ServiceName { get; set; }
     public string? MasterName { get; set; }
     public string? MasterCity { get; set; }
+    public int? MasterProfileId { get; set; }
     public string? Notes { get; set; }
+}
+
+public class ClientMasterView
+{
+    public int ClientRecordId { get; set; }
+    public int MasterProfileId { get; set; }
+    public string MasterName { get; set; } = "";
+    public string? Specialization { get; set; }
+    public string? City { get; set; }
+    public bool HasAvatar { get; set; }
+    public long? AvatarVersion { get; set; }
+    public int UpcomingAppointments { get; set; }
+}
+
+public class LinkedClientAccountView
+{
+    public string UserId { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public bool HasAvatar { get; set; }
+    public long? AvatarVersion { get; set; }
+    public int ClientRecordId { get; set; }
+    public DateTime? RegisteredAt { get; set; }
 }

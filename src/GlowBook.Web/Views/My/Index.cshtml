@@ -1,7 +1,10 @@
 @model IEnumerable<GlowBook.Web.Services.ClientAppointmentView>
 @using GlowBook.Web.Models.Enums
+@using GlowBook.Web.Services
 @{
     ViewData["Title"] = "Мои записи";
+    var masters = ViewBag.Masters as List<ClientMasterView> ?? new List<ClientMasterView>();
+    var filterRecordId = ViewBag.FilterRecordId as int?;
     var upcoming = Model.Where(a => a.StartsAt >= DateTime.Now && a.Status != AppointmentStatus.Cancelled).OrderBy(a => a.StartsAt).ToList();
     var past = Model.Where(a => a.StartsAt < DateTime.Now || a.Status == AppointmentStatus.Cancelled).OrderByDescending(a => a.StartsAt).ToList();
 }
@@ -11,7 +14,64 @@
         <h2 class="h4 fw-bold mb-0">Мои записи</h2>
         <div class="text-muted small">Здесь видны записи, если мастер указал ваш email или телефон</div>
     </div>
+    @if (filterRecordId is int rid)
+    {
+        var m = masters.FirstOrDefault(x => x.ClientRecordId == rid);
+        if (m != null)
+        {
+            <a class="btn btn-gb-outline btn-sm" asp-action="Index">Все записи</a>
+        }
+    }
 </div>
+
+@if (masters.Any())
+{
+    <div class="panel mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fw-semibold">Мои мастера</div>
+            <a class="small" asp-action="Masters">Все мастера →</a>
+        </div>
+        <div class="gb-master-grid gb-master-grid-compact">
+        @foreach (var m in masters.Take(4))
+        {
+            var avatarUrl = m.HasAvatar
+                ? Url.Action("Avatar", "Profile", new { id = m.MasterProfileId, v = m.AvatarVersion })
+                : null;
+            <a class="gb-master-card gb-master-card-link panel" asp-action="Index" asp-route-record="@m.ClientRecordId">
+                <div class="gb-master-card-head">
+                    @if (avatarUrl != null)
+                    {
+                        <img class="gb-master-card-avatar" src="@avatarUrl" alt="@m.MasterName" />
+                    }
+                    else
+                    {
+                        <div class="gb-master-card-avatar gb-master-card-avatar-fallback">@DisplayHelpers.Initials(m.MasterName)</div>
+                    }
+                    <div>
+                        <div class="fw-semibold">@m.MasterName</div>
+                        @if (m.UpcomingAppointments > 0)
+                        {
+                            <div class="small text-muted">@m.UpcomingAppointments предстоящ@(m.UpcomingAppointments == 1 ? "ая" : "их")</div>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+        </div>
+    </div>
+}
+
+@if (filterRecordId is int filteredId)
+{
+    var filteredMaster = masters.FirstOrDefault(x => x.ClientRecordId == filteredId);
+    if (filteredMaster != null)
+    {
+        <div class="alert alert-light border small py-2 mb-3">
+            Записи у мастера <strong>@filteredMaster.MasterName</strong>
+            · <a asp-action="Chat" asp-route-clientRecordId="@filteredId">Чат</a>
+        </div>
+    }
+}
 
 @if (!Model.Any())
 {

@@ -47,4 +47,6 @@ public class Client
     public ICollection<ClientPhoto> Photos { get; set; } = new List<ClientPhoto>();
 
     public ICollection<HomeCarePrescription> HomeCarePrescriptions { get; set; } = new List<HomeCarePrescription>();
+
+    public ICollection<ClientMessage> Messages { get; set; } = new List<ClientMessage>();
 }

@@ -1,0 +1,63 @@
+@model GlowBook.Web.Models.Clients.ClientChatViewModel
+@inject GlowBook.Web.AssetVersion AssetVersion
+@using GlowBook.Web.Services
+@{
+    var av = AssetVersion.Value;
+    var sendUrl = $"/chat/api/{Model.ClientRecordId}/send";
+    var hubUrl = "/hubs/chat";
+    var attachmentUrlPattern = "/chat/api/attachment/{0}";
+}
+
+<section class="gb-chat panel" id="gbClientChat"
+         data-client-record-id="@Model.ClientRecordId"
+         data-send-url="@sendUrl"
+         data-hub-url="@hubUrl"
+         data-attachment-url-pattern="@attachmentUrlPattern"
+         data-current-user-id="@Model.CurrentUserId">
+    <div class="gb-chat-messages" id="gbChatMessages" aria-live="polite">
+    @foreach (var m in Model.Messages)
+    {
+        var dto = ClientChatService.ToDto(m, Model.CurrentUserId);
+        var isMine = dto.IsMine;
+        <div class="gb-chat-bubble @(isMine ? "is-mine" : "is-theirs")" data-id="@m.Id">
+            @if (!string.IsNullOrWhiteSpace(m.Body))
+            {
+                <div class="gb-chat-bubble-body">@m.Body</div>
+            }
+            @if (dto.HasAttachment && dto.AttachmentUrl != null)
+            {
+                <div class="gb-chat-attachment">
+                    @if (dto.IsImageAttachment)
+                    {
+                        <a href="@dto.AttachmentUrl" target="_blank" rel="noopener">
+                            <img class="gb-chat-attachment-img" src="@dto.AttachmentUrl" alt="@dto.AttachmentFileName" loading="lazy" />
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="gb-chat-file-link" href="@dto.AttachmentUrl" download="@dto.AttachmentFileName">
+                            📎 @(dto.AttachmentFileName ?? "Файл")
+                        </a>
+                    }
+                </div>
+            }
+            <div class="gb-chat-bubble-meta">@m.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</div>
+        </div>
+    }
+    </div>
+
+    <form class="gb-chat-form" id="gbChatForm">
+        <div class="gb-chat-toolbar">
+            <textarea class="form-control gb-chat-input" id="gbChatInput" name="message" rows="2" maxlength="2000" placeholder="Напишите сообщение…"></textarea>
+            <label class="gb-chat-file-btn" title="Прикрепить файл">
+                <input type="file" id="gbChatFile" name="file" accept="image/*,.pdf" hidden />
+                <span aria-hidden="true">📎</span>
+            </label>
+            <button type="submit" class="btn btn-gb-primary" id="gbChatSend">Отправить</button>
+        </div>
+        <div class="gb-chat-file-name small text-muted" id="gbChatFileName" hidden></div>
+    </form>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+<script src="~/js/client-chat.js?av=@av" asp-append-version="true"></script>

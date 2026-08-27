@@ -1,0 +1,51 @@
+@model GlowBook.Web.Services.LinkedClientAccountView
+@{
+    ViewData["Title"] = Model.DisplayName;
+    var clientName = ViewBag.ClientName as string ?? Model.DisplayName;
+    var avatarUrl = Url.Action("LinkedAvatar", new { clientId = Model.ClientRecordId, v = Model.AvatarVersion });
+}
+
+<div class="page-head">
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.ClientRecordId" class="small text-muted text-decoration-none">← @clientName</a>
+        <h2 class="h4 fw-bold mb-0 mt-1">Аккаунт клиента</h2>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-gb-outline btn-sm" asp-action="Chat" asp-route-id="@Model.ClientRecordId">Чат</a>
+        <a class="btn btn-gb-primary btn-sm" asp-action="Details" asp-route-id="@Model.ClientRecordId">Карточка клиента</a>
+    </div>
+</div>
+
+<article class="gb-account-card panel">
+    <div class="gb-account-card-header">
+        @if (Model.HasAvatar)
+        {
+            <img class="gb-account-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
+        }
+        else
+        {
+            <div class="gb-account-card-avatar gb-account-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
+        }
+        <div>
+            <h1 class="h5 fw-bold mb-1">@Model.DisplayName</h1>
+            <span class="badge bg-light text-dark border">Клиент GlowBook</span>
+        </div>
+    </div>
+
+    <dl class="gb-account-card-info">
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <div class="gb-account-card-row">
+                <dt>Email</dt>
+                <dd>@Model.Email</dd>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Phone))
+        {
+            <div class="gb-account-card-row">
+                <dt>Телефон</dt>
+                <dd>@Model.Phone</dd>
+            </div>
+        }
+    </dl>
+</article>

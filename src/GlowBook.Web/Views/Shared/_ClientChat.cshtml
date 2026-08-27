@@ -48,12 +48,18 @@
 
     <form class="gb-chat-form" id="gbChatForm">
         <div class="gb-chat-toolbar">
-            <textarea class="form-control gb-chat-input" id="gbChatInput" name="message" rows="2" maxlength="2000" placeholder="Напишите сообщение…"></textarea>
             <label class="gb-chat-file-btn" title="Прикрепить файл">
                 <input type="file" id="gbChatFile" name="file" accept="image/*,.pdf" hidden />
-                <span aria-hidden="true">📎</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M8 12.5l6.5-6.5a3 3 0 1 1 4.24 4.24l-7.5 7.5a4.24 4.24 0 0 1-6-6l8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </label>
-            <button type="submit" class="btn btn-gb-primary" id="gbChatSend">Отправить</button>
+            <textarea class="form-control gb-chat-input" id="gbChatInput" name="message" rows="1" maxlength="2000" placeholder="Сообщение…"></textarea>
+            <button type="submit" class="gb-chat-send-btn" id="gbChatSend" aria-label="Отправить">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12l14-7-4 14-3-5-7-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
         <div class="gb-chat-file-name small text-muted" id="gbChatFileName" hidden></div>
     </form>

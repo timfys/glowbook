@@ -257,12 +257,101 @@ public class ClientAccountService
         IReadOnlyDictionary<int, int> messageCounts,
         IReadOnlyDictionary<int, int> apptCounts)
     {
+        return PickCanonicalClientRecord(group, messageCounts, apptCounts, userId);
+    }
+
+    private static Client PickCanonicalClientRecord(
+        IEnumerable<Client> group,
+        IReadOnlyDictionary<int, int> messageCounts,
+        IReadOnlyDictionary<int, int> apptCounts,
+        string? preferredLinkedUserId = null)
+    {
         return group
-            .OrderByDescending(c => c.LinkedUserId == userId ? 1 : 0)
+            .OrderByDescending(c => preferredLinkedUserId != null && c.LinkedUserId == preferredLinkedUserId ? 1 : 0)
             .ThenByDescending(c => messageCounts.GetValueOrDefault(c.Id))
             .ThenByDescending(c => apptCounts.GetValueOrDefault(c.Id))
             .ThenByDescending(c => c.CreatedAt)
             .First();
+    }
+
+    public async Task<IReadOnlyList<LinkedUserClientGroup>> GetLinkedUserGroupsForMasterAsync(
+        int masterProfileId,
+        CancellationToken ct = default)
+    {
+        var records = await _db.Clients
+            .AsNoTracking()
+            .Where(c => c.MasterProfileId == masterProfileId && !c.IsArchived && c.LinkedUserId != null)
+            .ToListAsync(ct);
+
+        if (records.Count == 0)
+            return Array.Empty<LinkedUserClientGroup>();
+
+        var ids = records.Select(c => c.Id).ToList();
+        var messageCounts = await _db.ClientMessages
+            .Where(m => ids.Contains(m.ClientId))
+            .GroupBy(m => m.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        var apptCounts = await _db.Appointments
+            .Where(a => ids.Contains(a.ClientId))
+            .GroupBy(a => a.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        return records
+            .GroupBy(c => c.LinkedUserId!)
+            .Select(g => new LinkedUserClientGroup(
+                PickCanonicalClientRecord(g, messageCounts, apptCounts),
+                g.Select(c => c.Id).ToList(),
+                g.Key))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<int>> GetRelatedClientRecordIdsAsync(int clientId, CancellationToken ct = default)
+    {
+        var client = await _db.Clients
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == clientId && !c.IsArchived, ct);
+        if (client == null)
+            return Array.Empty<int>();
+
+        if (string.IsNullOrWhiteSpace(client.LinkedUserId))
+            return new[] { clientId };
+
+        return await _db.Clients
+            .AsNoTracking()
+            .Where(c => c.MasterProfileId == client.MasterProfileId
+                && c.LinkedUserId == client.LinkedUserId
+                && !c.IsArchived)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> GetCanonicalClientRecordIdAsync(int clientId, CancellationToken ct = default)
+    {
+        var relatedIds = await GetRelatedClientRecordIdsAsync(clientId, ct);
+        if (relatedIds.Count <= 1)
+            return clientId;
+
+        var records = await _db.Clients
+            .AsNoTracking()
+            .Where(c => relatedIds.Contains(c.Id))
+            .ToListAsync(ct);
+
+        var messageCounts = await _db.ClientMessages
+            .Where(m => relatedIds.Contains(m.ClientId))
+            .GroupBy(m => m.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        var apptCounts = await _db.Appointments
+            .Where(a => relatedIds.Contains(a.ClientId))
+            .GroupBy(a => a.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        return PickCanonicalClientRecord(records, messageCounts, apptCounts).Id;
     }
 
     public async Task<IReadOnlyList<MasterClientGroup>> GetMasterClientGroupsAsync(
@@ -325,6 +414,8 @@ public class ClientMasterView
 }
 
 public sealed record MasterClientGroup(Client Canonical, IReadOnlyList<int> AllClientIds);
+
+public sealed record LinkedUserClientGroup(Client Canonical, IReadOnlyList<int> AllClientIds, string LinkedUserId);
 
 public class LinkedClientAccountView
 {

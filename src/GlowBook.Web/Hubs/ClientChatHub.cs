@@ -20,7 +20,8 @@ public class ClientChatHub : Hub
         if (string.IsNullOrEmpty(userId) || !await _chat.CanAccessChatAsync(clientId, userId))
             throw new HubException("Доступ запрещён");
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, ThreadGroup(clientId));
+        var threadId = await _chat.GetThreadClientIdAsync(clientId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, ThreadGroup(threadId));
     }
 
     public static string ThreadGroup(int clientId) => $"chat-{clientId}";

@@ -163,14 +163,19 @@
             maybeSubmit();
         });
     });
+
+    document.querySelectorAll('[data-avatar-change]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var form = btn.closest('form');
+            var fileInput = form && form.querySelector('#avatarInput');
+            if (fileInput) fileInput.click();
+        });
+    });
 })();
 
 (function () {
-    var triggers = document.querySelectorAll('[data-avatar-zoom]');
-    if (!triggers.length) {
-        return;
-    }
-
     var overlay = document.createElement('div');
     overlay.className = 'avatar-lightbox';
     overlay.setAttribute('role', 'dialog');
@@ -183,26 +188,32 @@
     var image = overlay.querySelector('img');
     var closeBtn = overlay.querySelector('.avatar-lightbox-close');
 
-    function openLightbox(src, alt) {
+    function openLightbox(src, alt, round) {
         image.src = src;
         image.alt = alt || '';
+        overlay.classList.toggle('is-round', !!round);
         overlay.classList.add('is-open');
         document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox() {
-        overlay.classList.remove('is-open');
+        overlay.classList.remove('is-open', 'is-round');
         image.removeAttribute('src');
         document.body.style.overflow = '';
     }
 
-    triggers.forEach(function (el) {
+    function bindAvatarZoomTrigger(el) {
         el.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            openLightbox(el.getAttribute('data-avatar-zoom'), (el.querySelector('img') || {}).alt || '');
+            openLightbox(
+                el.getAttribute('data-avatar-zoom'),
+                (el.querySelector('img') || {}).alt || '',
+                el.hasAttribute('data-avatar-zoom-round'));
         });
-    });
+    }
+
+    document.querySelectorAll('[data-avatar-zoom]').forEach(bindAvatarZoomTrigger);
 
     closeBtn.addEventListener('click', closeLightbox);
     overlay.addEventListener('click', function (e) {

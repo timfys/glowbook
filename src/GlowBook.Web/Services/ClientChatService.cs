@@ -32,31 +32,33 @@ public class ClientChatService
 
     public async Task<List<ClientMessage>> GetMessagesAsync(int clientId, CancellationToken ct = default)
     {
-        return await _db.ClientMessages
-            .AsNoTracking()
-            .Include(m => m.SenderUser)
-            .Where(m => m.ClientId == clientId)
-            .OrderBy(m => m.CreatedAt)
-            .Select(m => new ClientMessage
-            {
-                Id = m.Id,
-                ClientId = m.ClientId,
-                SenderUserId = m.SenderUserId,
-                SenderUser = m.SenderUser,
-                Body = m.Body,
-                CreatedAt = m.CreatedAt,
-                AttachmentFileName = m.AttachmentFileName,
-                AttachmentContentType = m.AttachmentContentType
-            })
-            .ToListAsync(ct);
+        var clientIds = await _accounts.GetRelatedClientRecordIdsAsync(clientId, ct);
+        return await LoadMessagesAsync(clientIds, afterId: null, ct);
     }
 
     public async Task<List<ClientMessage>> GetMessagesAfterAsync(int clientId, int afterId, CancellationToken ct = default)
     {
-        return await _db.ClientMessages
+        var clientIds = await _accounts.GetRelatedClientRecordIdsAsync(clientId, ct);
+        return await LoadMessagesAsync(clientIds, afterId, ct);
+    }
+
+    private async Task<List<ClientMessage>> LoadMessagesAsync(
+        IReadOnlyList<int> clientIds,
+        int? afterId,
+        CancellationToken ct)
+    {
+        if (clientIds.Count == 0)
+            return new List<ClientMessage>();
+
+        var query = _db.ClientMessages
             .AsNoTracking()
             .Include(m => m.SenderUser)
-            .Where(m => m.ClientId == clientId && m.Id > afterId)
+            .Where(m => clientIds.Contains(m.ClientId));
+
+        if (afterId != null)
+            query = query.Where(m => m.Id > afterId);
+
+        return await query
             .OrderBy(m => m.CreatedAt)
             .Select(m => new ClientMessage
             {
@@ -113,6 +115,8 @@ public class ClientChatService
         if (string.IsNullOrWhiteSpace(text) && attachmentData == null)
             return null;
 
+        clientId = await _accounts.GetCanonicalClientRecordIdAsync(clientId, ct);
+
         var client = await _db.Clients
             .Include(c => c.MasterProfile)
             .FirstOrDefaultAsync(c => c.Id == clientId && !c.IsArchived, ct);
@@ -141,8 +145,9 @@ public class ClientChatService
             .FirstAsync(m => m.Id == message.Id, ct);
 
         var dto = ToDto(message, senderUserId);
+        var threadId = await _accounts.GetCanonicalClientRecordIdAsync(clientId, ct);
         await _hub.Clients
-            .Group(ClientChatHub.ThreadGroup(clientId))
+            .Group(ClientChatHub.ThreadGroup(threadId))
             .SendAsync("ReceiveMessage", dto, ct);
 
         return message;
@@ -170,39 +175,46 @@ public class ClientChatService
 
     public async Task<bool> CanAccessChatAsync(int clientId, string userId, CancellationToken ct = default)
     {
-        var client = await _db.Clients
-            .Include(c => c.MasterProfile)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == clientId && !c.IsArchived, ct);
-        if (client?.MasterProfile == null)
+        var relatedIds = await _accounts.GetRelatedClientRecordIdsAsync(clientId, ct);
+        if (relatedIds.Count == 0)
             return false;
 
-        if (client.MasterProfile.UserId == userId)
+        var clients = await _db.Clients
+            .Include(c => c.MasterProfile)
+            .AsNoTracking()
+            .Where(c => relatedIds.Contains(c.Id) && !c.IsArchived)
+            .ToListAsync(ct);
+
+        if (clients.Count == 0 || clients.All(c => c.MasterProfile == null))
+            return false;
+
+        if (clients.Any(c => c.MasterProfile!.UserId == userId))
             return true;
 
-        if (client.LinkedUserId == userId)
+        if (clients.Any(c => c.LinkedUserId == userId))
             return true;
 
-        var linked = await _accounts.GetLinkedAccountForClientAsync(client, ct);
-        return linked?.Id == userId;
+        foreach (var client in clients)
+        {
+            var linked = await _accounts.GetLinkedAccountForClientAsync(client, ct);
+            if (linked?.Id == userId)
+                return true;
+        }
+
+        return false;
     }
 
     public async Task<List<ChatConversationView>> GetConversationsForMasterAsync(
         int masterProfileId,
         CancellationToken ct = default)
     {
-        var clients = await _db.Clients
-            .AsNoTracking()
-            .Where(c => c.MasterProfileId == masterProfileId && !c.IsArchived && c.LinkedUserId != null)
-            .Select(c => new { c.Id, c.Name, LinkedUserId = c.LinkedUserId! })
-            .ToListAsync(ct);
-
-        if (clients.Count == 0)
+        var groups = await _accounts.GetLinkedUserGroupsForMasterAsync(masterProfileId, ct);
+        if (groups.Count == 0)
             return new List<ChatConversationView>();
 
-        var clientIds = clients.Select(c => c.Id).ToList();
-        var lastMessages = await LoadLastMessagesAsync(clientIds, ct);
-        var userIds = clients.Select(c => c.LinkedUserId).Distinct().ToList();
+        var allIds = groups.SelectMany(g => g.AllClientIds).Distinct().ToList();
+        var lastMessages = await LoadLastMessagesAsync(allIds, ct);
+        var userIds = groups.Select(g => g.LinkedUserId).Distinct().ToList();
 
         var users = await _db.Users.AsNoTracking()
             .Where(u => userIds.Contains(u.Id))
@@ -212,20 +224,24 @@ public class ClientChatService
             .Where(a => userIds.Contains(a.UserId))
             .ToDictionaryAsync(a => a.UserId, a => a.UpdatedAt.Ticks, ct);
 
-        return clients
-            .Select(c =>
+        return groups
+            .Select(g =>
             {
-                users.TryGetValue(c.LinkedUserId, out var linkedUser);
-                lastMessages.TryGetValue(c.Id, out var last);
-                avatars.TryGetValue(c.LinkedUserId, out var avatarVersion);
+                users.TryGetValue(g.LinkedUserId, out var linkedUser);
+                var last = g.AllClientIds
+                    .Select(id => lastMessages.GetValueOrDefault(id))
+                    .Where(m => m != null)
+                    .OrderByDescending(m => m!.CreatedAt)
+                    .FirstOrDefault();
+                avatars.TryGetValue(g.LinkedUserId, out var avatarVersion);
 
                 return new ChatConversationView
                 {
-                    ClientRecordId = c.Id,
-                    Title = linkedUser?.DisplayName ?? linkedUser?.Email ?? c.Name,
+                    ClientRecordId = g.Canonical.Id,
+                    Title = linkedUser?.DisplayName ?? linkedUser?.Email ?? g.Canonical.Name,
                     Preview = BuildPreview(last),
                     LastMessageAt = last?.CreatedAt,
-                    HasAvatar = avatars.ContainsKey(c.LinkedUserId),
+                    HasAvatar = avatars.ContainsKey(g.LinkedUserId),
                     AvatarVersion = avatarVersion
                 };
             })
@@ -304,6 +320,9 @@ public class ClientChatService
 
         return "Нет сообщений";
     }
+
+    public Task<int> GetThreadClientIdAsync(int clientId, CancellationToken ct = default) =>
+        _accounts.GetCanonicalClientRecordIdAsync(clientId, ct);
 
     public static ClientMessageDto ToDto(ClientMessage m, string currentUserId) => new()
     {

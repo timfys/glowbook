@@ -845,7 +845,23 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     height: 96px;
     box-sizing: border-box;
 }
+.profile-avatar-picker .gb-account-card-avatar {
+    width: 96px;
+    height: 96px;
+    box-sizing: border-box;
+    border: 3px solid var(--gb-surface);
+    box-shadow: 0 8px 20px rgba(31, 22, 48, 0.12);
+}
+.profile-avatar-picker .gb-account-card-avatar-fallback {
+    font-size: 1.75rem;
+}
+.profile-avatar-view .gb-account-card-avatar {
+    pointer-events: none;
+}
 .profile-avatar-picker img.tg-card-avatar {
+    display: block;
+}
+.profile-avatar-picker img.gb-account-card-avatar {
     display: block;
 }
 .profile-avatar-picker .tg-card-avatar-fallback {
@@ -874,7 +890,7 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: var(--gb-text);
+    background: #1f1630;
     color: #fff;
     display: inline-flex;
     align-items: center;
@@ -882,6 +898,14 @@ body.gb-sidebar-open .gb-sidebar-toggle span:nth-child(3) { transform: translate
     border: 2px solid var(--gb-surface);
     pointer-events: none;
     z-index: 3;
+}
+
+button.profile-avatar-camera,
+.profile-avatar-camera[data-avatar-change] {
+    pointer-events: auto;
+    cursor: pointer;
+    padding: 0;
+    z-index: 4;
 }
 
 .profile-avatar-input-hidden {
@@ -1529,6 +1553,12 @@ body.gb-has-cabinet-nav .gb-theme-fab {
 
 [data-theme="dark"] .tg-card-avatar {
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .profile-avatar-camera {
+    background: linear-gradient(135deg, var(--gb-primary), var(--gb-accent));
+    color: #fff;
+    border-color: var(--gb-surface);
 }
 
 .gb-chat-inbox {

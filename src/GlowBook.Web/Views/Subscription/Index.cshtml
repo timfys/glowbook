@@ -1,5 +1,5 @@
 ﻿@model Subscription
-@{ ViewData["Title"] = "Подписка"; var price = (int?)ViewBag.PremiumPrice ?? 500; var bookingUrl = ViewBag.BookingUrl as string; var yookassaOk = ViewBag.YooKassaConfigured == true; }
+@{ ViewData["Title"] = "Подписка"; var price = (int?)ViewBag.PremiumPrice ?? 350; var bookingUrl = ViewBag.BookingUrl as string; var yookassaOk = ViewBag.YooKassaConfigured == true; }
 <div class="panel pricing-card" style="max-width:640px">
     <h2 class="h4 fw-bold">GlowBook Premium</h2>
     @if (TempData["PaySuccess"] != null || ViewBag.PaySuccess != null)

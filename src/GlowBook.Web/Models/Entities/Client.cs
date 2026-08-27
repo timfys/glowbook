@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using GlowBook.Web.Models;
 
 namespace GlowBook.Web.Models.Entities;
 
@@ -29,6 +30,15 @@ public class Client
     public string? SkinConcerns { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Linked client account (AspNetUsers), matched by email or phone.</summary>
+    public string? LinkedUserId { get; set; }
+
+    public ApplicationUser? LinkedUser { get; set; }
+
+    public bool IsArchived { get; set; }
+
+    public DateTime? ArchivedAt { get; set; }
 
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 

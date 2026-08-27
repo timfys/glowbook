@@ -1,4 +1,5 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Filters;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Clients;
 using GlowBook.Web.Models.Entities;
@@ -13,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 public class ClientsController : Controller
 {
     private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -25,12 +27,14 @@ public class ClientsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
     private readonly MasterProfileService _profiles;
+    private readonly ClientAccountService _clientAccounts;
 
-    public ClientsController(ApplicationDbContext db, UserManager<ApplicationUser> users, MasterProfileService profiles)
+    public ClientsController(ApplicationDbContext db, UserManager<ApplicationUser> users, MasterProfileService profiles, ClientAccountService clientAccounts)
     {
         _db = db;
         _users = users;
         _profiles = profiles;
+        _clientAccounts = clientAccounts;
     }
 
     public async Task<IActionResult> Index(string? q)
@@ -38,7 +42,7 @@ public class ClientsController : Controller
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
 
-        var query = _db.Clients.Where(c => c.MasterProfileId == profile.Id);
+        var query = _db.Clients.Where(c => c.MasterProfileId == profile.Id && !c.IsArchived);
         if (!string.IsNullOrWhiteSpace(q))
             query = query.Where(c => c.Name.Contains(q) || c.Phone.Contains(q)
                 || (c.Allergies != null && c.Allergies.Contains(q))
@@ -63,6 +67,7 @@ public class ClientsController : Controller
         model.CreatedAt = DateTime.UtcNow;
         _db.Clients.Add(model);
         await _db.SaveChangesAsync();
+        await _clientAccounts.TryLinkClientRecordAsync(model);
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
 
@@ -113,6 +118,8 @@ public class ClientsController : Controller
             await _db.Services.Where(s => s.MasterProfileId == profile.Id && s.IsActive).OrderBy(s => s.Name).ToListAsync(),
             "Id", "Name");
 
+        ViewBag.LinkedAccount = await _clientAccounts.GetLinkedAccountForClientAsync(client);
+
         return View(vm);
     }
 
@@ -144,6 +151,7 @@ public class ClientsController : Controller
         client.Allergies = string.IsNullOrWhiteSpace(model.Allergies) ? null : model.Allergies.Trim();
         client.SkinConcerns = string.IsNullOrWhiteSpace(model.SkinConcerns) ? null : model.SkinConcerns.Trim();
         await _db.SaveChangesAsync();
+        await _clientAccounts.TryLinkClientRecordAsync(client);
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -319,6 +327,23 @@ public class ClientsController : Controller
         }
 
         return RedirectToAction(nameof(Details), new { id = clientId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Archive(int id)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.MasterProfileId == profile.Id && !c.IsArchived);
+        if (client == null) return NotFound();
+
+        client.IsArchived = true;
+        client.ArchivedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Клиент «{client.Name}» убран из списка";
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<MasterProfile?> GetProfileAsync()

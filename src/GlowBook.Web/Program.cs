@@ -55,6 +55,7 @@ builder.Services.Configure<YooKassaSettings>(builder.Configuration.GetSection(Yo
 builder.Services.AddGlowBookAuthentication(builder.Configuration);
 
 builder.Services.AddScoped<MasterProfileService>();
+builder.Services.AddScoped<ClientAccountService>();
 builder.Services.AddScoped<ExternalAccountService>();
 builder.Services.AddScoped<TelegramAuthService>();
 builder.Services.AddScoped<SubscriptionService>();

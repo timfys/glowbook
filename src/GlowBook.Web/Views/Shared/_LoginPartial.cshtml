@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using GlowBook.Web.Models
+@using GlowBook.Web.Models.Enums
 @using GlowBook.Web.Helpers
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
@@ -9,10 +10,12 @@
 @if (SignInManager.IsSignedIn(User))
 {
     var user = await UserManager.GetUserAsync(User);
-    var profile = user == null ? null : await Profiles.GetForUserAsync(user.Id);
+    var isClient = user?.AccountType == UserAccountType.Client;
+    var profile = !isClient && user != null ? await Profiles.GetForUserAsync(user.Id) : null;
     var name = user?.DisplayName ?? user?.Email ?? "Профиль";
+    var profileUrl = isClient ? Url.Action("Profile", "My") : Url.Action("Index", "Profile");
     <li class="nav-item">
-        <a class="gb-nav-user" asp-controller="Profile" asp-action="Index" title="Мой профиль">
+        <a class="gb-nav-user" href="@profileUrl" title="Мой профиль">
             @if (profile?.HasAvatar == true)
             {
                 <img class="gb-avatar gb-avatar-sm" src="@Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks })" alt="" />

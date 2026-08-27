@@ -1,0 +1,37 @@
+@model GlowBook.Web.Models.Clients.ClientProfileEditViewModel
+@{
+    ViewData["Title"] = "Мой профиль";
+}
+
+<div class="page-head">
+    <h2 class="h4 fw-bold mb-0">Мой профиль</h2>
+</div>
+
+@if (TempData["Success"] is string ok)
+{
+    <div class="alert alert-success">@ok</div>
+}
+
+<div class="panel" style="max-width: 520px">
+    <p class="text-muted small">Email и телефон должны совпадать с тем, что указал мастер в карточке клиента — тогда записи будут видны здесь.</p>
+    <form asp-action="Profile" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+        <div class="mb-3">
+            <label asp-for="DisplayName" class="form-label"></label>
+            <input asp-for="DisplayName" class="form-control" />
+            <span asp-validation-for="DisplayName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" autocomplete="username" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" autocomplete="tel" placeholder="+7 …" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+    </form>
+</div>

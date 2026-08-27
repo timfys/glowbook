@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using GlowBook.Web.Configuration;
+using GlowBook.Web.Helpers;
 using GlowBook.Web.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,15 +12,18 @@ public class ExternalAccountService
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly MasterProfileService _profiles;
+    private readonly ClientAccountService _clientAccounts;
 
     public ExternalAccountService(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        MasterProfileService profiles)
+        MasterProfileService profiles,
+        ClientAccountService clientAccounts)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _profiles = profiles;
+        _clientAccounts = clientAccounts;
     }
 
     public async Task<IActionResult> SignInFromExternalLoginAsync(
@@ -36,9 +40,9 @@ public class ExternalAccountService
         {
             var existing = await _userManager.FindByLoginAsync(loginInfo.LoginProvider, loginInfo.ProviderKey);
             if (existing != null)
-                await _profiles.EnsureForUserAsync(existing);
+                await AfterSignInAsync(existing);
 
-            return controller.LocalRedirect(NormalizeReturnUrl(returnUrl));
+            return controller.LocalRedirect(NormalizeReturnUrl(existing, returnUrl));
         }
 
         var email = loginInfo.Principal.FindFirstValue(ClaimTypes.Email);
@@ -79,8 +83,8 @@ public class ExternalAccountService
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
-        await _profiles.EnsureForUserAsync(user);
-        return controller.LocalRedirect(NormalizeReturnUrl(returnUrl));
+        await AfterSignInAsync(user);
+        return controller.LocalRedirect(NormalizeReturnUrl(user, returnUrl));
     }
 
     public async Task<IActionResult> SignInFromTelegramAsync(
@@ -98,9 +102,9 @@ public class ExternalAccountService
         {
             var existing = await _userManager.FindByLoginAsync(AuthProviders.Telegram, providerKey);
             if (existing != null)
-                await _profiles.EnsureForUserAsync(existing);
+                await AfterSignInAsync(existing);
 
-            return controller.LocalRedirect(NormalizeReturnUrl(returnUrl));
+            return controller.LocalRedirect(NormalizeReturnUrl(existing, returnUrl));
         }
 
         var userName = $"tg_{providerKey}";
@@ -124,10 +128,18 @@ public class ExternalAccountService
             return controller.RedirectToAction("Login", "Auth", new { error = "telegram_link_failed" });
 
         await _signInManager.SignInAsync(user, isPersistent: false);
-        await _profiles.EnsureForUserAsync(user);
-        return controller.LocalRedirect(NormalizeReturnUrl(returnUrl));
+        await AfterSignInAsync(user);
+        return controller.LocalRedirect(NormalizeReturnUrl(user, returnUrl));
     }
 
-    private static string NormalizeReturnUrl(string? returnUrl) =>
-        string.IsNullOrWhiteSpace(returnUrl) ? "/Dashboard" : returnUrl;
+    private async Task AfterSignInAsync(ApplicationUser user)
+    {
+        if (user.AccountType == Models.Enums.UserAccountType.Master)
+            await _profiles.EnsureForUserAsync(user);
+        else
+            await _clientAccounts.LinkClientsToUserAsync(user);
+    }
+
+    private static string NormalizeReturnUrl(ApplicationUser? user, string? returnUrl) =>
+        !string.IsNullOrWhiteSpace(returnUrl) ? returnUrl : (user == null ? "/Dashboard" : AccountRouting.HomeFor(user));
 }

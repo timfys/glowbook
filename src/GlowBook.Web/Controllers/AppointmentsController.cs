@@ -1,4 +1,5 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Filters;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Models.Enums;
@@ -12,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 public class AppointmentsController : Controller
 {
     private readonly ApplicationDbContext _db;
@@ -41,27 +43,51 @@ public class AppointmentsController : Controller
         return View(items);
     }
 
-    public async Task<IActionResult> Calendar(DateTime? week)
+    public async Task<IActionResult> Calendar(DateTime? week, DateTime? month, string? view)
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
 
-        var anchor = week?.Date ?? DateTime.Today;
-        var start = StartOfWeek(anchor);
+        var calendarView = string.Equals(view, "month", StringComparison.OrdinalIgnoreCase) ? "month" : "week";
+
+        if (calendarView == "month")
+        {
+            var anchor = month?.Date ?? DateTime.Today;
+            var monthStart = new DateTime(anchor.Year, anchor.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
+
+            var items = await _db.Appointments
+                .Include(a => a.Client)
+                .Include(a => a.Service)
+                .Where(a => a.MasterProfileId == profile.Id && a.StartsAt >= monthStart && a.StartsAt < monthEnd)
+                .OrderBy(a => a.StartsAt)
+                .ToListAsync();
+
+            ViewBag.ViewMode = "month";
+            ViewBag.MonthStart = monthStart;
+            ViewBag.PrevMonth = monthStart.AddMonths(-1);
+            ViewBag.NextMonth = monthStart.AddMonths(1);
+            ViewBag.CalendarWeeks = BuildMonthWeeks(monthStart);
+            return View("Calendar", items);
+        }
+
+        var weekAnchor = week?.Date ?? DateTime.Today;
+        var start = StartOfWeek(weekAnchor);
         var end = start.AddDays(7);
 
-        var items = await _db.Appointments
+        var weekItems = await _db.Appointments
             .Include(a => a.Client)
             .Include(a => a.Service)
             .Where(a => a.MasterProfileId == profile.Id && a.StartsAt >= start && a.StartsAt < end)
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
 
+        ViewBag.ViewMode = "week";
         ViewBag.WeekStart = start;
         ViewBag.PrevWeek = start.AddDays(-7);
         ViewBag.NextWeek = start.AddDays(7);
         ViewBag.Days = Enumerable.Range(0, 7).Select(i => start.AddDays(i)).ToList();
-        return View(items);
+        return View("Calendar", weekItems);
     }
 
     public async Task<IActionResult> Create()
@@ -122,7 +148,9 @@ public class AppointmentsController : Controller
 
     private async Task LoadLookupsAsync(int profileId)
     {
-        ViewBag.Clients = new SelectList(await _db.Clients.Where(c => c.MasterProfileId == profileId).OrderBy(c => c.Name).ToListAsync(), "Id", "Name");
+        ViewBag.Clients = new SelectList(
+            await _db.Clients.Where(c => c.MasterProfileId == profileId && !c.IsArchived).OrderBy(c => c.Name).ToListAsync(),
+            "Id", "Name");
         ViewBag.Services = new SelectList(await _db.Services.Where(s => s.MasterProfileId == profileId && s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
     }
 
@@ -136,5 +164,17 @@ public class AppointmentsController : Controller
     {
         var diff = ((int)date.DayOfWeek + 6) % 7; // Monday = 0
         return date.Date.AddDays(-diff);
+    }
+
+    private static List<List<DateTime>> BuildMonthWeeks(DateTime monthStart)
+    {
+        var firstCell = StartOfWeek(monthStart);
+        var weeks = new List<List<DateTime>>();
+        for (var w = 0; w < 6; w++)
+        {
+            var weekStart = firstCell.AddDays(w * 7);
+            weeks.Add(Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i)).ToList());
+        }
+        return weeks;
     }
 }

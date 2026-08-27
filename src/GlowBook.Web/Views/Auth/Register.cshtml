@@ -1,4 +1,5 @@
 ﻿@model GlowBook.Web.Models.Auth.RegisterViewModel
+@using GlowBook.Web.Models.Enums
 @{
     ViewData["Title"] = "Регистрация";
     var providers = (GlowBook.Web.Models.Auth.AuthProvidersViewModel)ViewBag.Providers!;
@@ -8,15 +9,32 @@
 <div class="auth-shell">
     <div class="auth-card panel">
         <h1 class="h4 fw-bold mb-1">Регистрация</h1>
-        <p class="text-muted mb-4">Быстрее всего — через соцсети</p>
+        <p class="text-muted mb-4">Мастер — CRM и записи. Клиент — просмотр своих визитов.</p>
 
         <partial name="_ExternalAuthButtons" model="providers" />
 
         <div class="auth-divider my-4"><span>или email</span></div>
 
-        <form asp-action="Register" method="post">
+        <form asp-action="Register" method="post" id="registerForm">
             <input type="hidden" name="returnUrl" value="@returnUrl" />
             <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Тип аккаунта</label>
+                <div class="account-type-picker">
+                    <label class="account-type-option @(Model.AccountType == UserAccountType.Master ? "is-selected" : "")">
+                        <input type="radio" asp-for="AccountType" value="@UserAccountType.Master" />
+                        <span class="account-type-title">Мастер</span>
+                        <span class="account-type-desc">Кабинет, клиенты, календарь</span>
+                    </label>
+                    <label class="account-type-option @(Model.AccountType == UserAccountType.Client ? "is-selected" : "")">
+                        <input type="radio" asp-for="AccountType" value="@UserAccountType.Client" />
+                        <span class="account-type-title">Клиент</span>
+                        <span class="account-type-desc">Мои записи у мастеров</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label asp-for="DisplayName" class="form-label"></label>
                 <input asp-for="DisplayName" class="form-control" />
@@ -26,6 +44,12 @@
                 <label asp-for="Email" class="form-label"></label>
                 <input asp-for="Email" class="form-control" autocomplete="username" />
                 <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3" id="registerPhoneWrap">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" autocomplete="tel" placeholder="+7 …" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+                <div class="form-text">Нужен для поиска записей, если мастер указал телефон</div>
             </div>
             <div class="mb-3">
                 <label asp-for="Password" class="form-label"></label>

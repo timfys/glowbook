@@ -1,4 +1,5 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Helpers;
 using GlowBook.Web.Models.Booking;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Models.Enums;
@@ -91,9 +92,10 @@ public class BookingService
         if (!times.Contains(startsAt.ToString("HH:mm")))
             return (false, "This time slot is no longer available");
 
-        var phone = NormalizePhone(form.ClientPhone);
-        var client = await _db.Clients.FirstOrDefaultAsync(
-            c => c.MasterProfileId == profile.Id && c.Phone == phone, ct);
+        var masterClients = await _db.Clients
+            .Where(c => c.MasterProfileId == profile.Id && !c.IsArchived)
+            .ToListAsync(ct);
+        var client = masterClients.FirstOrDefault(c => PhoneHelper.Match(c.Phone, form.ClientPhone));
 
         if (client == null)
         {
@@ -101,7 +103,7 @@ public class BookingService
             {
                 MasterProfileId = profile.Id,
                 Name = form.ClientName.Trim(),
-                Phone = phone,
+                Phone = form.ClientPhone.Trim(),
                 Notes = form.Notes
             };
             _db.Clients.Add(client);
@@ -127,7 +129,4 @@ public class BookingService
         await _db.SaveChangesAsync(ct);
         return (true, null);
     }
-
-    private static string NormalizePhone(string phone) =>
-        new string(phone.Where(char.IsDigit).ToArray());
 }

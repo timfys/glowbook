@@ -54,6 +54,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Allergies).HasMaxLength(1000);
             e.Property(x => x.SkinConcerns).HasMaxLength(1000);
             e.HasIndex(x => new { x.MasterProfileId, x.Phone });
+            e.HasIndex(x => x.LinkedUserId);
+            e.HasOne(x => x.LinkedUser)
+                .WithMany()
+                .HasForeignKey(x => x.LinkedUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Service>(e =>

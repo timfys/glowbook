@@ -1,4 +1,5 @@
 using GlowBook.Web.Data;
+using GlowBook.Web.Filters;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Services;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 [Route("profile")]
 public class ProfileController : Controller
 {

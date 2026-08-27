@@ -11,8 +11,26 @@
         <a asp-action="Index" class="small text-muted text-decoration-none">← Клиенты</a>
         <h2 class="h4 fw-bold mb-0 mt-1">@Model.Client.Name</h2>
         <div class="text-muted small">@Model.Client.Phone @if (!string.IsNullOrWhiteSpace(Model.Client.Email)) { <span>· @Model.Client.Email</span> }</div>
+        @{
+            var linkedAccount = ViewBag.LinkedAccount as GlowBook.Web.Models.ApplicationUser;
+        }
+        @if (linkedAccount != null)
+        {
+            <div class="small mt-1">
+                <span class="badge bg-light text-dark border">Есть аккаунт</span>
+                @linkedAccount.DisplayName · @linkedAccount.Email
+                @if (!string.IsNullOrWhiteSpace(linkedAccount.PhoneNumber)) { <span>· @linkedAccount.PhoneNumber</span> }
+            </div>
+        }
     </div>
-    <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@Model.Client.Id">Редактировать</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@Model.Client.Id">Редактировать</a>
+        <form asp-action="Archive" method="post" onsubmit="return confirm('Убрать клиента из списка? История и записи сохранятся.');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Client.Id" />
+            <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Убрать из списка</button>
+        </form>
+    </div>
 </div>
 
 @if (TempData["Error"] is string err)

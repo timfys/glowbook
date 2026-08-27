@@ -307,3 +307,43 @@
         alert('Выбор из контактов доступен в приложении GlowBook или в Chrome на Android.');
     });
 })();
+
+(function () {
+    var toggle = document.getElementById('gbThemeToggle');
+    if (!toggle) return;
+
+    function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function applyTheme(theme) {
+        if (theme === 'dark')
+            document.documentElement.setAttribute('data-theme', 'dark');
+        else
+            document.documentElement.removeAttribute('data-theme');
+        try { localStorage.setItem('gb-theme', theme); } catch (_) {}
+    }
+
+    toggle.addEventListener('click', function () {
+        applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+    });
+})();
+
+(function () {
+    var form = document.getElementById('registerForm');
+    if (!form) return;
+
+    var options = form.querySelectorAll('.account-type-option');
+
+    function sync() {
+        options.forEach(function (el) {
+            var input = el.querySelector('input[type="radio"]');
+            el.classList.toggle('is-selected', input && input.checked);
+        });
+    }
+
+    form.querySelectorAll('input[name="AccountType"]').forEach(function (r) {
+        r.addEventListener('change', sync);
+    });
+    sync();
+})();

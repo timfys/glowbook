@@ -1,6 +1,7 @@
 ﻿using GlowBook.Web.Configuration;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Auth;
+using GlowBook.Web.Models.Enums;
 using GlowBook.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,6 +18,7 @@ public class AuthController : Controller
     private readonly ExternalAccountService _externalAccounts;
     private readonly TelegramAuthService _telegramAuth;
     private readonly MasterProfileService _profiles;
+    private readonly ClientAccountService _clientAccounts;
     private readonly ExternalAuthSettings _authSettings;
 
     public AuthController(
@@ -25,6 +27,7 @@ public class AuthController : Controller
         ExternalAccountService externalAccounts,
         TelegramAuthService telegramAuth,
         MasterProfileService profiles,
+        ClientAccountService clientAccounts,
         IOptions<ExternalAuthSettings> authSettings)
     {
         _signInManager = signInManager;
@@ -32,14 +35,15 @@ public class AuthController : Controller
         _externalAccounts = externalAccounts;
         _telegramAuth = telegramAuth;
         _profiles = profiles;
+        _clientAccounts = clientAccounts;
         _authSettings = authSettings.Value;
     }
 
     [HttpGet("login")]
-    public IActionResult Login(string? returnUrl = null, string? error = null)
+    public async Task<IActionResult> Login(string? returnUrl = null, string? error = null)
     {
         if (User.Identity?.IsAuthenticated == true)
-            return RedirectToAction("Index", "Dashboard");
+            return RedirectHome(await _userManager.GetUserAsync(User), returnUrl);
 
         ViewData["ReturnUrl"] = returnUrl;
         ViewData["Error"] = error;
@@ -62,8 +66,8 @@ public class AuthController : Controller
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null)
-                await _profiles.EnsureForUserAsync(user);
-            return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/Dashboard" : returnUrl);
+                await AfterSignInAsync(user);
+            return RedirectHome(user, returnUrl);
         }
 
         ModelState.AddModelError(string.Empty, "Неверный email или пароль");
@@ -71,10 +75,10 @@ public class AuthController : Controller
     }
 
     [HttpGet("register")]
-    public IActionResult Register(string? returnUrl = null)
+    public async Task<IActionResult> Register(string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
-            return RedirectToAction("Index", "Dashboard");
+            return RedirectHome(await _userManager.GetUserAsync(User), returnUrl);
 
         ViewData["ReturnUrl"] = returnUrl;
         ViewBag.Providers = BuildProvidersModel();
@@ -91,11 +95,19 @@ public class AuthController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
+        if (model.AccountType == UserAccountType.Client && string.IsNullOrWhiteSpace(model.Phone))
+            ModelState.AddModelError(nameof(model.Phone), "Укажите телефон — по нему найдём ваши записи у мастеров");
+
+        if (!ModelState.IsValid)
+            return View(model);
+
         var user = new ApplicationUser
         {
             UserName = model.Email,
             Email = model.Email,
             DisplayName = model.DisplayName,
+            PhoneNumber = string.IsNullOrWhiteSpace(model.Phone) ? null : model.Phone.Trim(),
+            AccountType = model.AccountType,
             EmailConfirmed = true
         };
 
@@ -108,8 +120,8 @@ public class AuthController : Controller
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
-        await _profiles.EnsureForUserAsync(user);
-        return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/Dashboard" : returnUrl);
+        await AfterSignInAsync(user);
+        return RedirectHome(user, returnUrl);
     }
 
     [HttpPost("external")]
@@ -167,4 +179,20 @@ public class AuthController : Controller
         // Пока только Mail.ru; Google / VK / Telegram скрыты
         MailRu = _authSettings.MailRu.IsConfigured
     };
+
+    private async Task AfterSignInAsync(ApplicationUser user)
+    {
+        if (user.AccountType == UserAccountType.Master)
+            await _profiles.EnsureForUserAsync(user);
+        else
+            await _clientAccounts.LinkClientsToUserAsync(user);
+    }
+
+    private IActionResult RedirectHome(ApplicationUser? user, string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
+        return LocalRedirect(user == null ? "/Dashboard" : AccountRouting.HomeFor(user));
+    }
 }

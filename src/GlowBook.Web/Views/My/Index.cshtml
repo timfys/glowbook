@@ -1,0 +1,62 @@
+@model IEnumerable<GlowBook.Web.Services.ClientAppointmentView>
+@using GlowBook.Web.Models.Enums
+@{
+    ViewData["Title"] = "Мои записи";
+    var upcoming = Model.Where(a => a.StartsAt >= DateTime.Now && a.Status != AppointmentStatus.Cancelled).OrderBy(a => a.StartsAt).ToList();
+    var past = Model.Where(a => a.StartsAt < DateTime.Now || a.Status == AppointmentStatus.Cancelled).OrderByDescending(a => a.StartsAt).ToList();
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Мои записи</h2>
+        <div class="text-muted small">Здесь видны записи, если мастер указал ваш email или телефон</div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel empty-state">
+        <div class="fw-semibold mb-1">Записей пока нет</div>
+        <p class="text-muted mb-0 small">Попросите мастера указать в карточке клиента тот же email или телефон, что в вашем профиле — записи подтянутся автоматически.</p>
+    </div>
+}
+else
+{
+    if (upcoming.Any())
+    {
+        <div class="panel mb-3">
+            <div class="fw-semibold mb-3">Предстоящие</div>
+            <div class="client-appt-list">
+            @foreach (var a in upcoming)
+            {
+                <div class="client-appt-item">
+                    <div>
+                        <div class="fw-semibold">@a.StartsAt.ToString("dddd, d MMMM · HH:mm")</div>
+                        <div class="small text-muted">@a.ServiceName · @a.MasterName@if (!string.IsNullOrWhiteSpace(a.MasterCity)) { <text>, @a.MasterCity</text> }</div>
+                    </div>
+                    <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
+                </div>
+            }
+            </div>
+        </div>
+    }
+
+    if (past.Any())
+    {
+        <div class="panel">
+            <div class="fw-semibold mb-3">История</div>
+            <div class="client-appt-list">
+            @foreach (var a in past)
+            {
+                <div class="client-appt-item">
+                    <div>
+                        <div class="fw-semibold">@a.StartsAt.ToString("d MMMM yyyy · HH:mm")</div>
+                        <div class="small text-muted">@a.ServiceName · @a.MasterName</div>
+                    </div>
+                    <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
+                </div>
+            }
+            </div>
+        </div>
+    }
+}

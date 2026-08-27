@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using GlowBook.Web.Models.Enums;
 
 namespace GlowBook.Web.Models.Auth;
 
@@ -29,6 +30,10 @@ public class RegisterViewModel
     [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
+    [Display(Name = "Телефон")]
+    [Phone(ErrorMessage = "Некорректный телефон")]
+    public string? Phone { get; set; }
+
     [Required(ErrorMessage = "Укажите пароль")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "Пароль не короче 6 символов")]
     [DataType(DataType.Password)]
@@ -39,6 +44,10 @@ public class RegisterViewModel
     [Compare(nameof(Password), ErrorMessage = "Пароли не совпадают")]
     [Display(Name = "Повтор пароля")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Выберите тип аккаунта")]
+    [Display(Name = "Тип аккаунта")]
+    public UserAccountType AccountType { get; set; } = UserAccountType.Master;
 }
 
 public class AuthProvidersViewModel

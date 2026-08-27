@@ -13,7 +13,7 @@ public class GlowBookSettings
 {
     public const string SectionName = "GlowBook";
 
-    public decimal PremiumPriceRub { get; set; } = 500;
+    public decimal PremiumPriceRub { get; set; } = 350;
     public int PremiumDays { get; set; } = 30;
 
     /// <summary>Публичные реквизиты для ЮKassa / оферты (/rekvizity).</summary>
@@ -22,7 +22,7 @@ public class GlowBookSettings
 
 public class LegalSettings
 {
-    public string SellerName { get; set; } = "Самозанятый Тимофей";
+    public string SellerName { get; set; } = "GlowBook";
     public string Inn { get; set; } = "";
     public string Email { get; set; } = "timfy@bk.ru";
     public string? Phone { get; set; }

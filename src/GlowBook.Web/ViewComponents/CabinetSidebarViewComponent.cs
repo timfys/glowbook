@@ -23,6 +23,14 @@ public class CabinetSidebarViewComponent : ViewComponent
         if (user == null)
             return Content(string.Empty);
 
+        if (user.AccountType == Models.Enums.UserAccountType.Client)
+            return View("Client", new ClientCabinetSidebarModel
+            {
+                DisplayName = user.DisplayName ?? user.Email ?? "Клиент",
+                ActiveController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "",
+                ActiveAction = ViewContext.RouteData.Values["action"]?.ToString() ?? ""
+            });
+
         var profile = await _profiles.EnsureForUserAsync(user);
         var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
 
@@ -42,4 +50,11 @@ public class CabinetSidebarModel
     public string DisplayName { get; set; } = "";
     public string ActiveController { get; set; } = "";
     public bool IsPremium { get; set; }
+}
+
+public class ClientCabinetSidebarModel
+{
+    public string DisplayName { get; set; } = "";
+    public string ActiveController { get; set; } = "";
+    public string ActiveAction { get; set; } = "";
 }

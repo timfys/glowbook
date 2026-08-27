@@ -2,10 +2,9 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Реквизиты и оферта";
-    var price = (int)(ViewBag.PremiumPrice ?? 500);
+    var price = (int)(ViewBag.PremiumPrice ?? 350);
     var days = (int)(ViewBag.PremiumDays ?? 30);
     var legal = (LegalSettings)ViewBag.Legal;
-    var siteUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
 }
 
 <div class="panel legal-page" style="max-width:720px">
@@ -28,15 +27,15 @@
         <h2 class="h5 fw-bold">2. Как получить услугу</h2>
         <p class="mb-0">
             Услуга цифровая. Доставка не требуется. После оплаты Premium активируется в личном кабинете
-            на сайте <a href="@siteUrl">@Context.Request.Host</a>. Чек об оплате приходит от ЮKassa.
+            сервиса GlowBook. Чек об оплате приходит от ЮKassa.
         </p>
     </section>
 
     <section class="mb-4" id="oferta">
         <h2 class="h5 fw-bold">3. Публичная оферта</h2>
         <ol class="ps-3">
-            <li>Исполнитель оказывает доступ к сервису GlowBook на условиях этой оферты.</li>
-            <li>Заказчик — пользователь, оформивший оплату Premium на сайте.</li>
+            <li>Исполнитель (GlowBook) оказывает доступ к сервису GlowBook на условиях этой оферты.</li>
+            <li>Заказчик — пользователь, оформивший оплату Premium в сервисе GlowBook.</li>
             <li>Оплата означает согласие с условиями оферты и политикой обработки данных.</li>
             <li>Подписка действует @days дней с момента успешной оплаты, если иное не указано при оплате.</li>
             <li>Возврат средств — по обращению на email продавца в течение 14 дней, если услугой не пользовались по существу (нет активной работы в кабинете после оплаты). Споры решаются по закону РФ.</li>
@@ -72,8 +71,8 @@
                 <dt class="col-sm-4">Адрес</dt>
                 <dd class="col-sm-8">@legal.Address</dd>
             }
-            <dt class="col-sm-4">Сайт</dt>
-            <dd class="col-sm-8"><a href="@siteUrl">@siteUrl</a></dd>
+            <dt class="col-sm-4">Сервис</dt>
+            <dd class="col-sm-8">GlowBook</dd>
         </dl>
     </section>
 

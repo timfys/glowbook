@@ -1,9 +1,16 @@
 ﻿@inject GlowBook.Web.AssetVersion AssetVersion
+@inject Microsoft.AspNetCore.Identity.UserManager<GlowBook.Web.Models.ApplicationUser> UserManager
 @{
-    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Subscription", "Profile" };
+    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Subscription", "Profile", "My" };
     var isCabinet = User.Identity?.IsAuthenticated == true
         && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
     var av = AssetVersion.Value;
+    var isClientCabinet = false;
+    if (isCabinet && User.Identity?.IsAuthenticated == true)
+    {
+        var layoutUser = await UserManager.GetUserAsync(User);
+        isClientCabinet = layoutUser?.AccountType == GlowBook.Web.Models.Enums.UserAccountType.Client;
+    }
 }
 <!DOCTYPE html>
 <html lang="ru">
@@ -12,6 +19,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <title>@ViewData["Title"] — GlowBook</title>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('gb-theme');
+                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches))
+                    document.documentElement.setAttribute('data-theme', 'dark');
+            } catch (_) {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -38,11 +54,14 @@
                         <span class="navbar-toggler-icon"></span>
                     </button>
                 }
-                <div class="@(isCabinet ? "ms-auto" : "collapse navbar-collapse")" id="mainNav">
+                <div class="@(isCabinet ? "ms-auto d-flex align-items-center gap-2" : "collapse navbar-collapse")" id="mainNav">
+                    <button type="button" class="btn btn-gb-ghost btn-sm gb-theme-toggle" id="gbThemeToggle" aria-label="Тема" title="Светлая / тёмная тема">
+                        <span class="gb-theme-icon" aria-hidden="true">◐</span>
+                    </button>
                     @if (!isCabinet && User.Identity?.IsAuthenticated == true)
                     {
                         <ul class="navbar-nav me-auto">
-                            <li class="nav-item"><a class="nav-link" asp-controller="Dashboard" asp-action="Index">Кабинет</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="@(isClientCabinet ? "My" : "Dashboard")" asp-action="Index">Кабинет</a></li>
                         </ul>
                     }
                     <partial name="_LoginPartial" />

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using GlowBook.Web.Filters;
+using System.Text.Json;
 using GlowBook.Web.Configuration;
 using GlowBook.Web.Models;
 using GlowBook.Web.Services;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Options;
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 public class SubscriptionController : Controller
 {
     private readonly UserManager<ApplicationUser> _users;

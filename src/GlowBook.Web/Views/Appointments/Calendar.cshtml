@@ -1,70 +1,142 @@
 @model IEnumerable<Appointment>
+@using GlowBook.Web.Models.Enums
 @{
     ViewData["Title"] = "Календарь";
-    var weekStart = (DateTime)ViewBag.WeekStart;
-    var days = (List<DateTime>)ViewBag.Days;
+    var viewMode = ViewBag.ViewMode as string ?? "week";
     var grouped = Model.GroupBy(a => a.StartsAt.Date).ToDictionary(g => g.Key, g => g.ToList());
 }
 
 <div class="page-head page-head-calendar">
     <div>
         <h2 class="h4 fw-bold mb-0">Календарь</h2>
-        <div class="text-muted small">@weekStart.ToString("d MMMM") — @weekStart.AddDays(6).ToString("d MMMM yyyy")</div>
+        @if (viewMode == "month")
+        {
+            var monthStart = (DateTime)ViewBag.MonthStart;
+            <div class="text-muted small">@monthStart.ToString("MMMM yyyy")</div>
+        }
+        else
+        {
+            var weekStart = (DateTime)ViewBag.WeekStart;
+            <div class="text-muted small">@weekStart.ToString("d MMMM") — @weekStart.AddDays(6).ToString("d MMMM yyyy")</div>
+        }
     </div>
     <div class="page-head-actions">
-        <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@(((DateTime)ViewBag.PrevWeek).ToString("yyyy-MM-dd"))">←</a>
-        <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@DateTime.Today.ToString("yyyy-MM-dd")">Сегодня</a>
-        <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-week="@(((DateTime)ViewBag.NextWeek).ToString("yyyy-MM-dd"))">→</a>
+        <div class="btn-group btn-group-sm me-2" role="group" aria-label="Вид календаря">
+            <a class="btn @(viewMode == "week" ? "btn-gb-primary" : "btn-gb-outline")"
+               asp-action="Calendar" asp-route-view="week"
+               asp-route-week="@(viewMode == "week" ? ((DateTime)ViewBag.WeekStart).ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))">Неделя</a>
+            <a class="btn @(viewMode == "month" ? "btn-gb-primary" : "btn-gb-outline")"
+               asp-action="Calendar" asp-route-view="month"
+               asp-route-month="@(viewMode == "month" ? ((DateTime)ViewBag.MonthStart).ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))">Месяц</a>
+        </div>
+        @if (viewMode == "month")
+        {
+            var monthStart = (DateTime)ViewBag.MonthStart;
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="month" asp-route-month="@(((DateTime)ViewBag.PrevMonth).ToString("yyyy-MM-dd"))">←</a>
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="month" asp-route-month="@DateTime.Today.ToString("yyyy-MM-dd")">Сегодня</a>
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="month" asp-route-month="@(((DateTime)ViewBag.NextMonth).ToString("yyyy-MM-dd"))">→</a>
+        }
+        else
+        {
+            var weekStart = (DateTime)ViewBag.WeekStart;
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="week" asp-route-week="@(((DateTime)ViewBag.PrevWeek).ToString("yyyy-MM-dd"))">←</a>
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="week" asp-route-week="@DateTime.Today.ToString("yyyy-MM-dd")">Сегодня</a>
+            <a class="btn btn-gb-outline btn-sm" asp-action="Calendar" asp-route-view="week" asp-route-week="@(((DateTime)ViewBag.NextWeek).ToString("yyyy-MM-dd"))">→</a>
+        }
         <a class="btn btn-gb-primary btn-sm" asp-action="Create">Новая запись</a>
     </div>
 </div>
 
-<div class="week-calendar-wrap">
-<div class="week-calendar">
-@foreach (var day in days)
+@if (viewMode == "month")
 {
-    var isToday = day.Date == DateTime.Today;
-    grouped.TryGetValue(day.Date, out var dayItems);
-    dayItems ??= new List<Appointment>();
-    <div class="week-day @(isToday ? "is-today" : "")">
-        <div class="week-day-head">
-            <span class="week-day-name">@day.ToString("ddd")</span>
-            <span class="week-day-date">@day.ToString("d MMM")</span>
-        </div>
-        <div class="week-day-body">
-        @if (!dayItems.Any())
-        {
-            <div class="week-empty">Свободно</div>
-        }
-        else
-        {
-            foreach (var a in dayItems)
+    var monthStart = (DateTime)ViewBag.MonthStart;
+    var weeks = (List<List<DateTime>>)ViewBag.CalendarWeeks;
+    <div class="month-calendar">
+        <div class="month-calendar-head">
+            @foreach (var dn in new[] { "пн", "вт", "ср", "чт", "пт", "сб", "вс" })
             {
-                <div class="week-event">
-                    <div class="week-event-time">@a.StartsAt.ToString("HH:mm")–@a.EndsAt.ToString("HH:mm")</div>
-                    <div class="fw-semibold">@a.Client?.Name</div>
-                    <div class="small text-muted">@a.Service?.Name</div>
-                    <div class="d-flex justify-content-between align-items-center gap-1 mt-1">
-                        <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
-                        @if (a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.Cancelled)
-                        {
-                            <form asp-action="SetStatus" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@a.Id" />
-                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
-                                <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { week = weekStart.ToString("yyyy-MM-dd") })" />
-                                <button type="submit" class="btn btn-link btn-sm p-0">Готово</button>
-                            </form>
-                        }
-                    </div>
-                </div>
+                <div class="month-calendar-dow">@dn</div>
             }
-        }
         </div>
+        @foreach (var week in weeks)
+        {
+            <div class="month-calendar-week">
+            @foreach (var day in week)
+            {
+                var isToday = day.Date == DateTime.Today;
+                var inMonth = day.Month == monthStart.Month;
+                grouped.TryGetValue(day.Date, out var dayItems);
+                dayItems ??= new List<Appointment>();
+                <a class="month-day @(isToday ? "is-today" : "") @(!inMonth ? "is-outside" : "")"
+                   asp-action="Calendar" asp-route-view="week" asp-route-week="@day.ToString("yyyy-MM-dd")">
+                    <span class="month-day-num">@day.Day</span>
+                    @if (dayItems.Any())
+                    {
+                        <span class="month-day-count">@dayItems.Count</span>
+                        <span class="month-day-dots">
+                        @foreach (var a in dayItems.Take(3))
+                        {
+                            <span class="month-day-dot" title="@a.Client?.Name"></span>
+                        }
+                        </span>
+                    }
+                </a>
+            }
+            </div>
+        }
     </div>
 }
-</div>
-</div>
+else
+{
+    var weekStart = (DateTime)ViewBag.WeekStart;
+    var days = (List<DateTime>)ViewBag.Days;
+    <div class="week-calendar-wrap">
+    <div class="week-calendar">
+    @foreach (var day in days)
+    {
+        var isToday = day.Date == DateTime.Today;
+        grouped.TryGetValue(day.Date, out var dayItems);
+        dayItems ??= new List<Appointment>();
+        <div class="week-day @(isToday ? "is-today" : "")">
+            <div class="week-day-head">
+                <span class="week-day-name">@day.ToString("ddd")</span>
+                <span class="week-day-date">@day.ToString("d MMM")</span>
+            </div>
+            <div class="week-day-body">
+            @if (!dayItems.Any())
+            {
+                <div class="week-empty">Свободно</div>
+            }
+            else
+            {
+                foreach (var a in dayItems)
+                {
+                    <div class="week-event">
+                        <div class="week-event-time">@a.StartsAt.ToString("HH:mm")–@a.EndsAt.ToString("HH:mm")</div>
+                        <div class="fw-semibold">@a.Client?.Name</div>
+                        <div class="small text-muted">@a.Service?.Name</div>
+                        <div class="d-flex justify-content-between align-items-center gap-1 mt-1">
+                            <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
+                            @if (a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.Cancelled)
+                            {
+                                <form asp-action="SetStatus" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@a.Id" />
+                                    <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                    <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") })" />
+                                    <button type="submit" class="btn btn-link btn-sm p-0">Готово</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            </div>
+        </div>
+    }
+    </div>
+    </div>
+}
 
 <div class="mt-3">
     <a asp-action="Index" class="small">Список всех записей →</a>

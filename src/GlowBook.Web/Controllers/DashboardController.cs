@@ -1,15 +1,17 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Filters;
+using GlowBook.Web.Models;
 using GlowBook.Web.Models.Enums;
 using GlowBook.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using GlowBook.Web.Models;
 
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 public class DashboardController : Controller
 {
     private readonly ApplicationDbContext _db;
@@ -67,7 +69,7 @@ public class DashboardController : Controller
         var appointmentRevenueMonth = completedMonth.Sum(a => a.Service?.Price ?? 0);
 
         ViewBag.Profile = profile;
-        ViewBag.ClientsCount = await _db.Clients.CountAsync(c => c.MasterProfileId == profile.Id);
+        ViewBag.ClientsCount = await _db.Clients.CountAsync(c => c.MasterProfileId == profile.Id && !c.IsArchived);
         ViewBag.ServicesCount = await _db.Services.CountAsync(s => s.MasterProfileId == profile.Id && s.IsActive);
         ViewBag.TodayCount = todayAppointments.Count;
         ViewBag.RevenueToday = appointmentRevenueToday + treatmentRevenueToday;

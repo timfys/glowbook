@@ -1,4 +1,6 @@
 ﻿using GlowBook.Web.Data;
+using GlowBook.Web.Filters;
+using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +12,7 @@ using GlowBook.Web.Models;
 namespace GlowBook.Web.Controllers;
 
 [Authorize]
+[RequireMasterAccount]
 public class ServicesController : Controller
 {
     private readonly ApplicationDbContext _db;

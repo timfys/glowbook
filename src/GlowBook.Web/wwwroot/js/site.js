@@ -309,8 +309,8 @@
 })();
 
 (function () {
-    var toggle = document.getElementById('gbThemeToggle');
-    if (!toggle) return;
+    var toggles = document.querySelectorAll('.gb-theme-toggle');
+    if (!toggles.length) return;
 
     function currentTheme() {
         return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -322,11 +322,26 @@
         else
             document.documentElement.removeAttribute('data-theme');
         try { localStorage.setItem('gb-theme', theme); } catch (_) {}
+        syncIcons();
     }
 
-    toggle.addEventListener('click', function () {
-        applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+    function syncIcons() {
+        var dark = currentTheme() === 'dark';
+        document.querySelectorAll('.gb-theme-icon-moon').forEach(function (el) {
+            el.hidden = dark;
+        });
+        document.querySelectorAll('.gb-theme-icon-sun').forEach(function (el) {
+            el.hidden = !dark;
+        });
+    }
+
+    toggles.forEach(function (toggle) {
+        toggle.addEventListener('click', function () {
+            applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+        });
     });
+
+    syncIcons();
 })();
 
 (function () {

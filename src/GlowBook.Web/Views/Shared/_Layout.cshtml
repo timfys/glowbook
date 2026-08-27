@@ -55,8 +55,8 @@
                     </button>
                 }
                 <div class="@(isCabinet ? "ms-auto d-flex align-items-center gap-2" : "collapse navbar-collapse")" id="mainNav">
-                    <button type="button" class="btn btn-gb-ghost btn-sm gb-theme-toggle" id="gbThemeToggle" aria-label="Тема" title="Светлая / тёмная тема">
-                        <span class="gb-theme-icon" aria-hidden="true">◐</span>
+                    <button type="button" class="btn btn-gb-ghost btn-sm gb-theme-toggle gb-theme-toggle-nav" aria-label="Тема" title="Светлая / тёмная тема">
+                        <partial name="_ThemeToggleIcons" />
                     </button>
                     @if (!isCabinet && User.Identity?.IsAuthenticated == true)
                     {
@@ -83,6 +83,9 @@
         GlowBook — CRM для косметологов и мастеров красоты
         · <a href="/rekvizity">Реквизиты и оферта</a>
     </footer>
+    <button type="button" class="gb-theme-fab gb-theme-toggle" aria-label="Тема" title="Светлая / тёмная тема">
+        <partial name="_ThemeToggleIcons" />
+    </button>
     <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <partial name="_ValidationScriptsPartial" />

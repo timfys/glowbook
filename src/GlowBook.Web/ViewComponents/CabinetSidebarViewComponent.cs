@@ -39,6 +39,7 @@ public class CabinetSidebarViewComponent : ViewComponent
             Profile = profile,
             DisplayName = user.DisplayName ?? profile.BusinessName,
             ActiveController = controller,
+            ActiveAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "",
             IsPremium = profile.Subscription?.IsPremiumActive == true
         });
     }
@@ -49,6 +50,7 @@ public class CabinetSidebarModel
     public MasterProfile Profile { get; set; } = null!;
     public string DisplayName { get; set; } = "";
     public string ActiveController { get; set; } = "";
+    public string ActiveAction { get; set; } = "";
     public bool IsPremium { get; set; }
 }
 

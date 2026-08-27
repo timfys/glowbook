@@ -168,6 +168,21 @@ public class ClientsController : Controller
         return File(avatar.Data, avatar.ContentType);
     }
 
+
+    [HttpGet]
+    public async Task<IActionResult> Chats()
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var conversations = await _chat.GetConversationsForMasterAsync(profile.Id);
+        return View(new ChatInboxViewModel
+        {
+            IsMasterView = true,
+            Conversations = conversations
+        });
+    }
+
     [HttpGet]
     public async Task<IActionResult> Chat(int id)
     {
@@ -192,7 +207,7 @@ public class ClientsController : Controller
         {
             ClientRecordId = id,
             Title = linked.DisplayName ?? linked.Email ?? client.Name,
-            BackUrl = Url.Action(nameof(Details), new { id }),
+            BackUrl = Url.Action(nameof(Chats)),
             IsMasterView = true,
             CurrentUserId = user.Id,
             Messages = messages

@@ -1,0 +1,94 @@
+﻿@model GlowBook.Web.Models.Clients.ChatInboxViewModel
+@using GlowBook.Web.Helpers
+
+@functions {
+    string FormatChatTime(DateTime? utc)
+    {
+        if (utc == null) return "";
+        var local = utc.Value.ToLocalTime();
+        if (local.Date == DateTime.Today)
+            return local.ToString("HH:mm");
+        if (local.Date > DateTime.Today.AddDays(-7))
+            return local.ToString("ddd HH:mm", System.Globalization.CultureInfo.GetCultureInfo("ru-RU"));
+        return local.ToString("dd.MM.yy");
+    }
+}
+
+@if (!Model.Conversations.Any())
+{
+    <div class="panel empty-state">
+        <div class="fw-semibold mb-1">Чатов пока нет</div>
+        <p class="text-muted mb-0 small">
+            @if (Model.IsMasterView)
+            {
+                @:Когда клиент зарегистрируется и вы начнёте переписку, диалог появится здесь.
+            }
+            else
+            {
+                @:Когда мастер свяжет вашу карточку и вы начнёте переписку, диалог появится здесь.
+            }
+        </p>
+    </div>
+}
+else
+{
+    <div class="gb-chat-inbox">
+        @foreach (var c in Model.Conversations)
+        {
+            string? avatarUrl = null;
+            if (c.HasAvatar)
+            {
+                avatarUrl = Model.IsMasterView
+                    ? Url.Action("LinkedAvatar", "Clients", new { clientId = c.ClientRecordId, v = c.AvatarVersion })
+                    : Url.Action("Avatar", "Profile", new { id = c.MasterProfileId, v = c.AvatarVersion });
+            }
+
+            if (Model.IsMasterView)
+            {
+                <a class="gb-chat-inbox-item" asp-controller="Clients" asp-action="Chat" asp-route-id="@c.ClientRecordId">
+                    @if (avatarUrl != null)
+                    {
+                        <img class="gb-chat-inbox-avatar" src="@avatarUrl" alt="" />
+                    }
+                    else
+                    {
+                        <div class="gb-chat-inbox-avatar gb-chat-inbox-avatar-fallback">@DisplayHelpers.Initials(c.Title)</div>
+                    }
+                    <div class="gb-chat-inbox-body">
+                        <div class="gb-chat-inbox-top">
+                            <div class="gb-chat-inbox-title">@c.Title</div>
+                            @if (c.LastMessageAt != null)
+                            {
+                                <time class="gb-chat-inbox-time" datetime="@c.LastMessageAt.Value.ToString("o")">@FormatChatTime(c.LastMessageAt)</time>
+                            }
+                        </div>
+                        <div class="gb-chat-inbox-preview">@c.Preview</div>
+                    </div>
+                </a>
+            }
+            else
+            {
+                <a class="gb-chat-inbox-item" asp-controller="My" asp-action="Chat" asp-route-clientRecordId="@c.ClientRecordId">
+                    @if (avatarUrl != null)
+                    {
+                        <img class="gb-chat-inbox-avatar" src="@avatarUrl" alt="" />
+                    }
+                    else
+                    {
+                        <div class="gb-chat-inbox-avatar gb-chat-inbox-avatar-fallback">@DisplayHelpers.Initials(c.Title)</div>
+                    }
+                    <div class="gb-chat-inbox-body">
+                        <div class="gb-chat-inbox-top">
+                            <div class="gb-chat-inbox-title">@c.Title</div>
+                            @if (c.LastMessageAt != null)
+                            {
+                                <time class="gb-chat-inbox-time" datetime="@c.LastMessageAt.Value.ToString("o")">@FormatChatTime(c.LastMessageAt)</time>
+                            }
+                        </div>
+                        <div class="gb-chat-inbox-preview">@c.Preview</div>
+                    </div>
+                </a>
+            }
+        }
+    </div>
+}

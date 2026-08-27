@@ -147,6 +147,48 @@ public class ClientAccountService
 
     public async Task<List<Client>> GetLinkedClientRecordsAsync(ApplicationUser user, CancellationToken ct = default)
     {
+        var records = await CollectMatchingClientRecordsAsync(user, ct);
+        if (records.Count == 0)
+            return records;
+
+        var groups = await GroupClientsByMasterAsync(records, user, ct);
+        return groups.Select(g => g.Canonical).ToList();
+    }
+
+    public async Task<List<ClientMasterView>> GetMastersAsync(ApplicationUser user, CancellationToken ct = default)
+    {
+        var records = await CollectMatchingClientRecordsAsync(user, ct);
+        if (records.Count == 0)
+            return new List<ClientMasterView>();
+
+        var groups = await GroupClientsByMasterAsync(records, user, ct);
+        var allIds = records.Select(c => c.Id).ToList();
+        var upcomingByClient = await _db.Appointments
+            .Where(a => allIds.Contains(a.ClientId) && a.StartsAt >= DateTime.UtcNow && a.Status != AppointmentStatus.Cancelled)
+            .GroupBy(a => a.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
+        return groups.Select(g =>
+        {
+            var c = g.Canonical;
+            var master = c.MasterProfile!;
+            return new ClientMasterView
+            {
+                ClientRecordId = c.Id,
+                MasterProfileId = master.Id,
+                MasterName = string.IsNullOrWhiteSpace(master.BusinessName) ? "Мастер" : master.BusinessName,
+                Specialization = master.Specialization,
+                City = master.City,
+                HasAvatar = master.HasAvatar,
+                AvatarVersion = master.AvatarUpdatedAt?.Ticks,
+                UpcomingAppointments = g.AllClientIds.Sum(id => upcomingByClient.GetValueOrDefault(id))
+            };
+        }).OrderBy(m => m.MasterName).ToList();
+    }
+
+    private async Task<List<Client>> CollectMatchingClientRecordsAsync(ApplicationUser user, CancellationToken ct)
+    {
         await LinkClientsToUserAsync(user, ct);
 
         var email = user.Email?.Trim();
@@ -182,34 +224,56 @@ public class ClientAccountService
             .ToList();
     }
 
-    public async Task<List<ClientMasterView>> GetMastersAsync(ApplicationUser user, CancellationToken ct = default)
+    private async Task<List<MasterClientGroup>> GroupClientsByMasterAsync(
+        List<Client> records,
+        ApplicationUser user,
+        CancellationToken ct)
     {
-        var records = await GetLinkedClientRecordsAsync(user, ct);
-        if (records.Count == 0)
-            return new List<ClientMasterView>();
+        var ids = records.Select(c => c.Id).ToList();
 
-        var clientIds = records.Select(c => c.Id).ToList();
+        var messageCounts = await _db.ClientMessages
+            .Where(m => ids.Contains(m.ClientId))
+            .GroupBy(m => m.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
+
         var apptCounts = await _db.Appointments
-            .Where(a => clientIds.Contains(a.ClientId) && a.StartsAt >= DateTime.UtcNow && a.Status != AppointmentStatus.Cancelled)
+            .Where(a => ids.Contains(a.ClientId))
             .GroupBy(a => a.ClientId)
             .Select(g => new { ClientId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ClientId, x => x.Count, ct);
 
-        return records.Select(c =>
-        {
-            var master = c.MasterProfile!;
-            return new ClientMasterView
-            {
-                ClientRecordId = c.Id,
-                MasterProfileId = master.Id,
-                MasterName = string.IsNullOrWhiteSpace(master.BusinessName) ? "Мастер" : master.BusinessName,
-                Specialization = master.Specialization,
-                City = master.City,
-                HasAvatar = master.HasAvatar,
-                AvatarVersion = master.AvatarUpdatedAt?.Ticks,
-                UpcomingAppointments = apptCounts.GetValueOrDefault(c.Id)
-            };
-        }).OrderBy(m => m.MasterName).ToList();
+        return records
+            .GroupBy(c => c.MasterProfileId)
+            .Select(g => new MasterClientGroup(
+                PickCanonicalClientRecord(g, user.Id, messageCounts, apptCounts),
+                g.Select(c => c.Id).ToList()))
+            .ToList();
+    }
+
+    private static Client PickCanonicalClientRecord(
+        IEnumerable<Client> group,
+        string userId,
+        IReadOnlyDictionary<int, int> messageCounts,
+        IReadOnlyDictionary<int, int> apptCounts)
+    {
+        return group
+            .OrderByDescending(c => c.LinkedUserId == userId ? 1 : 0)
+            .ThenByDescending(c => messageCounts.GetValueOrDefault(c.Id))
+            .ThenByDescending(c => apptCounts.GetValueOrDefault(c.Id))
+            .ThenByDescending(c => c.CreatedAt)
+            .First();
+    }
+
+    public async Task<IReadOnlyList<MasterClientGroup>> GetMasterClientGroupsAsync(
+        ApplicationUser user,
+        CancellationToken ct = default)
+    {
+        var records = await CollectMatchingClientRecordsAsync(user, ct);
+        if (records.Count == 0)
+            return Array.Empty<MasterClientGroup>();
+
+        return await GroupClientsByMasterAsync(records, user, ct);
     }
 
     public async Task<LinkedClientAccountView?> GetLinkedAccountViewAsync(Client client, CancellationToken ct = default)
@@ -259,6 +323,8 @@ public class ClientMasterView
     public long? AvatarVersion { get; set; }
     public int UpcomingAppointments { get; set; }
 }
+
+public sealed record MasterClientGroup(Client Canonical, IReadOnlyList<int> AllClientIds);
 
 public class LinkedClientAccountView
 {

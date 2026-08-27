@@ -1,0 +1,13 @@
+﻿@model GlowBook.Web.Models.Clients.ChatInboxViewModel
+@{
+    ViewData["Title"] = "Чаты";
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Чаты</h2>
+        <div class="text-muted small">Переписка с мастерами</div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ChatInbox", Model)

@@ -1,5 +1,6 @@
 ﻿using GlowBook.Web.Data;
 using GlowBook.Web.Hubs;
+using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -186,6 +187,124 @@ public class ClientChatService
         return linked?.Id == userId;
     }
 
+    public async Task<List<ChatConversationView>> GetConversationsForMasterAsync(
+        int masterProfileId,
+        CancellationToken ct = default)
+    {
+        var clients = await _db.Clients
+            .AsNoTracking()
+            .Where(c => c.MasterProfileId == masterProfileId && !c.IsArchived && c.LinkedUserId != null)
+            .Select(c => new { c.Id, c.Name, LinkedUserId = c.LinkedUserId! })
+            .ToListAsync(ct);
+
+        if (clients.Count == 0)
+            return new List<ChatConversationView>();
+
+        var clientIds = clients.Select(c => c.Id).ToList();
+        var lastMessages = await LoadLastMessagesAsync(clientIds, ct);
+        var userIds = clients.Select(c => c.LinkedUserId).Distinct().ToList();
+
+        var users = await _db.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, ct);
+
+        var avatars = await _db.ClientAvatars.AsNoTracking()
+            .Where(a => userIds.Contains(a.UserId))
+            .ToDictionaryAsync(a => a.UserId, a => a.UpdatedAt.Ticks, ct);
+
+        return clients
+            .Select(c =>
+            {
+                users.TryGetValue(c.LinkedUserId, out var linkedUser);
+                lastMessages.TryGetValue(c.Id, out var last);
+                avatars.TryGetValue(c.LinkedUserId, out var avatarVersion);
+
+                return new ChatConversationView
+                {
+                    ClientRecordId = c.Id,
+                    Title = linkedUser?.DisplayName ?? linkedUser?.Email ?? c.Name,
+                    Preview = BuildPreview(last),
+                    LastMessageAt = last?.CreatedAt,
+                    HasAvatar = avatars.ContainsKey(c.LinkedUserId),
+                    AvatarVersion = avatarVersion
+                };
+            })
+            .OrderByDescending(c => c.LastMessageAt ?? DateTime.MinValue)
+            .ThenBy(c => c.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<List<ChatConversationView>> GetConversationsForClientAsync(
+        ApplicationUser user,
+        CancellationToken ct = default)
+    {
+        var groups = await _accounts.GetMasterClientGroupsAsync(user, ct);
+        if (groups.Count == 0)
+            return new List<ChatConversationView>();
+
+        var allIds = groups.SelectMany(g => g.AllClientIds).Distinct().ToList();
+        var lastMessages = await LoadLastMessagesAsync(allIds, ct);
+
+        return groups
+            .Select(g =>
+            {
+                var master = g.Canonical.MasterProfile!;
+                var last = g.AllClientIds
+                    .Select(id => lastMessages.GetValueOrDefault(id))
+                    .Where(m => m != null)
+                    .OrderByDescending(m => m!.CreatedAt)
+                    .FirstOrDefault();
+
+                return new ChatConversationView
+                {
+                    ClientRecordId = g.Canonical.Id,
+                    MasterProfileId = master.Id,
+                    Title = string.IsNullOrWhiteSpace(master.BusinessName) ? "Мастер" : master.BusinessName,
+                    Preview = BuildPreview(last),
+                    LastMessageAt = last?.CreatedAt,
+                    HasAvatar = master.HasAvatar,
+                    AvatarVersion = master.AvatarUpdatedAt?.Ticks
+                };
+            })
+            .OrderByDescending(c => c.LastMessageAt ?? DateTime.MinValue)
+            .ThenBy(c => c.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<Dictionary<int, ClientMessage>> LoadLastMessagesAsync(
+        IReadOnlyList<int> clientIds,
+        CancellationToken ct)
+    {
+        if (clientIds.Count == 0)
+            return new Dictionary<int, ClientMessage>();
+
+        var rows = await _db.ClientMessages
+            .AsNoTracking()
+            .Where(m => clientIds.Contains(m.ClientId))
+            .GroupBy(m => m.ClientId)
+            .Select(g => g.OrderByDescending(m => m.Id).First())
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(m => m.ClientId);
+    }
+
+    private static string BuildPreview(ClientMessage? message)
+    {
+        if (message == null)
+            return "Нет сообщений";
+
+        if (!string.IsNullOrWhiteSpace(message.Body))
+        {
+            var text = message.Body.Trim();
+            return text.Length <= 80 ? text : text[..77] + "…";
+        }
+
+        if (HasAttachment(message))
+            return IsImageAttachment(message) ? "Фото" : (message.AttachmentFileName ?? "Файл");
+
+        return "Нет сообщений";
+    }
+
     public static ClientMessageDto ToDto(ClientMessage m, string currentUserId) => new()
     {
         Id = m.Id,
@@ -261,4 +380,15 @@ public class ClientMessageDto
     public string? AttachmentContentType { get; set; }
     public bool IsImageAttachment { get; set; }
     public string? AttachmentUrl { get; set; }
+}
+
+public class ChatConversationView
+{
+    public int ClientRecordId { get; set; }
+    public int? MasterProfileId { get; set; }
+    public string Title { get; set; } = "";
+    public string Preview { get; set; } = "";
+    public DateTime? LastMessageAt { get; set; }
+    public bool HasAvatar { get; set; }
+    public long? AvatarVersion { get; set; }
 }

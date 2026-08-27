@@ -1,4 +1,4 @@
-using GlowBook.Web.Data;
+﻿using GlowBook.Web.Data;
 using GlowBook.Web.Filters;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Clients;
@@ -129,7 +129,7 @@ public class MyController : Controller
         await _users.UpdateAsync(user);
         await _clients.LinkClientsToUserAsync(user);
 
-        TempData["Success"] = "Профиль сохранён";
+        TempData["Success"] = "РџСЂРѕС„РёР»СЊ СЃРѕС…СЂР°РЅС‘РЅ";
         return RedirectToAction(nameof(Profile));
     }
 
@@ -143,7 +143,7 @@ public class MyController : Controller
 
         if (avatar is not { Length: > 0 })
         {
-            TempData["AvatarError"] = "Выберите фото";
+            TempData["AvatarError"] = "Р’С‹Р±РµСЂРёС‚Рµ С„РѕС‚Рѕ";
             return RedirectToAction(nameof(Profile));
         }
 
@@ -155,7 +155,7 @@ public class MyController : Controller
         }
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = "Фото обновлено";
+        TempData["Success"] = "Р¤РѕС‚Рѕ РѕР±РЅРѕРІР»РµРЅРѕ";
         return RedirectToAction(nameof(Profile));
     }
 
@@ -172,6 +172,21 @@ public class MyController : Controller
 
         Response.Headers.CacheControl = "public,max-age=86400";
         return File(avatar.Data, avatar.ContentType);
+    }
+
+
+    [HttpGet("chats")]
+    public async Task<IActionResult> Chats()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var conversations = await _chat.GetConversationsForClientAsync(user);
+        return View(new ChatInboxViewModel
+        {
+            IsMasterView = false,
+            Conversations = conversations
+        });
     }
 
     [HttpGet("chat/{clientRecordId:int}")]
@@ -195,8 +210,8 @@ public class MyController : Controller
         return View(new ClientChatViewModel
         {
             ClientRecordId = clientRecordId,
-            Title = string.IsNullOrWhiteSpace(master.BusinessName) ? "Мастер" : master.BusinessName,
-            BackUrl = Url.Action(nameof(Masters)),
+            Title = string.IsNullOrWhiteSpace(master.BusinessName) ? "РњР°СЃС‚РµСЂ" : master.BusinessName,
+            BackUrl = Url.Action(nameof(Chats)),
             IsMasterView = false,
             CurrentUserId = user.Id,
             Messages = messages
@@ -233,10 +248,10 @@ public class MyController : Controller
     private async Task<string?> SaveAvatarAsync(string userId, IFormFile file)
     {
         if (file.Length <= 0)
-            return "Файл пустой";
+            return "Р¤Р°Р№Р» РїСѓСЃС‚РѕР№";
 
         if (file.Length > MaxAvatarBytes)
-            return "Фото не должно быть больше 5 МБ";
+            return "Р¤РѕС‚Рѕ РЅРµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 5 РњР‘";
 
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
@@ -245,7 +260,7 @@ public class MyController : Controller
 
         var contentType = DetectImageContentType(data, file.ContentType);
         if (contentType == null)
-            return "Поддерживаются JPEG, PNG, WebP и GIF.";
+            return "РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ JPEG, PNG, WebP Рё GIF.";
 
         var existing = await _db.ClientAvatars.FirstOrDefaultAsync(a => a.UserId == userId);
         if (existing == null)

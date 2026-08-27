@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using GlowBook.Web.Models.Entities;
+using GlowBook.Web.Services;
 
 namespace GlowBook.Web.Models.Clients;
 
@@ -31,4 +32,10 @@ public class ClientChatViewModel
     public bool IsMasterView { get; set; }
     public string CurrentUserId { get; set; } = "";
     public List<ClientMessage> Messages { get; set; } = [];
+}
+
+public class ChatInboxViewModel
+{
+    public bool IsMasterView { get; set; }
+    public IReadOnlyList<ChatConversationView> Conversations { get; set; } = [];
 }

@@ -18,13 +18,13 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css?av=@av" asp-append-version="true" />
 </head>
-<body class="gb-app @(isCabinet ? "gb-has-sidebar" : "")">
+<body class="gb-app @(isCabinet ? "gb-has-sidebar gb-has-cabinet-nav" : "")">
     <header>
         <nav class="navbar navbar-expand-sm navbar-light gb-nav">
             <div class="@(isCabinet ? "container-fluid px-3 px-lg-4" : "container")">
                 @if (isCabinet)
                 {
-                    <button type="button" class="gb-sidebar-toggle me-2" id="gbSidebarToggle" aria-label="Меню" aria-expanded="false">
+                    <button type="button" class="gb-sidebar-toggle me-2 d-none d-lg-flex" id="gbSidebarToggle" aria-label="Меню" aria-expanded="false">
                         <span></span><span></span><span></span>
                     </button>
                 }
@@ -52,7 +52,7 @@
     </header>
     @if (isCabinet)
     {
-        <div class="gb-sidebar-backdrop" id="gbSidebarBackdrop"></div>
+        <div class="gb-sidebar-backdrop d-none d-lg-block" id="gbSidebarBackdrop"></div>
         @await Component.InvokeAsync("CabinetSidebar")
     }
     <main class="@(isCabinet ? "gb-cabinet-main" : "container gb-page")">
@@ -60,7 +60,7 @@
             @RenderBody()
         </div>
     </main>
-    <footer class="footer-min text-center">
+    <footer class="footer-min text-center @(isCabinet ? "d-none d-lg-block" : "")">
         GlowBook — CRM для косметологов и мастеров красоты
         · <a href="/rekvizity">Реквизиты и оферта</a>
     </footer>

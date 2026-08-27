@@ -2,10 +2,9 @@
 @{ ViewData["Title"] = "Новый клиент"; }
 <div class="panel" style="max-width:560px">
     <h2 class="h5 fw-bold mb-3">Новый клиент</h2>
-    <form asp-action="Create" method="post">
-        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
-        <div class="mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div>
-        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+    <form asp-action="Create" method="post" data-client-form="1">
+        <partial name="_ClientContactFields" />
+        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="email" /></div>
         <div class="mb-3"><label asp-for="Allergies" class="form-label"></label><textarea asp-for="Allergies" class="form-control" rows="2"></textarea></div>
         <div class="mb-3"><label asp-for="SkinConcerns" class="form-label"></label><textarea asp-for="SkinConcerns" class="form-control" rows="2"></textarea></div>
         <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>

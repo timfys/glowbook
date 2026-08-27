@@ -13,47 +13,30 @@
         return desktopQuery.matches;
     }
 
-    function setMobileOpen(open) {
-        document.body.classList.toggle('gb-sidebar-open', open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-
     function setDesktopCollapsed(collapsed) {
         document.body.classList.toggle('gb-sidebar-collapsed', collapsed);
         toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
 
     function isSidebarVisible() {
-        if (isDesktop()) {
-            return !document.body.classList.contains('gb-sidebar-collapsed');
-        }
-
-        return document.body.classList.contains('gb-sidebar-open');
+        return !document.body.classList.contains('gb-sidebar-collapsed');
     }
 
     toggle.addEventListener('click', function () {
-        if (isDesktop()) {
-            setDesktopCollapsed(isSidebarVisible());
+        if (!isDesktop()) {
             return;
         }
 
-        setMobileOpen(!document.body.classList.contains('gb-sidebar-open'));
+        setDesktopCollapsed(isSidebarVisible());
     });
 
     backdrop.addEventListener('click', function () {
-        setMobileOpen(false);
-    });
-
-    sidebar.querySelectorAll('.nav-link').forEach(function (link) {
-        link.addEventListener('click', function () {
-            if (!isDesktop()) {
-                setMobileOpen(false);
-            }
-        });
+        if (isDesktop()) {
+            setDesktopCollapsed(true);
+        }
     });
 
     desktopQuery.addEventListener('change', function () {
-        setMobileOpen(false);
         setDesktopCollapsed(false);
     });
 
@@ -231,5 +214,96 @@
         if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
             closeLightbox();
         }
+    });
+})();
+
+(function () {
+    var form = document.querySelector('[data-client-form="1"]');
+    if (!form) {
+        return;
+    }
+
+    var nameInput = document.getElementById('clientName');
+    var phoneInput = document.getElementById('clientPhone');
+    var pickBtn = document.getElementById('pickContactBtn');
+    if (!nameInput || !phoneInput || !pickBtn) {
+        return;
+    }
+
+    window.GlowBook = window.GlowBook || {};
+
+    function normalizePhone(value) {
+        if (!value) {
+            return '';
+        }
+        var digits = String(value).replace(/\D/g, '');
+        if (digits.length === 11 && digits.charAt(0) === '8') {
+            return '+7' + digits.slice(1);
+        }
+        if (digits.length === 10) {
+            return '+7' + digits;
+        }
+        if (digits.length > 0 && String(value).trim().charAt(0) === '+') {
+            return '+' + digits;
+        }
+        return String(value).trim();
+    }
+
+    function applyContact(data) {
+        if (!data) {
+            return;
+        }
+        if (data.name) {
+            nameInput.value = data.name;
+        }
+        if (data.phone) {
+            phoneInput.value = normalizePhone(data.phone);
+        }
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+        phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    window.GlowBook.onContactSelected = applyContact;
+    window.GlowBook.onContactPickFailed = function () {
+        /* user cancelled or denied permission */
+    };
+
+    function pickViaBrowserApi() {
+        if (!navigator.contacts || !navigator.contacts.select) {
+            return false;
+        }
+
+        navigator.contacts.select(['name', 'tel'], { multiple: false })
+            .then(function (contacts) {
+                if (!contacts || !contacts.length) {
+                    return;
+                }
+                var contact = contacts[0];
+                var name = '';
+                var phone = '';
+                if (contact.name && contact.name.length) {
+                    name = contact.name[0];
+                }
+                if (contact.tel && contact.tel.length) {
+                    phone = contact.tel[0];
+                }
+                applyContact({ name: name, phone: phone });
+            })
+            .catch(function () { /* cancelled */ });
+
+        return true;
+    }
+
+    pickBtn.addEventListener('click', function () {
+        if (window.GlowBookAndroid && typeof window.GlowBookAndroid.pickContact === 'function') {
+            window.GlowBookAndroid.pickContact();
+            return;
+        }
+
+        if (pickViaBrowserApi()) {
+            return;
+        }
+
+        alert('Выбор из контактов доступен в приложении GlowBook или в Chrome на Android.');
     });
 })();

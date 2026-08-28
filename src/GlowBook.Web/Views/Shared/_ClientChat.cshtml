@@ -5,6 +5,7 @@
     var av = AssetVersion.Value;
     var sendUrl = $"/chat/api/{Model.ClientRecordId}/send";
     var hubUrl = "/hubs/chat";
+    var streamUrl = $"/chat/api/{Model.ClientRecordId}/stream";
     var attachmentUrlPattern = "/chat/api/attachment/{0}";
 }
 
@@ -12,6 +13,7 @@
          data-client-record-id="@Model.ClientRecordId"
          data-send-url="@sendUrl"
          data-hub-url="@hubUrl"
+         data-stream-url="@streamUrl"
          data-attachment-url-pattern="@attachmentUrlPattern"
          data-current-user-id="@Model.CurrentUserId">
     <div class="gb-chat-messages" id="gbChatMessages" aria-live="polite">

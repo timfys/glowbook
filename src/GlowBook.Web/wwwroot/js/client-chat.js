@@ -10,6 +10,7 @@
     var clientRecordId = parseInt(chat.getAttribute('data-client-record-id') || '0', 10);
     var sendUrl = chat.getAttribute('data-send-url') || '';
     var hubUrl = chat.getAttribute('data-hub-url') || '/hubs/chat';
+    var streamUrl = chat.getAttribute('data-stream-url') || '';
     var attachmentPattern = chat.getAttribute('data-attachment-url-pattern') || '/chat/api/attachment/{0}';
     var currentUserId = chat.getAttribute('data-current-user-id') || '';
 
@@ -87,7 +88,7 @@
 
     function appendMessage(msg) {
         var id = msg.id || msg.Id;
-        if (box.querySelector('[data-id="' + id + '"]')) return;
+        if (!id || box.querySelector('[data-id="' + id + '"]')) return;
 
         var isMine = resolveIsMine(msg);
         var body = msg.body != null ? msg.body : (msg.Body || '');
@@ -177,28 +178,62 @@
             });
     }
 
-    function startHub() {
-        if (!window.signalR || !hubUrl) return;
+    function handleIncoming(msg) {
+        appendMessage(msg);
+        notifyIncoming(msg);
+    }
 
-        var connection = new signalR.HubConnectionBuilder()
-            .withUrl(hubUrl)
-            .withAutomaticReconnect()
-            .build();
+    function startStream() {
+        if (!streamUrl || typeof EventSource === 'undefined') return null;
 
-        connection.on('ReceiveMessage', function (msg) {
-            appendMessage(msg);
-            notifyIncoming(msg);
+        if (window._gbChatEventSource) {
+            window._gbChatEventSource.close();
+            window._gbChatEventSource = null;
+        }
+
+        var url = streamUrl + (streamUrl.indexOf('?') >= 0 ? '&' : '?') + 'after=' + lastId;
+        var source = new EventSource(url);
+        window._gbChatEventSource = source;
+
+        source.addEventListener('message', function (e) {
+            try {
+                handleIncoming(JSON.parse(e.data));
+            } catch (_) { /* ignore malformed */ }
         });
 
+        source.onerror = function () {
+            source.close();
+            if (window._gbChatEventSource === source) {
+                window._gbChatEventSource = null;
+            }
+            setTimeout(startStream, 3000);
+        };
+
+        return source;
+    }
+
+    function startHub() {
+        if (!window.signalR || !hubUrl) return null;
+
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl, { withCredentials: true })
+            .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
+            .build();
+
+        connection.on('ReceiveMessage', handleIncoming);
+
         connection.onreconnected(function () {
-            connection.invoke('JoinThread', clientRecordId).catch(function () { /* ignore */ });
+            connection.invoke('JoinThread', clientRecordId).catch(function () { /* retry on next reconnect */ });
         });
 
         connection.start()
             .then(function () { return connection.invoke('JoinThread', clientRecordId); })
-            .catch(function () { /* ignore */ });
+            .catch(function () { /* SSE keeps working */ });
+
+        return connection;
     }
 
     requestNotificationPermission();
+    startStream();
     startHub();
 })();

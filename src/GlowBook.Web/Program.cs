@@ -73,6 +73,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+builder.Services.AddSingleton<ChatRealtimeNotifier>();
 builder.Services.AddSingleton<AssetVersion>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

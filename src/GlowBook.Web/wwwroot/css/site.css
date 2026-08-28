@@ -966,6 +966,7 @@ button.profile-avatar-camera,
     min-width: 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    overflow-anchor: none;
 }
 
 .week-calendar {
@@ -1018,6 +1019,8 @@ button.profile-avatar-camera,
     margin: 0 0 .25rem;
 }
 .week-event-time-input {
+    scroll-margin-top: 6rem;
+    scroll-margin-bottom: 6rem;
     width: 5.1rem;
     padding: .15rem .3rem;
     font-size: .75rem;
@@ -1026,6 +1029,9 @@ button.profile-avatar-camera,
     border: 1px solid var(--gb-border);
     border-radius: 6px;
     background: var(--gb-surface);
+}
+.week-event-time-form.week-event-time-saved .week-event-time-save {
+    color: var(--gb-success, #198754);
 }
 .week-event-time-input:focus {
     outline: none;

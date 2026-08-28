@@ -186,16 +186,17 @@ public class AppointmentsController : Controller
             .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
         if (appointment == null) return NotFound();
 
+        string? error = null;
         if (!TimeSpan.TryParse(startsAtTime, out var startTime) || !TimeSpan.TryParse(endsAtTime, out var endTime))
         {
-            TempData["CalendarError"] = "Неверный формат времени";
+            error = "Неверный формат времени";
         }
         else
         {
             var newStart = appointment.StartsAt.Date.Add(startTime);
             var newEnd = appointment.StartsAt.Date.Add(endTime);
             if (newEnd <= newStart)
-                TempData["CalendarError"] = "Конец должен быть позже начала";
+                error = "Конец должен быть позже начала";
             else
             {
                 appointment.StartsAt = newStart;
@@ -204,11 +205,31 @@ public class AppointmentsController : Controller
             }
         }
 
+        if (WantsJson())
+        {
+            if (error != null)
+                return BadRequest(new { error });
+
+            return Json(new
+            {
+                ok = true,
+                startsAt = appointment.StartsAt.ToString("HH:mm"),
+                endsAt = appointment.EndsAt.ToString("HH:mm")
+            });
+        }
+
+        if (error != null)
+            TempData["CalendarError"] = error;
+
         if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
 
         return RedirectToAction(nameof(Calendar));
     }
+
+    private bool WantsJson() =>
+        string.Equals(Request.Headers.XRequestedWith, "fetch", StringComparison.OrdinalIgnoreCase)
+        || (Request.Headers.Accept.ToString()?.Contains("application/json", StringComparison.OrdinalIgnoreCase) ?? false);
 
     [HttpPost]
     [ValidateAntiForgeryToken]

@@ -23,3 +23,6 @@ android/.kotlin/
 _*.txt
 _*.log
 *.log
+
+# Postgres tunnel local artifacts
+scripts/.postgres-tunnel*

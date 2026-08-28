@@ -19,38 +19,34 @@
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-gb mb-0">
-                <thead><tr><th>Название</th><th>Длительность</th><th>Цена</th><th>Статус</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var s in Model)
-                {
-                    <tr>
-                        <td class="fw-semibold">@s.Name</td>
-                        <td>@s.DurationMinutes мин</td>
-                        <td>@s.Price.ToString("N0") ₽</td>
-                        <td>
-                            @if (s.IsActive)
-                            {
-                                <span class="gb-status gb-status-confirmed">Активна</span>
-                            }
-                            else
-                            {
-                                <span class="gb-status gb-status-cancelled">Скрыта</span>
-                            }
-                        </td>
-                        <td class="text-end text-nowrap">
-                            <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@s.Id">Изменить</a>
-                            <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Удалить услугу «@s.Name»?');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.Id" />
-                                <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="master-appt-list">
+        @foreach (var s in Model)
+        {
+            <div class="master-appt-item">
+                <div class="master-appt-main">
+                    <div class="master-appt-datetime">@s.Name</div>
+                    <div class="master-appt-service">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</div>
+                </div>
+                <div class="master-appt-side">
+                    @if (s.IsActive)
+                    {
+                        <span class="gb-status gb-status-confirmed">Активна</span>
+                    }
+                    else
+                    {
+                        <span class="gb-status gb-status-cancelled">Скрыта</span>
+                    }
+                    <div class="master-appt-actions">
+                        <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@s.Id">Изменить</a>
+                        <form asp-action="Delete" method="post" onsubmit="return confirm('Удалить услугу «@s.Name»?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@s.Id" />
+                            <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
         </div>
     }
 </div>

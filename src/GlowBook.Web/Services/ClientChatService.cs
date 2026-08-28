@@ -19,15 +19,18 @@ public class ClientChatService
     private readonly ApplicationDbContext _db;
     private readonly ClientAccountService _accounts;
     private readonly IHubContext<ClientChatHub> _hub;
+    private readonly ChatRealtimeNotifier _realtime;
 
     public ClientChatService(
         ApplicationDbContext db,
         ClientAccountService accounts,
-        IHubContext<ClientChatHub> hub)
+        IHubContext<ClientChatHub> hub,
+        ChatRealtimeNotifier realtime)
     {
         _db = db;
         _accounts = accounts;
         _hub = hub;
+        _realtime = realtime;
     }
 
     public async Task<List<ClientMessage>> GetMessagesAsync(int clientId, CancellationToken ct = default)
@@ -149,6 +152,7 @@ public class ClientChatService
         await _hub.Clients
             .Group(ClientChatHub.ThreadGroup(threadId))
             .SendAsync("ReceiveMessage", dto, ct);
+        _realtime.Publish(threadId, dto);
 
         return message;
     }

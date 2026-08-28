@@ -1105,6 +1105,76 @@ button.profile-avatar-camera,
     background: var(--gb-surface);
 }
 
+.master-appt-list { display: flex; flex-direction: column; gap: .65rem; }
+.master-appt-item {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: .85rem 1rem;
+    border: 1px solid var(--gb-border);
+    border-radius: 12px;
+    background: var(--gb-surface);
+}
+.master-appt-datetime {
+    font-weight: 700;
+    font-size: .95rem;
+    letter-spacing: -0.02em;
+}
+.master-appt-client { font-weight: 600; margin-top: .15rem; }
+.master-appt-service {
+    font-size: .85rem;
+    color: var(--gb-muted);
+    margin-top: .15rem;
+}
+.master-appt-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .55rem;
+}
+.master-appt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+}
+.master-appt-actions form { margin: 0; }
+
+.week-event-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .45rem;
+    margin-top: .35rem;
+}
+.week-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+}
+.week-event-actions form { margin: 0; }
+
+@media (min-width: 768px) {
+    .master-appt-item {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .master-appt-side {
+        flex-direction: column;
+        align-items: flex-end;
+        flex-shrink: 0;
+    }
+    .week-event-foot {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
 .gb-theme-toggle {
     display: inline-flex;
     align-items: center;

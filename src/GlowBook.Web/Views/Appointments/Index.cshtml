@@ -18,44 +18,44 @@
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-gb mb-0">
-                <thead><tr><th>Дата</th><th>Клиент</th><th>Услуга</th><th>Статус</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var a in Model)
-                {
-                    <tr>
-                        <td>@a.StartsAt.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>
-                            @if (a.Client != null)
-                            {
-                                <a asp-controller="Clients" asp-action="Details" asp-route-id="@a.ClientId">@a.Client.Name</a>
-                            }
-                        </td>
-                        <td>@a.Service?.Name</td>
-                        <td><span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span></td>
-                        <td class="text-end">
-                            <div class="d-flex justify-content-end align-items-center gap-2">
-                                @if (a.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
-                                {
-                                    <form asp-action="SetStatus" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@a.Id" />
-                                        <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
-                                        <button type="submit" class="btn btn-link btn-sm p-0">Завершить</button>
-                                    </form>
-                                }
-                                <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Удалить запись?');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@a.Id" />
-                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Удалить</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="master-appt-list">
+        @foreach (var a in Model)
+        {
+            <div class="master-appt-item">
+                <div class="master-appt-main">
+                    <div class="master-appt-datetime">@a.StartsAt.ToString("dd.MM.yyyy · HH:mm")</div>
+                    <div class="master-appt-client">
+                        @if (a.Client != null)
+                        {
+                            <a asp-controller="Clients" asp-action="Details" asp-route-id="@a.ClientId">@a.Client.Name</a>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(a.Service?.Name))
+                    {
+                        <div class="master-appt-service">@a.Service.Name</div>
+                    }
+                </div>
+                <div class="master-appt-side">
+                    <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
+                    <div class="master-appt-actions">
+                        @if (a.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
+                        {
+                            <form asp-action="SetStatus" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                <button type="submit" class="btn btn-gb-outline btn-sm">Готово</button>
+                            </form>
+                        }
+                        <form asp-action="Delete" method="post" onsubmit="return confirm('Удалить запись?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
         </div>
     }
 </div>

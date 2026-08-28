@@ -1003,6 +1003,38 @@ button.profile-avatar-camera,
     overflow-wrap: anywhere;
 }
 .week-event-time { font-size: .75rem; color: var(--gb-muted); font-weight: 600; }
+.week-event-time-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin: 0 0 .25rem;
+}
+.week-event-time-input {
+    width: 5.1rem;
+    padding: .15rem .3rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--gb-muted);
+    border: 1px solid var(--gb-border);
+    border-radius: 6px;
+    background: var(--gb-surface);
+}
+.week-event-time-input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--gb-primary) 50%, var(--gb-border));
+    color: var(--gb-text);
+}
+.week-event-time-sep {
+    font-size: .75rem;
+    color: var(--gb-muted);
+    font-weight: 600;
+}
+.week-event-time-save {
+    padding: .1rem .35rem;
+    line-height: 1.2;
+    font-size: .8rem;
+}
 
 @media (max-width: 1100px) {
     .week-calendar { grid-template-columns: repeat(2, minmax(0, 1fr)); }

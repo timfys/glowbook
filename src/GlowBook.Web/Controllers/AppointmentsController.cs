@@ -126,6 +126,90 @@ public class AppointmentsController : Controller
         return RedirectToAction(nameof(Calendar));
     }
 
+    public async Task<IActionResult> Edit(int id, string? returnUrl = null)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
+        if (appointment == null) return NotFound();
+
+        await LoadLookupsAsync(profile.Id);
+        ViewBag.ReturnUrl = returnUrl;
+        return View(appointment);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, Appointment model, string? returnUrl = null)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
+        if (appointment == null) return NotFound();
+
+        if (model.EndsAt <= model.StartsAt)
+            ModelState.AddModelError(nameof(model.EndsAt), "Конец должен быть позже начала");
+
+        if (!ModelState.IsValid)
+        {
+            await LoadLookupsAsync(profile.Id);
+            ViewBag.ReturnUrl = returnUrl;
+            return View(model);
+        }
+
+        appointment.ClientId = model.ClientId;
+        appointment.ServiceId = model.ServiceId;
+        appointment.StartsAt = model.StartsAt;
+        appointment.EndsAt = model.EndsAt;
+        appointment.Status = model.Status;
+        appointment.Notes = string.IsNullOrWhiteSpace(model.Notes) ? null : model.Notes.Trim();
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction(nameof(Calendar));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateTime(int id, string startsAtTime, string endsAtTime, string? returnUrl = null)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
+        if (appointment == null) return NotFound();
+
+        if (!TimeSpan.TryParse(startsAtTime, out var startTime) || !TimeSpan.TryParse(endsAtTime, out var endTime))
+        {
+            TempData["CalendarError"] = "Неверный формат времени";
+        }
+        else
+        {
+            var newStart = appointment.StartsAt.Date.Add(startTime);
+            var newEnd = appointment.StartsAt.Date.Add(endTime);
+            if (newEnd <= newStart)
+                TempData["CalendarError"] = "Конец должен быть позже начала";
+            else
+            {
+                appointment.StartsAt = newStart;
+                appointment.EndsAt = newEnd;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction(nameof(Calendar));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetStatus(int id, AppointmentStatus status, string? returnUrl = null)

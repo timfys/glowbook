@@ -90,6 +90,11 @@ else
 {
     var weekStart = (DateTime)ViewBag.WeekStart;
     var days = (List<DateTime>)ViewBag.Days;
+    var calendarReturnUrl = Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") });
+    @if (TempData["CalendarError"] is string calendarError)
+    {
+        <div class="alert alert-danger py-2 px-3 small mb-2">@calendarError</div>
+    }
     <div class="week-calendar-wrap">
     <div class="week-calendar">
     @foreach (var day in days)
@@ -112,7 +117,15 @@ else
                 foreach (var a in dayItems)
                 {
                     <div class="week-event">
-                        <div class="week-event-time">@a.StartsAt.ToString("HH:mm")–@a.EndsAt.ToString("HH:mm")</div>
+                        <form asp-action="UpdateTime" method="post" class="week-event-time-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <input type="hidden" name="returnUrl" value="@calendarReturnUrl" />
+                            <input type="time" name="startsAtTime" value="@a.StartsAt.ToString("HH:mm")" class="week-event-time-input" required />
+                            <span class="week-event-time-sep">–</span>
+                            <input type="time" name="endsAtTime" value="@a.EndsAt.ToString("HH:mm")" class="week-event-time-input" required />
+                            <button type="submit" class="btn btn-gb-ghost btn-sm week-event-time-save" title="Сохранить время">✓</button>
+                        </form>
                         <div class="fw-semibold">@a.Client?.Name</div>
                         <div class="small text-muted">@a.Service?.Name</div>
                         <div class="week-event-foot">
@@ -124,14 +137,15 @@ else
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@a.Id" />
                                         <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
-                                        <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") })" />
+                                        <input type="hidden" name="returnUrl" value="@calendarReturnUrl" />
                                         <button type="submit" class="btn btn-gb-outline btn-sm">Готово</button>
                                     </form>
                                 }
+                                <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@a.Id" asp-route-returnUrl="@calendarReturnUrl">Редактировать</a>
                                 <form asp-action="Delete" method="post" onsubmit="return confirm('Удалить запись?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@a.Id" />
-                                    <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") })" />
+                                    <input type="hidden" name="returnUrl" value="@calendarReturnUrl" />
                                     <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
                                 </form>
                             </div>

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">GlowBook</string>
+    <string name="retry_load">Повторить</string>
+    <string name="error_timeout">Сервер не ответил вовремя. Railway иногда долго просыпается — нажмите «Повторить».</string>
+    <string name="error_offline">Нет интернета. Проверьте Wi‑Fi или мобильную сеть.</string>
+    <string name="error_generic">Не удалось загрузить GlowBook. Попробуйте ещё раз.</string>
 </resources>

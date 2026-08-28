@@ -108,7 +108,7 @@ class MainActivity : Activity() {
                 error: WebResourceError?
             ) {
                 if (request?.isForMainFrame != true) return
-                handleLoadFailure(request.url?.toString() ?: BASE_URL, error?.errorCode ?: ERROR_UNKNOWN)
+                handleLoadFailure(request.url?.toString() ?: BASE_URL, error?.errorCode ?: WebViewClient.ERROR_UNKNOWN)
             }
 
             @Deprecated("Deprecated in Java")
@@ -192,18 +192,18 @@ class MainActivity : Activity() {
     }
 
     private fun isRetryableError(errorCode: Int): Boolean {
-        return errorCode == ERROR_TIMEOUT
-            || errorCode == ERROR_HOST_LOOKUP
-            || errorCode == ERROR_CONNECT
-            || errorCode == ERROR_IO
-            || errorCode == ERROR_FAILED_SSL_HANDSHAKE
+        return errorCode == WebViewClient.ERROR_TIMEOUT
+            || errorCode == WebViewClient.ERROR_HOST_LOOKUP
+            || errorCode == WebViewClient.ERROR_CONNECT
+            || errorCode == WebViewClient.ERROR_IO
+            || errorCode == WebViewClient.ERROR_FAILED_SSL_HANDSHAKE
     }
 
     private fun showError(errorCode: Int) {
         val online = isNetworkAvailable()
         errorText.text = when {
             !online -> getString(R.string.error_offline)
-            errorCode == ERROR_TIMEOUT -> getString(R.string.error_timeout)
+            errorCode == WebViewClient.ERROR_TIMEOUT -> getString(R.string.error_timeout)
             else -> getString(R.string.error_generic)
         }
         errorPanel.visibility = View.VISIBLE

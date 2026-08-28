@@ -35,15 +35,22 @@
                         <td>@a.Service?.Name</td>
                         <td><span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span></td>
                         <td class="text-end">
-                            @if (a.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
-                            {
-                                <form asp-action="SetStatus" method="post" class="d-inline">
+                            <div class="d-flex justify-content-end align-items-center gap-2">
+                                @if (a.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
+                                {
+                                    <form asp-action="SetStatus" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.Id" />
+                                        <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                        <button type="submit" class="btn btn-link btn-sm p-0">Завершить</button>
+                                    </form>
+                                }
+                                <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Удалить запись?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@a.Id" />
-                                    <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
-                                    <button type="submit" class="btn btn-link btn-sm">Завершить</button>
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Удалить</button>
                                 </form>
-                            }
+                            </div>
                         </td>
                     </tr>
                 }

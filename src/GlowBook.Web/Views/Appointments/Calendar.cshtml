@@ -117,16 +117,24 @@ else
                         <div class="small text-muted">@a.Service?.Name</div>
                         <div class="d-flex justify-content-between align-items-center gap-1 mt-1">
                             <span class="@DisplayHelpers.StatusClass(a.Status)">@a.Status.DisplayName()</span>
-                            @if (a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.Cancelled)
-                            {
-                                <form asp-action="SetStatus" method="post">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.Cancelled)
+                                {
+                                    <form asp-action="SetStatus" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.Id" />
+                                        <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                        <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") })" />
+                                        <button type="submit" class="btn btn-link btn-sm p-0">Готово</button>
+                                    </form>
+                                }
+                                <form asp-action="Delete" method="post" onsubmit="return confirm('Удалить запись?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@a.Id" />
-                                    <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
                                     <input type="hidden" name="returnUrl" value="@Url.Action("Calendar", new { view = "week", week = weekStart.ToString("yyyy-MM-dd") })" />
-                                    <button type="submit" class="btn btn-link btn-sm p-0">Готово</button>
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Удалить</button>
                                 </form>
-                            }
+                            </div>
                         </div>
                     </div>
                 }

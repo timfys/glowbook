@@ -146,6 +146,26 @@ public class AppointmentsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, string? returnUrl = null)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.MasterProfileId == profile.Id);
+        if (appointment == null) return NotFound();
+
+        _db.Appointments.Remove(appointment);
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction(nameof(Index));
+    }
+
     private async Task LoadLookupsAsync(int profileId)
     {
         ViewBag.Clients = new SelectList(

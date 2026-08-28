@@ -2,6 +2,55 @@
 
 CRM для косметологов на **ASP.NET Core 8**. Локально — **SQLite**, на Railway — **PostgreSQL**.
 
+## Быстрый старт: одна команда
+
+Из корня репо:
+
+```powershell
+.\scripts\dev.ps1
+```
+
+Скрипт **сам**:
+- ставит Railway CLI через npm (если нет);
+- создаёт SSH-ключ и регистрирует его в Railway;
+- открывает браузер для `railway login` (один раз на ПК);
+- привязывает репо к проекту (см. `scripts/railway-link.json`);
+- поднимает SSH-туннель на **свободный** локальный порт (если 5432 занят — возьмёт следующий);
+- запускает `dotnet run` с правильным `DATABASE_URL`.
+
+Только туннель (DBeaver, без приложения):
+
+```powershell
+.\scripts\postgres-tunnel.ps1
+```
+
+Пароль и пользователь — в [`railway-postgres.env`](railway-postgres.env).
+
+<details>
+<summary>Ручная настройка (если скрипт не подошёл)</summary>
+
+### Установка Railway CLI (Windows)
+
+Скрипт `iwr https://railway.com/install.ps1 | iex` **не работает** — URL отдаёт 404. На Windows:
+
+```powershell
+npm i -g @railway/cli
+```
+
+Документация: [docs.railway.com/cli](https://docs.railway.com/cli).
+
+### Вручную
+
+```powershell
+railway login
+railway link -p 413af861-a095-41eb-9449-213a8cb55fb6 -s 289fcb1f-97d4-4519-a2dc-ea3ce55bc787
+ssh-keygen -t ed25519
+railway ssh keys add
+railway connect Postgres --tunnel-only -P 15432
+```
+
+</details>
+
 ## Запуск
 
 ```bash
@@ -93,70 +142,9 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 Данные из старого SQLite на volume **сами не переносятся** — Postgres стартует пустым (аккаунты/клиенты заводишь заново). Volume `glowbook-volume` для SQLite после перехода можно удалить.
 
-**С другого ПК / снаружи Railway:** во внутренний `postgres.railway.internal` не попасть. Два варианта:
+**С другого ПК / снаружи Railway:** `.\scripts\dev.ps1` — см. раздел [Быстрый старт](#быстрый-старт-одна-команда) в начале README.
 
-| Способ | Когда | Как |
-|--------|--------|-----|
-| **SSH-туннель** (предпочтительно) | Локальная разработка, DBeaver, миграции | См. ниже |
-| **TCP Proxy / public URL** | Когда туннель неудобен | Postgres → **Settings → Networking → TCP Proxy** → `DATABASE_PUBLIC_URL` в `ConnectionStrings:DefaultConnection` |
-
-Public URL (`altaria.proxy.rlwy.net`) с домашнего канала часто таймаутит — для повседневной работы бери туннель.
-
-### Postgres через SSH-туннель (с другого компа)
-
-Цель: Railway Postgres оказывается на `127.0.0.1:5432`. Appsettings Development уже настроен на этот адрес.
-
-**Один раз на новом ПК:**
-
-1. Установи [Railway CLI](https://docs.railway.com/guides/cli):
-   ```powershell
-   iwr https://railway.com/install.ps1 | iex
-   ```
-2. Войди и привяжи проект (из корня репо):
-   ```powershell
-   railway login
-   railway link
-   ```
-   Выбери проект **glowbook**, сервис **Postgres** (имя как на канвасе).
-3. Добавь SSH-ключ (если ещё не добавлял на этом аккаунте / машине):
-   ```powershell
-   railway ssh keys add
-   ```
-
-**Каждый раз, когда нужна БД:**
-
-1. В отдельном окне PowerShell (не закрывать):
-   ```powershell
-   .\scripts\postgres-tunnel.ps1
-   ```
-   Эквивалент: `railway connect Postgres --tunnel-only -P 5432`
-2. Пока окно открыто — подключайся к локальному порту:
-
-| | |
-|--|--|
-| Host | `127.0.0.1` |
-| Port | `5432` |
-| Database | `railway` |
-| User | `postgres` |
-| Password | из [`railway-postgres.env`](railway-postgres.env) (`POSTGRES_PASSWORD`) или Variables сервиса Postgres |
-| SSL | `Disable` |
-
-3. Запуск приложения с Dev-конфигом (уже смотрит в туннель):
-   ```powershell
-   cd src/GlowBook.Web
-   dotnet run
-   ```
-   Connection string: [`appsettings.Development.json`](src/GlowBook.Web/appsettings.Development.json).
-
-**DBeaver / другой клиент:** те же Host/Port/DB/User/Password, SSL off. Туннель должен быть запущен.
-
-**Миграция SQLite → Postgres через туннель:** держи туннель открытым, затем `tools/MigrateNow` (см. комментарии в `tools/MigrateNow/Program.cs`).
-
-**Если порт 5432 занят** (локальный Postgres):
-```powershell
-.\scripts\postgres-tunnel.ps1 -LocalPort 5433
-```
-и поправь Port в connection string / клиенте.
+Альтернатива туннелю — **TCP Proxy / public URL**: Postgres → **Settings → Networking → TCP Proxy** → `DATABASE_PUBLIC_URL` в `ConnectionStrings:DefaultConnection`. Public URL с домашнего канала часто таймаутит — для повседневной работы бери туннель.
 
 ## Дальше
 - MAUI/Capacitor WebView-приложение

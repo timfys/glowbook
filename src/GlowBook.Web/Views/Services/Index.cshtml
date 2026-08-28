@@ -5,6 +5,10 @@
     <a class="btn btn-gb-primary btn-sm" asp-action="Create">Новая услуга</a>
 </div>
 <div class="panel">
+    @if (TempData["ServicesError"] is string servicesError)
+    {
+        <div class="alert alert-danger py-2 px-3 small mb-3">@servicesError</div>
+    }
     @if (!Model.Any())
     {
         <div class="empty-state">
@@ -17,7 +21,7 @@
     {
         <div class="table-responsive">
             <table class="table table-gb mb-0">
-                <thead><tr><th>Название</th><th>Длительность</th><th>Цена</th><th>Статус</th></tr></thead>
+                <thead><tr><th>Название</th><th>Длительность</th><th>Цена</th><th>Статус</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var s in Model)
                 {
@@ -34,6 +38,14 @@
                             {
                                 <span class="gb-status gb-status-cancelled">Скрыта</span>
                             }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@s.Id">Изменить</a>
+                            <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Удалить услугу «@s.Name»?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@s.Id" />
+                                <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
+                            </form>
                         </td>
                     </tr>
                 }

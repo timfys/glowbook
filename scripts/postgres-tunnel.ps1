@@ -1,44 +1,54 @@
-# Railway → локальный Postgres на 127.0.0.1:5432 для DBeaver / dotnet run
-#
-# SSH НЕ лежит в Settings сервиса. Нужен Railway CLI.
-#
-# Один раз:
-#   1) Установи CLI: https://docs.railway.com/guides/cli
-#   2) railway login
-#   3) cd в репо → railway link  (проект glowbook, сервис Postgres)
-#   4) railway ssh keys add     (если ещё не добавлял ключ)
-#
-# Потом каждый раз (окно НЕ закрывай):
-#   .\scripts\postgres-tunnel.ps1
-#
-# DBeaver / appsettings.Development.json:
-#   Host=127.0.0.1  Port=5432  DB=railway  User=postgres
-#   Password из Variables Postgres (PGPASSWORD)
-#   SSL=disable
+# Railway -> local Postgres for DBeaver and other clients.
+# For full dev cycle use: .\scripts\dev.ps1
 
 param(
-    # Имя Postgres-сервиса в Railway (как на канвасе)
-    [string]$Service = "Postgres",
-    [int]$LocalPort = 5432
+    [string]$Service = "",
+    [int]$LocalPort = 0
 )
 
-if (-not (Get-Command railway -ErrorAction SilentlyContinue)) {
-    Write-Host @"
-Railway CLI не найден.
+$ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "railway-common.ps1")
 
-Windows (PowerShell от админа или обычный — как получится):
-  iwr https://railway.com/install.ps1 | iex
+$repoRoot = Get-RepoRoot
+$tunnel = $null
 
-Потом:
-  railway login
-  railway link
-  .\scripts\postgres-tunnel.ps1
-"@
-    exit 1
+try {
+    Write-Host "GlowBook - setting up Railway..." -ForegroundColor Green
+    $setup = Initialize-RailwayDevEnvironment -RepoRoot $repoRoot
+
+    if ([string]::IsNullOrWhiteSpace($Service)) {
+        $Service = $setup.Link.serviceName
+    }
+
+    $tunnel = Start-RailwayPostgresTunnel `
+        -RepoRoot $repoRoot `
+        -LocalPort $LocalPort `
+        -ServiceName $Service
+
+    $postgres = $setup.Postgres
+    Write-Host ""
+    Write-Host "PostgreSQL tunnel open:" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  Host:     127.0.0.1"
+    Write-Host "  Port:     $($tunnel.Port)"
+    Write-Host "  User:     $($postgres.POSTGRES_USER)"
+    Write-Host "  Password: $($postgres.POSTGRES_PASSWORD)"
+    Write-Host "  Database: $($postgres.POSTGRES_DB)"
+    Write-Host "  SSL:      Disable"
+    Write-Host ""
+    Write-Host "Keep this window open. Ctrl+C to stop." -ForegroundColor Yellow
+    Write-Host ""
+
+    Wait-Process -Id $tunnel.Process.Id
 }
+finally {
+    if ($tunnel) {
+        if (-not $tunnel.Process.HasExited) {
+            Stop-Process -Id $tunnel.Process.Id -Force -ErrorAction SilentlyContinue
+        }
 
-Write-Host "Tunnel: 127.0.0.1:$LocalPort  ← Railway $Service (SSH)"
-Write-Host "Окно не закрывай. Ctrl+C — стоп."
-Write-Host ""
-
-railway connect $Service --tunnel-only -P $LocalPort
+        if ($tunnel.PidFile -and (Test-Path $tunnel.PidFile)) {
+            Remove-Item $tunnel.PidFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+}

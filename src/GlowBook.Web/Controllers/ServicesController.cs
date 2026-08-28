@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using GlowBook.Web.Models;
 
 namespace GlowBook.Web.Controllers;
 
@@ -52,6 +51,63 @@ public class ServicesController : Controller
 
         model.MasterProfileId = profile.Id;
         _db.Services.Add(model);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Edit(int id)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var service = await _db.Services
+            .FirstOrDefaultAsync(s => s.Id == id && s.MasterProfileId == profile.Id);
+        if (service == null) return NotFound();
+
+        return View(service);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, Service model)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var service = await _db.Services
+            .FirstOrDefaultAsync(s => s.Id == id && s.MasterProfileId == profile.Id);
+        if (service == null) return NotFound();
+
+        if (!ModelState.IsValid) return View(model);
+
+        service.Name = model.Name.Trim();
+        service.Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
+        service.DurationMinutes = model.DurationMinutes;
+        service.Price = model.Price;
+        service.IsActive = model.IsActive;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var service = await _db.Services
+            .FirstOrDefaultAsync(s => s.Id == id && s.MasterProfileId == profile.Id);
+        if (service == null) return NotFound();
+
+        var hasAppointments = await _db.Appointments.AnyAsync(a => a.ServiceId == id);
+        if (hasAppointments)
+        {
+            TempData["ServicesError"] = "Нельзя удалить услугу — есть записи с ней. Скройте услугу вместо удаления.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _db.Services.Remove(service);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }

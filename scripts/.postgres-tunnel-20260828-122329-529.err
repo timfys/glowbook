@@ -1,0 +1,14 @@
+Using SSH key from file C:\Users\timfy\.ssh\id_ed25519.pub: timfy@glowbook-railway
+
+PostgreSQL tunnel open — point an external client at:
+
+  Host:     127.0.0.1
+  Port:     5434
+  User:     postgres
+  Password: ayNEAQtGCFvMSeeNIHbtQpUcyVoqwQnG
+  Database: railway
+
+  URL:      postgresql://postgres:ayNEAQtGCFvMSeeNIHbtQpUcyVoqwQnG@127.0.0.1:5434/railway
+
+Press Ctrl+C to close the tunnel.
+

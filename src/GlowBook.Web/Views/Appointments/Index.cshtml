@@ -1,5 +1,5 @@
 ﻿@model IEnumerable<Appointment>
-@{ ViewData["Title"] = "Записи"; }
+@{ ViewData["Title"] = "Записи"; var listReturnUrl = Url.Action("Index"); }
 <div class="page-head">
     <h2 class="h4 fw-bold mb-0">Записи</h2>
     <div class="d-flex gap-2">
@@ -44,12 +44,15 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@a.Id" />
                                 <input type="hidden" name="status" value="@((int)AppointmentStatus.Completed)" />
+                                <input type="hidden" name="returnUrl" value="@listReturnUrl" />
                                 <button type="submit" class="btn btn-gb-outline btn-sm">Готово</button>
                             </form>
                         }
+                        <a class="btn btn-gb-outline btn-sm" asp-action="Edit" asp-route-id="@a.Id" asp-route-returnUrl="@listReturnUrl">Изменить</a>
                         <form asp-action="Delete" method="post" onsubmit="return confirm('Удалить запись?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@a.Id" />
+                            <input type="hidden" name="returnUrl" value="@listReturnUrl" />
                             <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
                         </form>
                     </div>

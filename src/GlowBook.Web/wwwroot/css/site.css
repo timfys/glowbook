@@ -970,9 +970,9 @@ button.profile-avatar-camera,
 
 .week-calendar {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(11.5rem, 1fr));
     gap: .75rem;
-    width: 100%;
+    width: max(100%, 84rem);
     min-width: 0;
 }
 .week-day {
@@ -1002,7 +1002,12 @@ button.profile-avatar-camera,
     border-radius: 10px;
     padding: .5rem .55rem;
     font-size: .85rem;
-    overflow-wrap: anywhere;
+    min-width: 0;
+}
+.week-event .fw-semibold,
+.week-event .small {
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 .week-event-time { font-size: .75rem; color: var(--gb-muted); font-weight: 600; }
 .week-event-time-form {
@@ -1039,10 +1044,16 @@ button.profile-avatar-camera,
 }
 
 @media (max-width: 1100px) {
-    .week-calendar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .week-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
 }
 @media (max-width: 576px) {
-    .week-calendar { grid-template-columns: minmax(0, 1fr); }
+    .week-calendar {
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+    }
     .week-day { min-height: 0; }
     .page-head-calendar .page-head-actions { width: 100%; }
 }
@@ -1186,8 +1197,17 @@ button.profile-avatar-camera,
     flex-wrap: wrap;
     align-items: center;
     gap: .35rem;
+    width: 100%;
 }
 .week-event-actions form { margin: 0; }
+.week-event-actions .btn {
+    white-space: nowrap;
+    font-size: .72rem;
+    padding: .3rem .6rem;
+}
+.week-event-foot .gb-status {
+    white-space: nowrap;
+}
 
 @media (min-width: 768px) {
     .master-appt-item {
@@ -1200,12 +1220,6 @@ button.profile-avatar-camera,
         flex-direction: column;
         align-items: flex-end;
         flex-shrink: 0;
-    }
-    .week-event-foot {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
     }
 }
 

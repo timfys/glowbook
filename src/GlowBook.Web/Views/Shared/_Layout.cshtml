@@ -71,7 +71,7 @@
     </header>
     @if (isCabinet)
     {
-        <div class="gb-sidebar-backdrop d-none d-lg-block" id="gbSidebarBackdrop"></div>
+        <div class="gb-sidebar-backdrop" id="gbSidebarBackdrop"></div>
         @await Component.InvokeAsync("CabinetSidebar")
     }
     <main class="@(isCabinet ? "gb-cabinet-main" : "container gb-page")">
@@ -90,6 +90,11 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/site.js?av=@av" asp-append-version="true"></script>
+    @if (isCabinet)
+    {
+        <div id="gbAppointmentReminders" hidden data-api-url="@Url.Action("Upcoming", "AppointmentReminders")"></div>
+        <script src="~/js/appointment-reminders.js?av=@av" asp-append-version="true"></script>
+    }
     @RenderSection("Scripts", required: false)
 </body>
 </html>

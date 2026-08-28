@@ -62,6 +62,7 @@ builder.Services.AddScoped<ExternalAccountService>();
 builder.Services.AddScoped<TelegramAuthService>();
 builder.Services.AddScoped<SubscriptionService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<AppointmentReminderService>();
 builder.Services.AddHttpClient<YooKassaService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

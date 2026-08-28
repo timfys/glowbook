@@ -346,6 +346,7 @@ a:hover { color: var(--gb-primary); }
     z-index: 1035;
     background: rgba(31, 22, 48, 0.32);
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.25s ease;
 }
 
@@ -371,6 +372,7 @@ body.gb-has-sidebar .gb-nav {
 body.gb-sidebar-open .gb-sidebar-backdrop {
     display: block;
     opacity: 1;
+    pointer-events: auto;
 }
 
 body.gb-sidebar-open .gb-sidebar { transform: translateX(0); }

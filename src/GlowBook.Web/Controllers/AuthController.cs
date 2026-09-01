@@ -75,22 +75,31 @@ public class AuthController : Controller
     }
 
     [HttpGet("register")]
-    public async Task<IActionResult> Register(string? returnUrl = null)
+    public async Task<IActionResult> Register(string? returnUrl = null, UserAccountType? accountType = null)
     {
         if (User.Identity?.IsAuthenticated == true)
             return RedirectHome(await _userManager.GetUserAsync(User), returnUrl);
 
         ViewData["ReturnUrl"] = returnUrl;
         ViewBag.Providers = BuildProvidersModel();
-        return View(new RegisterViewModel());
+
+        var model = new RegisterViewModel();
+        if (accountType is UserAccountType.Master or UserAccountType.Client)
+        {
+            model.AccountType = accountType.Value;
+            ViewBag.AccountTypeLocked = true;
+        }
+
+        return View(model);
     }
 
     [HttpPost("register")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
+    public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null, bool accountTypeLocked = false)
     {
         ViewBag.Providers = BuildProvidersModel();
         ViewData["ReturnUrl"] = returnUrl;
+        ViewBag.AccountTypeLocked = accountTypeLocked;
 
         if (!ModelState.IsValid)
             return View(model);

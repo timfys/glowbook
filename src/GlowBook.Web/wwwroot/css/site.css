@@ -1125,6 +1125,15 @@ button.profile-avatar-camera,
     grid-template-columns: 1fr 1fr;
     gap: .65rem;
 }
+.home-role-picker { max-width: 34rem; }
+.home-start .account-type-option {
+    text-decoration: none;
+    color: inherit;
+}
+.home-start .account-type-option:hover {
+    border-color: var(--gb-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gb-primary) 12%, transparent);
+}
 .account-type-option {
     border: 1px solid var(--gb-border);
     border-radius: 14px;

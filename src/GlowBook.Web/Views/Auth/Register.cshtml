@@ -4,12 +4,23 @@
     ViewData["Title"] = "Регистрация";
     var providers = (GlowBook.Web.Models.Auth.AuthProvidersViewModel)ViewBag.Providers!;
     var returnUrl = ViewData["ReturnUrl"] as string;
+    var accountTypeLocked = ViewBag.AccountTypeLocked == true;
+    var isMaster = Model.AccountType == UserAccountType.Master;
 }
 
 <div class="auth-shell">
     <div class="auth-card panel">
-        <h1 class="h4 fw-bold mb-1">Регистрация</h1>
-        <p class="text-muted mb-4">Мастер — CRM и записи. Клиент — просмотр своих визитов.</p>
+        <h1 class="h4 fw-bold mb-1">Регистрация @(isMaster ? "мастера" : "клиента")</h1>
+        <p class="text-muted mb-4">
+            @if (isMaster)
+            {
+                @:CRM, расписание и онлайн-запись для ваших клиентов.
+            }
+            else
+            {
+                @:Просмотр записей и визитов у мастеров.
+            }
+        </p>
 
         <partial name="_ExternalAuthButtons" model="providers" />
 
@@ -19,21 +30,32 @@
             <input type="hidden" name="returnUrl" value="@returnUrl" />
             <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-            <div class="mb-3">
-                <label class="form-label">Тип аккаунта</label>
-                <div class="account-type-picker">
-                    <label class="account-type-option @(Model.AccountType == UserAccountType.Master ? "is-selected" : "")">
-                        <input type="radio" asp-for="AccountType" value="@UserAccountType.Master" />
-                        <span class="account-type-title">Мастер</span>
-                        <span class="account-type-desc">Кабинет, клиенты, календарь</span>
-                    </label>
-                    <label class="account-type-option @(Model.AccountType == UserAccountType.Client ? "is-selected" : "")">
-                        <input type="radio" asp-for="AccountType" value="@UserAccountType.Client" />
-                        <span class="account-type-title">Клиент</span>
-                        <span class="account-type-desc">Мои записи у мастеров</span>
-                    </label>
+            @if (accountTypeLocked)
+            {
+                <input type="hidden" asp-for="AccountType" />
+                <input type="hidden" name="accountTypeLocked" value="true" />
+                <p class="text-muted small mb-3">
+                    <a asp-controller="Home" asp-action="Index" asp-fragment="start">← Выбрать другой тип аккаунта</a>
+                </p>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label">Тип аккаунта</label>
+                    <div class="account-type-picker">
+                        <label class="account-type-option @(Model.AccountType == UserAccountType.Master ? "is-selected" : "")">
+                            <input type="radio" asp-for="AccountType" value="@UserAccountType.Master" />
+                            <span class="account-type-title">Мастер</span>
+                            <span class="account-type-desc">Кабинет, клиенты, календарь</span>
+                        </label>
+                        <label class="account-type-option @(Model.AccountType == UserAccountType.Client ? "is-selected" : "")">
+                            <input type="radio" asp-for="AccountType" value="@UserAccountType.Client" />
+                            <span class="account-type-title">Клиент</span>
+                            <span class="account-type-desc">Мои записи у мастеров</span>
+                        </label>
+                    </div>
                 </div>
-            </div>
+            }
 
             <div class="mb-3">
                 <label asp-for="DisplayName" class="form-label"></label>

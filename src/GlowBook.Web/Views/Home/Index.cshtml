@@ -1,4 +1,5 @@
-﻿@{
+﻿@using GlowBook.Web.Models.Enums
+@{
     Layout = "_Layout";
     ViewData["Title"] = "Главная";
 }
@@ -9,17 +10,31 @@
             <span class="gb-kicker">GlowBook</span>
             <h1>Записи и клиенты — в одном месте</h1>
             <p class="lead mt-3">Ведите расписание, храните контакты и записывайте клиентов через наше приложение.</p>
-            <div class="d-flex flex-wrap gap-2 mt-4">
-                @if (User.Identity?.IsAuthenticated == true)
-                {
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="d-flex flex-wrap gap-2 mt-4">
                     <a class="btn btn-gb-primary" asp-controller="Dashboard" asp-action="Index">Открыть кабинет</a>
-                }
-                else
-                {
-                    <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Register">Создать аккаунт</a>
-                    <a class="btn btn-gb-outline" asp-controller="Auth" asp-action="Login">Войти</a>
-                }
-            </div>
+                </div>
+            }
+            else
+            {
+                <div class="home-start mt-4" id="start">
+                    <p class="text-muted mb-2 fw-semibold">Кто вы?</p>
+                    <div class="account-type-picker home-role-picker">
+                        <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Master">
+                            <span class="account-type-title">Мастер</span>
+                            <span class="account-type-desc">Кабинет, клиенты, календарь и онлайн-запись</span>
+                        </a>
+                        <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Client">
+                            <span class="account-type-title">Клиент</span>
+                            <span class="account-type-desc">Мои записи и визиты у мастеров</span>
+                        </a>
+                    </div>
+                    <p class="text-muted small mt-3 mb-0">
+                        Уже есть аккаунт? <a asp-controller="Auth" asp-action="Login">Войти</a>
+                    </p>
+                </div>
+            }
         </div>
         <div class="col-lg-5">
             <div class="feature-card pricing-card">

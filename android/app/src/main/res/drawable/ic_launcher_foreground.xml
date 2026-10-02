@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylized G in the adaptive-icon safe zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30c-13.3,0 -24,10.7 -24,24s10.7,24 24,24c8.2,0 15.4,-4.1 19.6,-10.4l-10.2,-6.2c-2.2,3.2 -5.9,5.3 -9.4,5.3c-6.6,0 -12,-5.4 -12,-12s5.4,-12 12,-12c3.3,0 6.3,1.4 8.4,3.6h-8.4v8.6h22.2V54c0,-13.3 -10.7,-24 -22.2,-24z" />
+    <!-- Sparkle — the small logo tweak -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M78,28l2.1,5.1 5.1,2.1 -5.1,2.1 -2.1,5.1 -2.1,-5.1 -5.1,-2.1 5.1,-2.1z" />
+</vector>

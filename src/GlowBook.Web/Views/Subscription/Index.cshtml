@@ -1,10 +1,20 @@
 ﻿@model Subscription
-@{ ViewData["Title"] = "Подписка"; var price = (int?)ViewBag.PremiumPrice ?? 350; var bookingUrl = ViewBag.BookingUrl as string; var yookassaOk = ViewBag.YooKassaConfigured == true; }
+@{
+    ViewData["Title"] = "Подписка";
+    var price = (int?)ViewBag.PremiumPrice ?? 350;
+    var bookingUrl = ViewBag.BookingUrl as string;
+    var yookassaOk = ViewBag.YooKassaConfigured == true;
+    var daysLeft = DisplayHelpers.PremiumDaysLeft(Model?.ExpiresAt);
+}
 <div class="panel pricing-card" style="max-width:640px">
-    <h2 class="h4 fw-bold">GlowBook Premium</h2>
+    <h2 class="h4 fw-bold">GlowBox Premium</h2>
     @if (TempData["PaySuccess"] != null || ViewBag.PaySuccess != null)
     {
-        <div class="alert alert-success">Оплата прошла успешно. Premium активирован.</div>
+        <div class="alert alert-success">Оплата прошла. Вы Premium-пользователь@(Model?.ExpiresAt != null ? " до " + DisplayHelpers.PremiumUntilDate(Model.ExpiresAt) : "").</div>
+    }
+    @if (TempData["PayPending"] != null)
+    {
+        <div class="alert alert-warning">Платёж ещё обрабатывается. Как только ЮKassa пришлёт подтверждение, здесь появится Premium и дата окончания.</div>
     }
     @if (ViewBag.PayError != null)
     {
@@ -12,8 +22,18 @@
     }
     @if (Model?.IsPremiumActive == true)
     {
-        <p class="mb-2"><span class="badge badge-premium">Premium</span></p>
-        <p class="text-muted">Активен до @(Model.ExpiresAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "бессрочно")</p>
+        <div class="premium-status-card mb-3">
+            <div>
+                <div class="premium-status-kicker">Статус</div>
+                <div class="premium-status-title">Вы Premium-пользователь</div>
+                <div class="premium-status-until">до @DisplayHelpers.PremiumUntilDate(Model.ExpiresAt)</div>
+                @if (daysLeft != null)
+                {
+                    <div class="small mt-1" style="opacity:.85">осталось @daysLeft дн.</div>
+                }
+            </div>
+            <span class="badge badge-premium">Premium</span>
+        </div>
         @if (!string.IsNullOrWhiteSpace(bookingUrl))
         {
             <div class="mt-3 p-3 rounded-3 gb-highlight-box">
@@ -27,8 +47,9 @@
     {
         <p class="text-muted">Сейчас бесплатный тариф. Premium — <strong>@price ₽/мес</strong>.</p>
         <ul class="mb-4">
-            <li>Публичная страница онлайн-записи по ссылке</li>
-            <li>Клиенты выбирают услугу, дату и время</li>
+            <li>Мини-сайт мастера: портфолио, отзывы, акции и оформление</li>
+            <li>Онлайн-запись по ссылке без регистрации клиента</li>
+            <li>Кабинет на Яндекс.Картах</li>
             <li>SMS/Telegram-напоминания (скоро)</li>
         </ul>
         @if (yookassaOk)

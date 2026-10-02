@@ -75,6 +75,9 @@ public class ProfileEditViewModel
     [Display(Name = "Адрес")]
     public string? Address { get; set; }
 
+    [Display(Name = "Показывать кабинет на Яндекс.Картах")]
+    public bool ShowOnMap { get; set; } = true;
+
     [MaxLength(1000)]
     [Display(Name = "О себе")]
     public string? Description { get; set; }

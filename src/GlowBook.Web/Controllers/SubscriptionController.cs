@@ -1,5 +1,4 @@
 ﻿using GlowBook.Web.Filters;
-using System.Text.Json;
 using GlowBook.Web.Configuration;
 using GlowBook.Web.Models;
 using GlowBook.Web.Services;
@@ -77,15 +76,13 @@ public class SubscriptionController : Controller
         var profile = await _profiles.EnsureForUserAsync(user);
 
         await _yooKassa.TryConfirmLatestPendingAsync(profile.Id);
-        TempData["PaySuccess"] = true;
-        return RedirectToAction(nameof(Index));
-    }
+        profile = await _profiles.EnsureForUserAsync(user);
 
-    [AllowAnonymous]
-    [HttpPost("/api/yookassa/webhook")]
-    public async Task<IActionResult> YooKassaWebhook([FromBody] JsonElement body)
-    {
-        await _yooKassa.HandleWebhookAsync(body);
-        return Ok();
+        if (profile.Subscription?.IsPremiumActive == true)
+            TempData["PaySuccess"] = true;
+        else
+            TempData["PayPending"] = true;
+
+        return RedirectToAction(nameof(Index));
     }
 }

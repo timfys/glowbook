@@ -1,5 +1,6 @@
 ﻿using GlowBook.Web.Data;
 using GlowBook.Web.Filters;
+using GlowBook.Web.Helpers;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Services;
@@ -39,7 +40,25 @@ public class ServicesController : Controller
         return View(services);
     }
 
-    public IActionResult Create() => View(new Service { Name = "", DurationMinutes = 60, Price = 0, IsActive = true });
+    public async Task<IActionResult> Create()
+    {
+        var profile = await GetProfileAsync();
+        if (profile == null) return Challenge();
+
+        var used = await _db.Services
+            .Where(s => s.MasterProfileId == profile.Id)
+            .Select(s => s.Color)
+            .ToListAsync();
+
+        return View(new Service
+        {
+            Name = "",
+            DurationMinutes = 60,
+            Price = 0,
+            IsActive = true,
+            Color = CalendarColors.NextUnused(used)
+        });
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -50,6 +69,7 @@ public class ServicesController : Controller
         if (!ModelState.IsValid) return View(model);
 
         model.MasterProfileId = profile.Id;
+        model.Color = CalendarColors.Normalize(model.Color);
         _db.Services.Add(model);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
@@ -85,6 +105,7 @@ public class ServicesController : Controller
         service.DurationMinutes = model.DurationMinutes;
         service.Price = model.Price;
         service.IsActive = model.IsActive;
+        service.Color = CalendarColors.Normalize(model.Color);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }

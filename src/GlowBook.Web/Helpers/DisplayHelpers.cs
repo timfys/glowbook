@@ -35,4 +35,21 @@ public static class DisplayHelpers
         AppointmentStatus.NoShow => "gb-status gb-status-noshow",
         _ => "gb-status"
     };
+
+    public static string PremiumUntilDate(DateTime? expiresAt)
+    {
+        if (expiresAt == null)
+            return "бессрочно";
+        return expiresAt.Value.ToLocalTime().ToString("d MMMM yyyy");
+    }
+
+    public static string PremiumBadgeText(DateTime? expiresAt) =>
+        expiresAt == null ? "Premium" : "Premium до " + expiresAt.Value.ToLocalTime().ToString("dd.MM.yyyy");
+
+    public static int? PremiumDaysLeft(DateTime? expiresAt)
+    {
+        if (expiresAt == null)
+            return null;
+        return Math.Max(0, (int)Math.Ceiling((expiresAt.Value - DateTime.UtcNow).TotalDays));
+    }
 }

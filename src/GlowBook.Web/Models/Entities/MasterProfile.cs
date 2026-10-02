@@ -29,6 +29,10 @@ public class MasterProfile
 
     public required string BookingSlug { get; set; }
 
+    public string? PageAccentColor { get; set; }
+
+    public bool ShowOnMap { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Client> Clients { get; set; } = new List<Client>();
@@ -38,6 +42,12 @@ public class MasterProfile
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
     public ICollection<WorkingHour> WorkingHours { get; set; } = new List<WorkingHour>();
+
+    public ICollection<MasterPortfolioPhoto> PortfolioPhotos { get; set; } = new List<MasterPortfolioPhoto>();
+
+    public ICollection<MasterPromo> Promos { get; set; } = new List<MasterPromo>();
+
+    public ICollection<MasterReview> Reviews { get; set; } = new List<MasterReview>();
 
     public Subscription? Subscription { get; set; }
 }

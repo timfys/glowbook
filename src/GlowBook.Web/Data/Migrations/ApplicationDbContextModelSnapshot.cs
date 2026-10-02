@@ -364,6 +364,43 @@ namespace GlowBook.Web.Data.Migrations
                     b.ToTable("MasterAvatars");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterPortfolioPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterProfileId", "SortOrder");
+
+                    b.ToTable("MasterPortfolioPhotos");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -403,6 +440,13 @@ namespace GlowBook.Web.Data.Migrations
                     b.Property<bool>("HasAvatar")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("PageAccentColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<bool>("ShowOnMap")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Specialization")
                         .HasColumnType("text");
 
@@ -419,6 +463,93 @@ namespace GlowBook.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MasterProfiles");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterPromo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Badge")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterProfileId", "IsActive");
+
+                    b.ToTable("MasterPromos");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("AuthorPhone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(800)
+                        .HasColumnType("character varying(800)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("MasterProfileId", "IsPublished", "CreatedAt");
+
+                    b.ToTable("MasterReviews");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.PaymentOrder", b =>
@@ -469,6 +600,10 @@ namespace GlowBook.Web.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -887,6 +1022,17 @@ namespace GlowBook.Web.Data.Migrations
                     b.Navigation("MasterProfile");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterPortfolioPhoto", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany("PortfolioPhotos")
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MasterProfile");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterProfile", b =>
                 {
                     b.HasOne("GlowBook.Web.Models.ApplicationUser", "User")
@@ -896,6 +1042,35 @@ namespace GlowBook.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterPromo", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany("Promos")
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MasterProfile");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterReview", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany("Reviews")
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("MasterProfile");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.PaymentOrder", b =>
@@ -1051,6 +1226,12 @@ namespace GlowBook.Web.Data.Migrations
                     b.Navigation("Avatar");
 
                     b.Navigation("Clients");
+
+                    b.Navigation("PortfolioPhotos");
+
+                    b.Navigation("Promos");
+
+                    b.Navigation("Reviews");
 
                     b.Navigation("Services");
 

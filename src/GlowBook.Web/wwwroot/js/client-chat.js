@@ -125,7 +125,7 @@
         var text = body || (hasAttachment ? 'Отправлен файл' : 'Новое сообщение');
 
         try {
-            new Notification('GlowBook · ' + senderName, { body: text, tag: 'gb-chat-' + clientRecordId });
+            new Notification('GlowBox · ' + senderName, { body: text, tag: 'gb-chat-' + clientRecordId });
         } catch (_) { /* ignore */ }
     }
 

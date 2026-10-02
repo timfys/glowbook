@@ -74,9 +74,10 @@
                     {
                         <span class="month-day-count">@dayItems.Count</span>
                         <span class="month-day-dots">
-                        @foreach (var a in dayItems.Take(3))
+                        @foreach (var a in dayItems.Take(4))
                         {
-                            <span class="month-day-dot" title="@a.Client?.Name"></span>
+                            var dotColor = CalendarColors.ForService(a.Service);
+                            <span class="month-day-dot" style="background:@dotColor" title="@a.Service?.Name — @a.Client?.Name"></span>
                         }
                         </span>
                     }
@@ -116,7 +117,7 @@ else
             {
                 foreach (var a in dayItems)
                 {
-                    <div class="week-event">
+                    <div class="week-event @CalendarColors.StatusModifier(a.Status)" style="--event-color:@CalendarColors.ForService(a.Service); --status-color:@CalendarColors.ForStatus(a.Status)">
                         <form asp-action="UpdateTime" method="post" class="week-event-time-form">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@a.Id" />
@@ -159,6 +160,35 @@ else
     </div>
     </div>
 }
+
+@{
+    var legendServices = ViewBag.CalendarServices as IEnumerable<Service> ?? Enumerable.Empty<Service>();
+}
+<div class="calendar-legend">
+    <div class="calendar-legend-block">
+        <div class="calendar-legend-label">Услуги</div>
+        <div class="calendar-legend-items">
+            @foreach (var s in legendServices)
+            {
+                var color = CalendarColors.ForService(s);
+                <span class="calendar-legend-item"><i style="background:@color"></i>@s.Name</span>
+            }
+            @if (!legendServices.Any())
+            {
+                <span class="text-muted small">Цвет задаётся в услуге</span>
+            }
+        </div>
+    </div>
+    <div class="calendar-legend-block">
+        <div class="calendar-legend-label">Статусы</div>
+        <div class="calendar-legend-items">
+            @foreach (var status in new[] { AppointmentStatus.Pending, AppointmentStatus.Confirmed, AppointmentStatus.Completed, AppointmentStatus.Cancelled, AppointmentStatus.NoShow })
+            {
+                <span class="@DisplayHelpers.StatusClass(status)">@status.DisplayName()</span>
+            }
+        </div>
+    </div>
+</div>
 
 <div class="mt-3">
     <a asp-action="Index" class="small">Список всех записей →</a>

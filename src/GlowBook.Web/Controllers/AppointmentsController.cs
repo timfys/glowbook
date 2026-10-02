@@ -68,6 +68,7 @@ public class AppointmentsController : Controller
             ViewBag.PrevMonth = monthStart.AddMonths(-1);
             ViewBag.NextMonth = monthStart.AddMonths(1);
             ViewBag.CalendarWeeks = BuildMonthWeeks(monthStart);
+            await LoadCalendarLegendAsync(profile.Id);
             return View("Calendar", items);
         }
 
@@ -87,6 +88,7 @@ public class AppointmentsController : Controller
         ViewBag.PrevWeek = start.AddDays(-7);
         ViewBag.NextWeek = start.AddDays(7);
         ViewBag.Days = Enumerable.Range(0, 7).Select(i => start.AddDays(i)).ToList();
+        await LoadCalendarLegendAsync(profile.Id);
         return View("Calendar", weekItems);
     }
 
@@ -277,6 +279,16 @@ public class AppointmentsController : Controller
             await _db.Clients.Where(c => c.MasterProfileId == profileId && !c.IsArchived).OrderBy(c => c.Name).ToListAsync(),
             "Id", "Name");
         ViewBag.Services = new SelectList(await _db.Services.Where(s => s.MasterProfileId == profileId && s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
+    }
+
+    private async Task LoadCalendarLegendAsync(int profileId)
+    {
+        ViewBag.CalendarServices = await _db.Services
+            .AsNoTracking()
+            .Where(s => s.MasterProfileId == profileId && s.IsActive)
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.Name)
+            .ToListAsync();
     }
 
     private async Task<MasterProfile?> GetProfileAsync()

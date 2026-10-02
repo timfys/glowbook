@@ -99,7 +99,7 @@
         var body = bodyParts.filter(Boolean).join(' · ');
 
         try {
-            var notification = new Notification('GlowBook · ' + heading, {
+            var notification = new Notification('GlowBox · ' + heading, {
                 body: body,
                 tag: 'gb-appt-' + id,
                 requireInteraction: false

@@ -1,81 +1,266 @@
-﻿@model PublicBookingForm
+﻿@model PublicMasterPageViewModel
 @using GlowBook.Web.Models.Booking
 @using GlowBook.Web.Helpers
-@{ ViewData["Title"] = Model.Profile?.BusinessName ?? "Запись"; var slug = (string)ViewBag.Slug!; var profile = Model.Profile; }
-<div class="panel mx-auto" style="max-width:560px">
+@{
+    ViewData["Title"] = Model.Booking.Profile?.BusinessName ?? "Запись";
+    var slug = Model.Slug;
+    var profile = Model.Booking.Profile;
+    var booking = Model.Booking;
+}
+<div class="book-page" style="--book-accent:@Model.AccentColor">
+    <div class="book-cover" aria-hidden="true"></div>
+
     @if (profile != null)
     {
-        <div class="book-hero">
+        <header class="book-hero-card">
             @if (profile.HasAvatar)
             {
                 var bookAvatarUrl = Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks });
                 <button type="button" class="tg-card-avatar-btn" data-avatar-zoom="@bookAvatarUrl" aria-label="Открыть фото крупнее">
-                    <img class="gb-avatar" style="width:64px;height:64px" src="@bookAvatarUrl" alt="@profile.BusinessName" />
+                    <img class="gb-avatar book-avatar" src="@bookAvatarUrl" alt="@profile.BusinessName" />
                 </button>
             }
             else
             {
-                <span class="gb-avatar gb-avatar-fallback" style="width:64px;height:64px;font-size:1.1rem">@DisplayHelpers.Initials(profile.BusinessName)</span>
+                <span class="gb-avatar gb-avatar-fallback book-avatar">@DisplayHelpers.Initials(profile.BusinessName)</span>
             }
-            <div>
+            <div class="book-hero-text">
                 <h1 class="h4 fw-bold mb-0">@profile.BusinessName</h1>
                 @if (!string.IsNullOrWhiteSpace(profile.Specialization))
                 {
-                    <p class="text-muted mb-0">@profile.Specialization</p>
+                    <p class="text-muted mb-1">@profile.Specialization</p>
                 }
+                <div class="book-hero-meta">
+                    @if (Model.AverageRating != null)
+                    {
+                        <span class="book-rating">★ @Model.AverageRating.Value.ToString("0.0") <span class="text-muted">(@Model.ReviewCount)</span></span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Location))
+                    {
+                        <span class="text-muted">@Model.Location</span>
+                    }
+                </div>
             </div>
-        </div>
+        </header>
+
         @if (!string.IsNullOrWhiteSpace(profile.Description))
         {
-            <p class="text-muted">@profile.Description</p>
+            <p class="book-about">@profile.Description</p>
         }
     }
-    <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-        <div class="mb-3">
-            <label class="form-label">Услуга</label>
-            <select asp-for="ServiceId" class="form-select" onchange="this.form.submit()">
-                @foreach (var s in Model.Services)
+
+    <nav class="book-jump" aria-label="Разделы страницы">
+        <a href="#book-form">Запись</a>
+        @if (booking.Services.Any()) { <a href="#book-services">Услуги</a> }
+        @if (Model.Promos.Any()) { <a href="#book-promos">Акции</a> }
+        @if (Model.Portfolio.Any()) { <a href="#book-portfolio">Работы</a> }
+        <a href="#book-reviews">Отзывы</a>
+        @if (Model.MapEmbedUrl != null) { <a href="#book-map">Карта</a> }
+    </nav>
+
+    @if (booking.Services.Any())
+    {
+        <section class="book-section" id="book-services">
+            <h2 class="book-section-title">Услуги</h2>
+            <div class="book-service-list">
+                @foreach (var s in booking.Services)
                 {
-                    <option value="@s.Id">@s.Name — @s.DurationMinutes мин, @s.Price.ToString("N0") ₽</option>
+                    var color = CalendarColors.ForService(s);
+                    <a class="book-service-card @(s.Id == booking.ServiceId ? "is-selected" : "")"
+                       style="--event-color:@color"
+                       asp-action="Index" asp-route-slug="@slug" asp-route-serviceId="@s.Id" asp-route-date="@booking.Date.ToString("yyyy-MM-dd")">
+                        <span class="book-service-name">@s.Name</span>
+                        <span class="book-service-meta">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</span>
+                        @if (!string.IsNullOrWhiteSpace(s.Description))
+                        {
+                            <span class="book-service-desc">@s.Description</span>
+                        }
+                    </a>
                 }
-            </select>
-        </div>
-        <div class="mb-3">
-            <label asp-for="Date" class="form-label">Дата</label>
-            <input asp-for="Date" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
-        </div>
-        <div class="mb-3">
-            <label asp-for="Time" class="form-label">Время</label>
-            @if (!Model.AvailableTimes.Any())
-            {
-                <p class="text-muted small mb-0">Нет свободных слотов на эту дату</p>
-            }
-            else
-            {
-                <select asp-for="Time" class="form-select">
-                    @foreach (var t in Model.AvailableTimes)
+            </div>
+        </section>
+    }
+
+    @if (Model.Promos.Any())
+    {
+        <section class="book-section" id="book-promos">
+            <h2 class="book-section-title">Акции</h2>
+            <div class="book-promo-list">
+                @foreach (var promo in Model.Promos)
+                {
+                    <article class="book-promo">
+                        @if (!string.IsNullOrWhiteSpace(promo.Badge))
+                        {
+                            <span class="book-promo-badge">@promo.Badge</span>
+                        }
+                        <h3 class="book-promo-title">@promo.Title</h3>
+                        @if (!string.IsNullOrWhiteSpace(promo.Description))
+                        {
+                            <p class="mb-0">@promo.Description</p>
+                        }
+                        @if (promo.ValidUntil != null)
+                        {
+                            <div class="small text-muted mt-1">до @promo.ValidUntil.Value.ToString("d MMMM")</div>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="book-section panel" id="book-form">
+        <h2 class="book-section-title">Записаться</h2>
+        <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="get" class="book-slot-pick mb-3">
+            <div class="mb-3">
+                <label class="form-label">Услуга</label>
+                <select name="serviceId" class="form-select" onchange="this.form.submit()">
+                    @foreach (var s in booking.Services)
                     {
-                        <option value="@t">@t</option>
+                        <option value="@s.Id" selected="@(s.Id == booking.ServiceId)">@s.Name — @s.DurationMinutes мин, @s.Price.ToString("N0") ₽</option>
                     }
                 </select>
+            </div>
+            <div class="mb-0">
+                <label class="form-label" for="bookDate">Дата</label>
+                <input id="bookDate" name="date" type="date" class="form-control" value="@booking.Date.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+            </div>
+        </form>
+
+        <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ServiceId" value="@booking.ServiceId" />
+            <input type="hidden" name="Date" value="@booking.Date.ToString("yyyy-MM-dd")" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <div class="mb-3">
+                <label asp-for="Booking.Time" class="form-label">Время</label>
+                @if (!booking.AvailableTimes.Any())
+                {
+                    <p class="text-muted small mb-0">Нет свободных слотов на эту дату</p>
+                }
+                else
+                {
+                    <select name="Time" class="form-select">
+                        @foreach (var t in booking.AvailableTimes)
+                        {
+                            <option value="@t" selected="@(t == booking.Time)">@t</option>
+                        }
+                    </select>
+                }
+            </div>
+            <div class="mb-3">
+                <label asp-for="Booking.ClientName" class="form-label">Ваше имя</label>
+                <input name="ClientName" value="@booking.ClientName" class="form-control" />
+                <span asp-validation-for="Booking.ClientName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Booking.ClientPhone" class="form-label">Телефон</label>
+                <input name="ClientPhone" value="@booking.ClientPhone" class="form-control" placeholder="+7..." />
+                <span asp-validation-for="Booking.ClientPhone" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Booking.Notes" class="form-label">Комментарий</label>
+                <textarea name="Notes" class="form-control" rows="2">@booking.Notes</textarea>
+            </div>
+            <button type="submit" class="btn btn-gb-primary w-100" @(booking.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
+            <p class="small text-muted mt-2 mb-0">Регистрация не нужна — только имя и телефон.</p>
+        </form>
+    </section>
+
+    @if (Model.Portfolio.Any())
+    {
+        <section class="book-section" id="book-portfolio">
+            <h2 class="book-section-title">Работы</h2>
+            <div class="book-portfolio">
+                @foreach (var photo in Model.Portfolio)
+                {
+                    var src = Url.Action("Photo", "Studio", new { id = photo.Id });
+                    <figure class="book-portfolio-item">
+                        <button type="button" class="book-portfolio-zoom" data-avatar-zoom="@src" aria-label="Открыть фото">
+                            <img src="@src" alt="@(photo.Caption ?? "Работа мастера")" />
+                        </button>
+                        @if (!string.IsNullOrWhiteSpace(photo.Caption))
+                        {
+                            <figcaption>@photo.Caption</figcaption>
+                        }
+                    </figure>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="book-section" id="book-reviews">
+        <h2 class="book-section-title">Отзывы</h2>
+        @if (Model.ReviewFlash != null)
+        {
+            <div class="alert alert-success py-2 px-3">@Model.ReviewFlash</div>
+        }
+        @if (!Model.Reviews.Any())
+        {
+            <p class="text-muted">Отзывов пока нет — можете оставить первый.</p>
+        }
+        else
+        {
+            <div class="book-review-list">
+                @foreach (var review in Model.Reviews)
+                {
+                    <article class="book-review">
+                        <div class="book-review-head">
+                            <strong>@review.AuthorName</strong>
+                            <span class="book-stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                        </div>
+                        <p class="mb-0">@review.Text</p>
+                        <div class="small text-muted mt-1">@review.CreatedAt.ToLocalTime().ToString("d MMMM yyyy")</div>
+                    </article>
+                }
+            </div>
+        }
+
+        <form asp-controller="Book" asp-action="Review" asp-route-slug="@slug" method="post" class="book-review-form mt-3">
+            @Html.AntiForgeryToken()
+            <h3 class="h6 fw-bold">Оставить отзыв</h3>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label asp-for="Review.AuthorName" class="form-label"></label>
+                    <input asp-for="Review.AuthorName" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Review.AuthorPhone" class="form-label"></label>
+                    <input asp-for="Review.AuthorPhone" class="form-control" placeholder="+7..." />
+                </div>
+            </div>
+            <div class="mb-2 mt-2">
+                <label asp-for="Review.Rating" class="form-label"></label>
+                <select asp-for="Review.Rating" class="form-select">
+                    <option value="5">5 — отлично</option>
+                    <option value="4">4 — хорошо</option>
+                    <option value="3">3 — нормально</option>
+                    <option value="2">2 — слабо</option>
+                    <option value="1">1 — плохо</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Review.Text" class="form-label"></label>
+                <textarea asp-for="Review.Text" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-gb-outline">Отправить отзыв</button>
+        </form>
+    </section>
+
+    @if (Model.MapEmbedUrl != null)
+    {
+        <section class="book-section" id="book-map">
+            <h2 class="book-section-title">Как добраться</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.Location))
+            {
+                <p class="text-muted mb-2">@Model.Location</p>
             }
-        </div>
-        <div class="mb-3">
-            <label asp-for="ClientName" class="form-label">Ваше имя</label>
-            <input asp-for="ClientName" class="form-control" />
-            <span asp-validation-for="ClientName" class="text-danger"></span>
-        </div>
-        <div class="mb-3">
-            <label asp-for="ClientPhone" class="form-label">Телефон</label>
-            <input asp-for="ClientPhone" class="form-control" placeholder="+7..." />
-            <span asp-validation-for="ClientPhone" class="text-danger"></span>
-        </div>
-        <div class="mb-3">
-            <label asp-for="Notes" class="form-label">Комментарий</label>
-            <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
-        </div>
-        <button type="submit" class="btn btn-gb-primary w-100" @(Model.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
-    </form>
+            <div class="book-map">
+                <iframe src="@Model.MapEmbedUrl" title="Яндекс.Карта" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+            @if (Model.MapOpenUrl != null)
+            {
+                <a class="small d-inline-block mt-2" href="@Model.MapOpenUrl" target="_blank" rel="noopener">Открыть в Яндекс.Картах →</a>
+            }
+        </section>
+    }
 </div>

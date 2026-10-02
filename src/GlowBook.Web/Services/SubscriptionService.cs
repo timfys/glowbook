@@ -26,6 +26,9 @@ public class SubscriptionService
             _db.Subscriptions.Add(sub);
         }
 
+        if (sub.IsPremiumActive && sub.ExternalPaymentId == externalPaymentId)
+            return;
+
         var now = DateTime.UtcNow;
         var baseDate = sub.IsPremiumActive && sub.ExpiresAt.HasValue && sub.ExpiresAt > now
             ? sub.ExpiresAt.Value

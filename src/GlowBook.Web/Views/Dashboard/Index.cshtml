@@ -20,13 +20,30 @@
     <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@(((decimal)ViewBag.RevenueMonth).ToString("N0")) ₽</div><div class="stat-label">Выручка за месяц</div></div></div>
     <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@ViewBag.ClientsCount</div><div class="stat-label">Клиентов</div></div></div>
 </div>
-@if (ViewBag.IsPremium == true && ViewBag.BookingUrl != null)
+@if (ViewBag.IsPremium == true)
 {
-    <div class="panel mb-4">
-        <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
-        <code class="user-select-all">@ViewBag.BookingUrl</code>
-        <div class="small text-muted mt-1">Отправьте клиентам — они смогут записаться сами.</div>
+    var premiumUntil = ViewBag.PremiumUntil as DateTime?;
+    var daysLeft = DisplayHelpers.PremiumDaysLeft(premiumUntil);
+    <div class="premium-status-card mb-4">
+        <div>
+            <div class="premium-status-kicker">Ваш статус</div>
+            <div class="premium-status-title">Premium-пользователь</div>
+            <div class="premium-status-until">до @DisplayHelpers.PremiumUntilDate(premiumUntil)</div>
+            @if (daysLeft != null)
+            {
+                <div class="small text-muted mt-1">осталось @daysLeft дн.</div>
+            }
+        </div>
+        <a class="btn btn-gb-outline btn-sm" asp-controller="Subscription" asp-action="Index">Подписка</a>
     </div>
+    @if (ViewBag.BookingUrl != null)
+    {
+        <div class="panel mb-4">
+            <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
+            <code class="user-select-all">@ViewBag.BookingUrl</code>
+            <div class="small text-muted mt-1">Отправьте клиентам — они запишутся без регистрации. <a asp-controller="Studio" asp-action="Index">Оформить страницу</a></div>
+        </div>
+    }
 }
 <div class="panel">
     @if (!Model.Any())

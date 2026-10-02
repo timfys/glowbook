@@ -1,7 +1,7 @@
 ﻿@inject GlowBook.Web.AssetVersion AssetVersion
 @inject Microsoft.AspNetCore.Identity.UserManager<GlowBook.Web.Models.ApplicationUser> UserManager
 @{
-    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Subscription", "Profile", "My" };
+    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Studio", "Subscription", "Profile", "My" };
     var isCabinet = User.Identity?.IsAuthenticated == true
         && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
     var av = AssetVersion.Value;
@@ -18,7 +18,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <title>@ViewData["Title"] — GlowBook</title>
+    <title>@ViewData["Title"] — GlowBox</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <script>
         (function () {
             try {
@@ -45,8 +46,20 @@
                     </button>
                 }
                 <a class="navbar-brand gb-logo" asp-controller="Home" asp-action="Index">
-                    <span class="gb-logo-mark">G</span>
-                    GlowBook
+                    <span class="gb-logo-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" width="28" height="28">
+                            <defs>
+                                <linearGradient id="gnLogo" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#9b4dcc"/>
+                                    <stop offset="100%" stop-color="#e45d9a"/>
+                                </linearGradient>
+                            </defs>
+                            <rect x="1" y="1" width="30" height="30" rx="11" fill="url(#gnLogo)"/>
+                            <text x="15.2" y="22.2" text-anchor="middle" fill="#fff" font-size="16.5" font-weight="800" font-family="Manrope, Segoe UI, sans-serif">G</text>
+                            <path fill="#fff" d="M24.6 5.4l.85 2.05 2.05.85-2.05.85-.85 2.05-.85-2.05-2.05-.85 2.05-.85z"/>
+                        </svg>
+                    </span>
+                    GlowBox
                 </a>
                 @if (!isCabinet)
                 {
@@ -80,7 +93,7 @@
         </div>
     </main>
     <footer class="footer-min text-center @(isCabinet ? "d-none d-lg-block" : "")">
-        GlowBook — CRM для косметологов и мастеров красоты
+        GlowBox — CRM для косметологов и мастеров красоты
         · <a href="/rekvizity">Реквизиты и оферта</a>
     </footer>
     <button type="button" class="gb-theme-fab gb-theme-toggle" aria-label="Тема" title="Светлая / тёмная тема">

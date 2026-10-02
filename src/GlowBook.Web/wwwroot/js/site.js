@@ -315,7 +315,7 @@
             return;
         }
 
-        alert('Выбор из контактов доступен в приложении GlowBook или в Chrome на Android.');
+        alert('Выбор из контактов доступен в приложении GlowBox или в Chrome на Android.');
     });
 })();
 

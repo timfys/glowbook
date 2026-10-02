@@ -75,6 +75,7 @@ public class DashboardController : Controller
         ViewBag.RevenueToday = appointmentRevenueToday + treatmentRevenueToday;
         ViewBag.RevenueMonth = appointmentRevenueMonth + treatmentRevenueMonth;
         ViewBag.IsPremium = profile.Subscription?.IsPremiumActive == true;
+        ViewBag.PremiumUntil = profile.Subscription?.ExpiresAt;
         ViewBag.BookingUrl = Url.Action("Index", "Book", new { slug = profile.BookingSlug }, Request.Scheme);
 
         return View(todayAppointments);

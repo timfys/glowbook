@@ -22,9 +22,12 @@
         <div class="master-appt-list">
         @foreach (var s in Model)
         {
-            <div class="master-appt-item">
+            <div class="master-appt-item" style="--event-color:@CalendarColors.ForService(s)">
                 <div class="master-appt-main">
-                    <div class="master-appt-datetime">@s.Name</div>
+                    <div class="master-appt-datetime">
+                        <span class="service-color-dot" style="background:@CalendarColors.ForService(s)"></span>
+                        @s.Name
+                    </div>
                     <div class="master-appt-service">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</div>
                 </div>
                 <div class="master-appt-side">

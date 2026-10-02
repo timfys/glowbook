@@ -25,6 +25,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<HomeCarePrescription> HomeCarePrescriptions => Set<HomeCarePrescription>();
     public DbSet<ClientAvatar> ClientAvatars => Set<ClientAvatar>();
     public DbSet<ClientMessage> ClientMessages => Set<ClientMessage>();
+    public DbSet<MasterPortfolioPhoto> MasterPortfolioPhotos => Set<MasterPortfolioPhoto>();
+    public DbSet<MasterPromo> MasterPromos => Set<MasterPromo>();
+    public DbSet<MasterReview> MasterReviews => Set<MasterReview>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -36,6 +39,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => x.UserId).IsUnique();
             e.Property(x => x.BusinessName).HasMaxLength(200);
             e.Property(x => x.BookingSlug).HasMaxLength(100);
+            e.Property(x => x.PageAccentColor).HasMaxLength(7);
             e.HasOne(x => x.User).WithOne(x => x.MasterProfile).HasForeignKey<MasterProfile>(x => x.UserId);
         });
 
@@ -67,6 +71,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.Property(x => x.Name).HasMaxLength(200);
             e.Property(x => x.Price).HasPrecision(10, 2);
+            e.Property(x => x.Color).HasMaxLength(7);
         });
 
         builder.Entity<Appointment>(e =>
@@ -148,6 +153,45 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(x => x.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<MasterPortfolioPhoto>(e =>
+        {
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.Property(x => x.Caption).HasMaxLength(200);
+            e.HasIndex(x => new { x.MasterProfileId, x.SortOrder });
+            e.HasOne(x => x.MasterProfile)
+                .WithMany(x => x.PortfolioPhotos)
+                .HasForeignKey(x => x.MasterProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MasterPromo>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(120);
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.Badge).HasMaxLength(40);
+            e.HasIndex(x => new { x.MasterProfileId, x.IsActive });
+            e.HasOne(x => x.MasterProfile)
+                .WithMany(x => x.Promos)
+                .HasForeignKey(x => x.MasterProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MasterReview>(e =>
+        {
+            e.Property(x => x.AuthorName).HasMaxLength(80);
+            e.Property(x => x.AuthorPhone).HasMaxLength(30);
+            e.Property(x => x.Text).HasMaxLength(800);
+            e.HasIndex(x => new { x.MasterProfileId, x.IsPublished, x.CreatedAt });
+            e.HasOne(x => x.MasterProfile)
+                .WithMany(x => x.Reviews)
+                .HasForeignKey(x => x.MasterProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Client)
+                .WithMany()
+                .HasForeignKey(x => x.ClientId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

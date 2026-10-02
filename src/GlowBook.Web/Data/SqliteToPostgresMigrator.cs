@@ -64,6 +64,9 @@ public static class SqliteToPostgresMigrator
             await AddAndSave(postgres, await sqlite.TreatmentRecords.AsNoTracking().ToListAsync(ct), ct);
             await AddAndSave(postgres, await sqlite.ClientPhotos.AsNoTracking().ToListAsync(ct), ct);
             await AddAndSave(postgres, await sqlite.HomeCarePrescriptions.AsNoTracking().ToListAsync(ct), ct);
+            await AddAndSave(postgres, await sqlite.MasterPortfolioPhotos.AsNoTracking().ToListAsync(ct), ct);
+            await AddAndSave(postgres, await sqlite.MasterPromos.AsNoTracking().ToListAsync(ct), ct);
+            await AddAndSave(postgres, await sqlite.MasterReviews.AsNoTracking().ToListAsync(ct), ct);
 
             await postgres.Database.ExecuteSqlRawAsync("SET session_replication_role = 'origin';", ct);
             await ResetSequencesAsync(postgres, ct);
@@ -95,6 +98,9 @@ public static class SqliteToPostgresMigrator
 
     private static async Task ClearPostgresAsync(ApplicationDbContext db, CancellationToken ct)
     {
+        db.MasterReviews.RemoveRange(await db.MasterReviews.ToListAsync(ct));
+        db.MasterPromos.RemoveRange(await db.MasterPromos.ToListAsync(ct));
+        db.MasterPortfolioPhotos.RemoveRange(await db.MasterPortfolioPhotos.ToListAsync(ct));
         db.HomeCarePrescriptions.RemoveRange(await db.HomeCarePrescriptions.ToListAsync(ct));
         db.ClientPhotos.RemoveRange(await db.ClientPhotos.ToListAsync(ct));
         db.TreatmentRecords.RemoveRange(await db.TreatmentRecords.ToListAsync(ct));
@@ -122,7 +128,8 @@ public static class SqliteToPostgresMigrator
                  {
                      "MasterProfiles", "Clients", "Services", "WorkingHours", "Appointments",
                      "Subscriptions", "PaymentOrders", "TreatmentRecords", "ClientPhotos",
-                     "HomeCarePrescriptions", "AspNetUserClaims", "AspNetRoleClaims"
+                     "HomeCarePrescriptions", "MasterPortfolioPhotos", "MasterPromos", "MasterReviews",
+                     "AspNetUserClaims", "AspNetRoleClaims"
                  })
         {
             try

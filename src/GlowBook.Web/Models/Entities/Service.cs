@@ -25,6 +25,10 @@ public class Service
     [Display(Name = "Активна")]
     public bool IsActive { get; set; } = true;
 
+    [Display(Name = "Цвет в календаре")]
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
     public int SortOrder { get; set; }
 
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

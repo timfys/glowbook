@@ -106,6 +106,7 @@ public class ProfileController : Controller
         profile.Specialization = NullIfEmpty(model.Specialization);
         profile.City = NullIfEmpty(model.City);
         profile.Address = NullIfEmpty(model.Address);
+        profile.ShowOnMap = model.ShowOnMap;
         profile.Description = NullIfEmpty(model.Description);
 
         if (model.RemoveAvatar && model.Avatar == null)
@@ -188,6 +189,7 @@ public class ProfileController : Controller
         Specialization = profile.Specialization,
         City = profile.City,
         Address = profile.Address,
+        ShowOnMap = profile.ShowOnMap,
         Description = profile.Description,
         HasAvatar = profile.HasAvatar,
         ProfileId = profile.Id,

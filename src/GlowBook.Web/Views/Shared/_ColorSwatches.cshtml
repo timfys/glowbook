@@ -1,0 +1,13 @@
+@model string?
+@{
+    var current = CalendarColors.Normalize(Model);
+}
+<div class="color-swatches">
+    @foreach (var color in CalendarColors.Palette)
+    {
+        <label class="color-swatch @(current == color ? "is-selected" : "")" title="@color">
+            <input type="radio" name="Color" value="@color" @(current == color ? "checked" : null) />
+            <span style="background:@color"></span>
+        </label>
+    }
+</div>

@@ -24,6 +24,7 @@ public static class DbInitializer
 
         // Legacy local SQLite: create schema without applying Postgres migrations.
         await db.Database.EnsureCreatedAsync();
+        await SqliteSchemaPatcher.ApplyAsync(db, logger);
         logger.LogInformation("SQLite schema ensured at {DataDir}", dataDir);
     }
 }

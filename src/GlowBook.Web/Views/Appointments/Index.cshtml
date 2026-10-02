@@ -21,7 +21,7 @@
         <div class="master-appt-list">
         @foreach (var a in Model)
         {
-            <div class="master-appt-item">
+            <div class="master-appt-item" style="--event-color:@CalendarColors.ForService(a.Service)">
                 <div class="master-appt-main">
                     <div class="master-appt-datetime">@a.StartsAt.ToString("dd.MM.yyyy · HH:mm")</div>
                     <div class="master-appt-client">

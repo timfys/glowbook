@@ -17,8 +17,17 @@ public static class DbInitializer
         if (provider == DatabaseProviderKind.Postgres)
         {
             // Schema only. SQLite→Postgres data import is tools/MigrateNow (not at app startup).
-            await db.Database.MigrateAsync();
-            logger.LogInformation("Postgres schema up to date (MigrateAsync)");
+            try
+            {
+                await db.Database.MigrateAsync();
+                logger.LogInformation("Postgres schema up to date (MigrateAsync)");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "MigrateAsync failed; applying idempotent schema patch so the site can start");
+            }
+
+            await PostgresSchemaPatcher.ApplyAsync(db, logger);
             return;
         }
 

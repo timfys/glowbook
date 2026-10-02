@@ -20,20 +20,21 @@ public static class DatabaseConnectionResolver
             ?? Environment.GetEnvironmentVariable("DATABASE_PRIVATE_URL");
 
         if (LooksLikePostgres(configured))
-            return new DatabaseConnectionInfo(DatabaseProviderKind.Postgres, ToNpgsqlConnectionString(configured!));
-
-        if (TryBuildPostgresFromParts(configuration, out var fromParts))
-            return new DatabaseConnectionInfo(DatabaseProviderKind.Postgres, fromParts);
-
-        var dbPath = Path.Combine(dataDir, "glowbook.db");
-        if (string.IsNullOrWhiteSpace(configured)
-            || configured.Contains("Data/glowbook.db", StringComparison.OrdinalIgnoreCase)
-            || configured.Contains(@"Data\glowbook.db", StringComparison.OrdinalIgnoreCase))
         {
-            return new DatabaseConnectionInfo(DatabaseProviderKind.Sqlite, $"Data Source={dbPath}");
+            var postgres = HardenNpgsql(ToNpgsqlConnectionString(configured!));
+            if (ShouldUsePostgres(postgres))
+                return new DatabaseConnectionInfo(DatabaseProviderKind.Postgres, postgres);
         }
 
-        return new DatabaseConnectionInfo(DatabaseProviderKind.Sqlite, configured);
+        if (TryBuildPostgresFromParts(configuration, out var fromParts))
+        {
+            var postgres = HardenNpgsql(fromParts);
+            if (ShouldUsePostgres(postgres))
+                return new DatabaseConnectionInfo(DatabaseProviderKind.Postgres, postgres);
+        }
+
+        var dbPath = Path.Combine(dataDir, "glowbook.db");
+        return new DatabaseConnectionInfo(DatabaseProviderKind.Sqlite, $"Data Source={dbPath}");
     }
 
     public static string Redact(string connectionString)
@@ -100,7 +101,7 @@ public static class DatabaseConnectionResolver
             SslMode = SslMode.Prefer,
             TrustServerCertificate = true
         };
-        connectionString = builder.ConnectionString;
+        connectionString = HardenNpgsql(builder.ConnectionString);
         return true;
     }
 
@@ -150,6 +151,63 @@ public static class DatabaseConnectionResolver
             builder.SslMode = SslMode.Require;
         }
 
+        return HardenNpgsql(builder.ConnectionString);
+    }
+
+    private static string HardenNpgsql(string connectionString)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (builder.Timeout <= 0 || builder.Timeout > 8)
+            builder.Timeout = 8;
+
+        if (IsLoopback(builder.Host))
+            builder.Port = PreferReachableLocalPort(builder.Host!, builder.Port);
+
         return builder.ConnectionString;
+    }
+
+    private static bool ShouldUsePostgres(string connectionString)
+    {
+        // Railway has the private hostname and must never silently fall back to SQLite.
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"))
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RAILWAY_PRIVATE_DOMAIN")))
+            return true;
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (IsLoopback(builder.Host) || builder.Host?.Contains("rlwy.net", StringComparison.OrdinalIgnoreCase) == true)
+            return IsTcpOpen(builder.Host!, builder.Port, 800);
+
+        return true;
+    }
+
+    private static bool IsLoopback(string? host) =>
+        host is "127.0.0.1" or "localhost" or "::1";
+
+    private static int PreferReachableLocalPort(string host, int configuredPort)
+    {
+        var ports = new[] { configuredPort, 5432, 5433, 5434, 5435, 5436 }
+            .Distinct();
+
+        foreach (var port in ports)
+        {
+            if (IsTcpOpen(host, port, 250))
+                return port;
+        }
+
+        return configuredPort;
+    }
+
+    private static bool IsTcpOpen(string host, int port, int timeoutMs)
+    {
+        try
+        {
+            using var client = new System.Net.Sockets.TcpClient();
+            var task = client.ConnectAsync(host, port);
+            return task.Wait(timeoutMs) && client.Connected;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

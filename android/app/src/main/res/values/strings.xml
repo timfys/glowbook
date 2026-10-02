@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">GlowBox</string>
+    <string name="loading_app">Открываем GlowBox…</string>
     <string name="retry_load">Повторить</string>
     <string name="error_timeout">Сервер не ответил вовремя. Railway иногда долго просыпается — нажмите «Повторить».</string>
     <string name="error_offline">Нет интернета. Проверьте Wi‑Fi или мобильную сеть.</string>

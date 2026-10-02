@@ -105,14 +105,20 @@ app.UseHttpsRedirection();
 // HTML always revalidated; versioned static assets can be cached hard.
 app.Use(async (context, next) =>
 {
-    await next();
-    var ct = context.Response.ContentType;
-    if (ct != null && ct.StartsWith("text/html", StringComparison.OrdinalIgnoreCase))
+    context.Response.OnStarting(() =>
     {
-        context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
-        context.Response.Headers.Pragma = "no-cache";
-        context.Response.Headers.Expires = "0";
-    }
+        var ct = context.Response.ContentType;
+        if (ct != null && ct.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)
+            && !context.Response.HasStarted)
+        {
+            context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "0";
+        }
+
+        return Task.CompletedTask;
+    });
+    await next();
 });
 
 app.UseStaticFiles(new StaticFileOptions

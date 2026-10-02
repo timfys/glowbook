@@ -32,6 +32,7 @@ class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private lateinit var errorPanel: LinearLayout
+    private lateinit var loadingPanel: LinearLayout
     private lateinit var errorText: TextView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var pendingContactPick = false
@@ -43,7 +44,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         val root = FrameLayout(this)
+        root.setBackgroundColor(Color.parseColor("#F6F3F8"))
         webView = WebView(this)
+        webView.setBackgroundColor(Color.parseColor("#F6F3F8"))
         root.addView(
             webView,
             FrameLayout.LayoutParams(
@@ -68,6 +71,26 @@ class MainActivity : Activity() {
             text = getString(R.string.retry_load)
             setOnClickListener { reloadFromError() }
         }
+        loadingPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.parseColor("#F6F3F8"))
+            setPadding(48, 48, 48, 48)
+        }
+        loadingPanel.addView(TextView(this).apply {
+            text = getString(R.string.loading_app)
+            textSize = 16f
+            setTextColor(Color.parseColor("#3D3550"))
+            gravity = Gravity.CENTER
+        })
+        root.addView(
+            loadingPanel,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
         errorPanel.addView(errorText)
         errorPanel.addView(retryButton, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -100,6 +123,7 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 retryCount = 0
                 hideError()
+                hideLoading()
             }
 
             override fun onReceivedError(
@@ -170,6 +194,7 @@ class MainActivity : Activity() {
     private fun loadAppUrl(url: String) {
         lastFailedUrl = url
         hideError()
+        showLoading()
         webView.loadUrl(url)
     }
 
@@ -206,11 +231,20 @@ class MainActivity : Activity() {
             errorCode == WebViewClient.ERROR_TIMEOUT -> getString(R.string.error_timeout)
             else -> getString(R.string.error_generic)
         }
+        hideLoading()
         errorPanel.visibility = View.VISIBLE
     }
 
     private fun hideError() {
         errorPanel.visibility = View.GONE
+    }
+
+    private fun showLoading() {
+        loadingPanel.visibility = View.VISIBLE
+    }
+
+    private fun hideLoading() {
+        loadingPanel.visibility = View.GONE
     }
 
     private fun isNetworkAvailable(): Boolean {

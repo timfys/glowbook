@@ -1,17 +1,24 @@
-﻿using GlowBook.Web.Data;
+﻿using GlowBook.Web.Configuration;
+using GlowBook.Web.Data;
 using GlowBook.Web.Helpers;
 using GlowBook.Web.Models.Booking;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GlowBook.Web.Services;
 
 public class BookingService
 {
     private readonly ApplicationDbContext _db;
+    private readonly GlowBookSettings _settings;
 
-    public BookingService(ApplicationDbContext db) => _db = db;
+    public BookingService(ApplicationDbContext db, IOptions<GlowBookSettings> settings)
+    {
+        _db = db;
+        _settings = settings.Value;
+    }
 
     public async Task<MasterProfile?> GetBookableProfileAsync(string slug, CancellationToken ct = default) =>
         await _db.MasterProfiles
@@ -20,7 +27,8 @@ public class BookingService
             .FirstOrDefaultAsync(p => p.BookingSlug == slug, ct);
 
     public bool IsOnlineBookingEnabled(MasterProfile profile) =>
-        profile.Subscription?.IsPremiumActive == true;
+        !_settings.RequirePremiumForOnlineBooking
+        || profile.Subscription?.IsPremiumActive == true;
 
     public async Task<List<string>> GetAvailableTimesAsync(
         int masterProfileId,

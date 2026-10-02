@@ -21,13 +21,7 @@
     <div class="alert alert-danger py-2 px-3">@error</div>
 }
 
-@if (!Model.IsPremium)
-{
-    <div class="alert gb-highlight-box mb-3">
-        Клиенты увидят эту страницу после <a asp-controller="Subscription" asp-action="Index">подключения Premium</a>. Сейчас можно спокойно наполнить портфолио и акции.
-    </div>
-}
-else if (!string.IsNullOrWhiteSpace(Model.BookingUrl))
+@if (!string.IsNullOrWhiteSpace(Model.BookingUrl))
 {
     <div class="panel mb-3">
         <div class="small text-muted mb-1">Ссылка для клиентов</div>

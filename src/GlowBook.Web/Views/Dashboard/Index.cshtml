@@ -36,14 +36,14 @@
         </div>
         <a class="btn btn-gb-outline btn-sm" asp-controller="Subscription" asp-action="Index">Подписка</a>
     </div>
-    @if (ViewBag.BookingUrl != null)
-    {
-        <div class="panel mb-4">
-            <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
-            <code class="user-select-all">@ViewBag.BookingUrl</code>
-            <div class="small text-muted mt-1">Отправьте клиентам — они запишутся без регистрации. <a asp-controller="Studio" asp-action="Index">Оформить страницу</a></div>
-        </div>
-    }
+}
+@if (ViewBag.BookingUrl != null)
+{
+    <div class="panel mb-4">
+        <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
+        <code class="user-select-all">@ViewBag.BookingUrl</code>
+        <div class="small text-muted mt-1">Отправьте клиентам — они запишутся без регистрации. <a asp-controller="Studio" asp-action="Index">Оформить страницу</a></div>
+    </div>
 }
 <div class="panel">
     @if (!Model.Any())

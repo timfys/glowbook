@@ -2014,7 +2014,93 @@ body.gb-has-cabinet-nav .gb-theme-fab {
 .book-page {
     --book-accent: var(--gb-primary);
     max-width: 720px;
-    margin: 0 auto 2rem;
+    margin: 0 auto 5.5rem;
+}
+.book-hero-username {
+    font-weight: 700;
+    color: var(--book-accent, var(--gb-primary-dark));
+    font-size: 0.9rem;
+    letter-spacing: -0.02em;
+}
+.book-hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+}
+.book-tab-panel[hidden] { display: none !important; }
+.book-bottom-tabs {
+    position: fixed;
+    left: 50%;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    width: min(420px, calc(100% - 1.5rem));
+    background: color-mix(in srgb, var(--gb-surface) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--gb-border);
+    border-radius: 999px;
+    box-shadow: var(--gb-shadow);
+}
+.book-bottom-tab {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--gb-muted);
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+.book-bottom-tab.is-active {
+    background: color-mix(in srgb, var(--book-accent) 14%, var(--gb-surface));
+    color: var(--book-accent, var(--gb-primary-dark));
+}
+.book-bottom-tab-count {
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--book-accent) 18%, transparent);
+    font-size: 0.72rem;
+    line-height: 1.25rem;
+}
+.book-chat-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(20, 16, 28, 0.45);
+}
+.book-chat-modal[hidden] { display: none !important; }
+.book-chat-modal-card {
+    position: relative;
+    width: min(400px, 100%);
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 18px;
+    padding: 1.25rem 1.25rem 1.35rem;
+    box-shadow: var(--gb-shadow);
+}
+.book-chat-modal-close {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.65rem;
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--gb-muted);
 }
 .book-cover {
     height: 88px;

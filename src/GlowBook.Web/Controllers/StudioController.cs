@@ -269,8 +269,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return View("PremiumRequired");
 
         var articles = await _blog.ListForStudioAsync(profile.Id);
         return View(new StudioBlogPageViewModel
@@ -286,8 +284,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return View("PremiumRequired");
         return View("ArticleEdit", new ArticleEditForm());
     }
 
@@ -298,8 +294,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return RedirectToSubscription();
 
         if (!ModelState.IsValid)
             return View("ArticleEdit", model);
@@ -327,8 +321,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return View("PremiumRequired");
 
         var article = await _blog.GetOwnedAsync(profile.Id, id);
         if (article == null) return NotFound();
@@ -353,8 +345,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return RedirectToSubscription();
 
         var article = await _blog.GetOwnedAsync(profile.Id, id);
         if (article == null) return NotFound();
@@ -381,8 +371,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return RedirectToSubscription();
 
         var article = await _blog.GetOwnedAsync(profile.Id, id);
         if (article == null) return NotFound();
@@ -398,8 +386,6 @@ public class StudioController : Controller
     {
         var profile = await GetProfileAsync();
         if (profile == null) return Challenge();
-        if (!IsPremium(profile))
-            return RedirectToSubscription();
 
         var article = await _blog.GetOwnedAsync(profile.Id, id);
         if (article != null)
@@ -415,7 +401,7 @@ public class StudioController : Controller
         return new StudioPageViewModel
         {
             BookingSlug = profile.BookingSlug,
-            BookingUrl = Url.Action("Index", "Book", new { slug = profile.BookingSlug }, Request.Scheme),
+            BookingUrl = Url.Action("Profile", "Blog", new { username = profile.BookingSlug }, Request.Scheme),
             IsPremium = profile.Subscription?.IsPremiumActive == true,
             AccentColor = CalendarColors.Normalize(profile.PageAccentColor),
             ShowOnMap = profile.ShowOnMap,

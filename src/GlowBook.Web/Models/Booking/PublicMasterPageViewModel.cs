@@ -33,6 +33,20 @@ public class PublicMasterPageViewModel
 
     public string Slug { get; set; } = string.Empty;
 
+    public string Username { get; set; } = string.Empty;
+
+    public bool IsPremiumMaster { get; set; }
+
+    public bool CanBook { get; set; }
+
+    public bool ShowChat { get; set; }
+
+    public bool IsAuthenticated { get; set; }
+
+    public string? ViewerDisplayName { get; set; }
+
+    public string? ChatError { get; set; }
+
     public class PortfolioCard
     {
         public int Id { get; set; }

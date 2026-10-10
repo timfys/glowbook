@@ -6,7 +6,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject GlowBook.Web.Services.MasterProfileService Profiles
 
-<ul class="navbar-nav align-items-center gap-2">
+<ul class="navbar-nav flex-row align-items-center gap-2 flex-nowrap">
 @if (SignInManager.IsSignedIn(User))
 {
     var user = await UserManager.GetUserAsync(User);

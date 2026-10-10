@@ -162,33 +162,6 @@ Or in admin PowerShell:
 "@
 }
 
-function Ensure-NodeJs {
-    if (Get-Command node -ErrorAction SilentlyContinue) {
-        return
-    }
-
-    throw @"
-Node.js not found (needed for the Railway SSH proxy).
-Install Node.js 16+ from https://nodejs.org then retry.
-"@
-}
-
-function Get-RailwaySshProxyCommand {
-    param([string]$RepoRoot)
-
-    Ensure-NodeJs
-
-    $proxyPath = Join-Path $RepoRoot "scripts/railway-ssh-proxy.mjs"
-    if (-not (Test-Path $proxyPath)) {
-        throw "Missing SSH proxy script: $proxyPath"
-    }
-
-    # OpenSSH on Windows is picky about quoting. Prefer forward slashes.
-    $normalized = ($proxyPath -replace '\\', '/')
-    $nodeCmd = (Get-Command node -ErrorAction Stop).Source -replace '\\', '/'
-    return " `"$nodeCmd`" `"$normalized`" %h %p"
-}
-
 function Get-GlowBookSshKeyPaths {
     $sshDir = Join-Path $env:USERPROFILE ".ssh"
     return [PSCustomObject]@{
@@ -499,10 +472,10 @@ function Get-RailwaySshProxyCommand {
         throw "Missing SSH proxy helper scripts in scripts/"
     }
 
-    # .cmd shim avoids OpenSSH ProxyCommand quoting bugs on Windows.
-    # Use literal host/port (not %h/%p): PowerShell/cmd can eat percent tokens.
-    $shimUnix = ($shim -replace '\\', '/')
-    return "=$shimUnix ssh.railway.com 22"
+    # .cmd shim + defaults in .mjs (ssh.railway.com:22). Do not append host/port
+    # here: Start-Process joins ArgumentList with spaces and breaks -o values that
+    # contain spaces, which turns "-L ..." into a remote command.
+    return (($shim -replace '\\', '/'))
 }
 
 function Start-RailwayPostgresTunnel {
@@ -546,23 +519,24 @@ function Start-RailwayPostgresTunnel {
     $pidFile = Join-Path $RepoRoot "scripts/.postgres-tunnel.pid"
 
     # ProxyCommand fixes Windows OpenSSH "send client banner first" stall against Railway.
+    # Pass a single ArgumentList string so quoted -o values survive Start-Process.
     $proxyCommand = Get-RailwaySshProxyCommand -RepoRoot $RepoRoot
-    $sshArgs = @(
-        "-N",
-        "-o", "BatchMode=yes",
-        "-o", "ExitOnForwardFailure=yes",
-        "-o", "IdentitiesOnly=yes",
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-o", "ProxyCommand$proxyCommand",
-        "-L", "${LocalPort}:127.0.0.1:${RemotePort}",
+    $sshArgLine = @(
+        "-N"
+        "-o BatchMode=yes"
+        "-o ExitOnForwardFailure=yes"
+        "-o IdentitiesOnly=yes"
+        "-o StrictHostKeyChecking=accept-new"
+        "-o `"ProxyCommand=$proxyCommand`""
+        "-L ${LocalPort}:127.0.0.1:${RemotePort}"
         $alias
-    )
+    ) -join " "
 
     Write-Host "Opening SSH tunnel 127.0.0.1:${LocalPort} -> ${ServiceName}:${RemotePort} ..." -ForegroundColor Cyan
 
     $proc = Start-Process `
         -FilePath "ssh" `
-        -ArgumentList $sshArgs `
+        -ArgumentList $sshArgLine `
         -WorkingDirectory $RepoRoot `
         -RedirectStandardOutput $logPath `
         -RedirectStandardError $errPath `

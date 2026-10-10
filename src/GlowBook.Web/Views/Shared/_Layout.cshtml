@@ -1,7 +1,7 @@
 ﻿@inject GlowBook.Web.AssetVersion AssetVersion
 @inject Microsoft.AspNetCore.Identity.UserManager<GlowBook.Web.Models.ApplicationUser> UserManager
 @{
-    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Studio", "Subscription", "Profile", "My", "Search", "Premium" };
+    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Studio", "Subscription", "Profile", "My", "Search", "Premium", "Chat" };
     var isCabinet = User.Identity?.IsAuthenticated == true
         && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
     var av = AssetVersion.Value;

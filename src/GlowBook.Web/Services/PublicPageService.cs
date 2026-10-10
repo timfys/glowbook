@@ -56,6 +56,8 @@ public class PublicPageService
         {
             Booking = booking,
             Slug = slug,
+            Username = profile.BookingSlug,
+            IsPremiumMaster = profile.Subscription?.IsPremiumActive == true,
             Portfolio = portfolio,
             Promos = promos,
             Reviews = reviews,

@@ -2,12 +2,13 @@
 @using GlowBook.Web.Models.Booking
 @using GlowBook.Web.Helpers
 @{
-    ViewData["Title"] = Model.Booking.Profile?.BusinessName ?? "Запись";
+    ViewData["Title"] = Model.Booking.Profile?.BusinessName ?? "Мастер";
     var slug = Model.Slug;
+    var username = string.IsNullOrWhiteSpace(Model.Username) ? slug : Model.Username;
     var profile = Model.Booking.Profile;
     var booking = Model.Booking;
 }
-<div class="book-page" style="--book-accent:@Model.AccentColor">
+<div class="book-page" style="--book-accent:@Model.AccentColor" data-book-tabs>
     <div class="book-cover" aria-hidden="true"></div>
 
     @if (profile != null)
@@ -25,7 +26,14 @@
                 <span class="gb-avatar gb-avatar-fallback book-avatar">@DisplayHelpers.Initials(profile.BusinessName)</span>
             }
             <div class="book-hero-text">
-                <h1 class="h4 fw-bold mb-0">@profile.BusinessName</h1>
+                <div class="book-hero-username">@@@username</div>
+                <h1 class="h4 fw-bold mb-0">
+                    @profile.BusinessName
+                    @if (Model.IsPremiumMaster)
+                    {
+                        <span class="badge badge-premium align-middle">Premium</span>
+                    }
+                </h1>
                 @if (!string.IsNullOrWhiteSpace(profile.Specialization))
                 {
                     <p class="text-muted mb-1">@profile.Specialization</p>
@@ -47,260 +55,394 @@
         {
             <p class="book-about">@profile.Description</p>
         }
-    }
 
-    <nav class="book-jump" aria-label="Разделы страницы">
-        <a href="#book-form">Запись</a>
-        @if (booking.Services.Any()) { <a href="#book-services">Услуги</a> }
-        @if (Model.Articles.Any()) { <a href="#book-blog">Блог</a> }
-        @if (Model.Promos.Any()) { <a href="#book-promos">Акции</a> }
-        @if (Model.Portfolio.Any()) { <a href="#book-portfolio">Работы</a> }
-        <a href="#book-reviews">Отзывы</a>
-        @if (Model.MapEmbedUrl != null) { <a href="#book-map">Карта</a> }
-    </nav>
-
-    @if (booking.Services.Any())
-    {
-        <section class="book-section" id="book-services">
-            <h2 class="book-section-title">Услуги</h2>
-            <div class="book-service-list">
-                @foreach (var s in booking.Services)
+        <div class="book-hero-cta">
+            @if (Model.CanBook)
+            {
+                <a class="btn btn-gb-primary" href="#book-form" data-book-goto-page>Записаться</a>
+            }
+            @if (Model.ShowChat)
+            {
+                if (Model.IsAuthenticated)
                 {
-                    var color = CalendarColors.ForService(s);
-                    <a class="book-service-card @(s.Id == booking.ServiceId ? "is-selected" : "")"
-                       style="--event-color:@color"
-                       asp-action="Index" asp-route-slug="@slug" asp-route-serviceId="@s.Id" asp-route-date="@booking.Date.ToString("yyyy-MM-dd")">
-                        <span class="book-service-name">@s.Name</span>
-                        <span class="book-service-meta">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</span>
-                        @if (!string.IsNullOrWhiteSpace(s.Description))
-                        {
-                            <span class="book-service-desc">@s.Description</span>
-                        }
-                    </a>
-                }
-            </div>
-        </section>
-    }
-
-    @if (Model.Promos.Any())
-    {
-        <section class="book-section" id="book-promos">
-            <h2 class="book-section-title">Акции</h2>
-            <div class="book-promo-list">
-                @foreach (var promo in Model.Promos)
-                {
-                    <article class="book-promo">
-                        @if (!string.IsNullOrWhiteSpace(promo.Badge))
-                        {
-                            <span class="book-promo-badge">@promo.Badge</span>
-                        }
-                        <h3 class="book-promo-title">@promo.Title</h3>
-                        @if (!string.IsNullOrWhiteSpace(promo.Description))
-                        {
-                            <p class="mb-0">@promo.Description</p>
-                        }
-                        @if (promo.ValidUntil != null)
-                        {
-                            <div class="small text-muted mt-1">до @promo.ValidUntil.Value.ToString("d MMMM")</div>
-                        }
-                    </article>
-                }
-            </div>
-        </section>
-    }
-
-    <section class="book-section panel" id="book-form">
-        <h2 class="book-section-title">Записаться</h2>
-        <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="get" class="book-slot-pick mb-3">
-            <div class="mb-3">
-                <label class="form-label">Услуга</label>
-                <select name="serviceId" class="form-select" onchange="this.form.submit()">
-                    @foreach (var s in booking.Services)
-                    {
-                        <option value="@s.Id" selected="@(s.Id == booking.ServiceId)">@s.Name — @s.DurationMinutes мин, @s.Price.ToString("N0") ₽</option>
-                    }
-                </select>
-            </div>
-            <div class="mb-0">
-                <label class="form-label" for="bookDate">Дата</label>
-                <input id="bookDate" name="date" type="date" class="form-control" value="@booking.Date.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
-            </div>
-        </form>
-
-        <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="ServiceId" value="@booking.ServiceId" />
-            <input type="hidden" name="Date" value="@booking.Date.ToString("yyyy-MM-dd")" />
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-            <div class="mb-3">
-                <label asp-for="Booking.Time" class="form-label">Время</label>
-                @if (!booking.AvailableTimes.Any())
-                {
-                    <p class="text-muted small mb-0">Нет свободных слотов на эту дату</p>
+                    <form asp-controller="Blog" asp-action="StartChat" asp-route-username="@username" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-gb-outline">Написать</button>
+                    </form>
                 }
                 else
                 {
-                    <select name="Time" class="form-select">
-                        @foreach (var t in booking.AvailableTimes)
-                        {
-                            <option value="@t" selected="@(t == booking.Time)">@t</option>
-                        }
-                    </select>
+                    <button type="button" class="btn btn-gb-outline" data-book-chat-open>Написать</button>
                 }
-            </div>
-            <div class="mb-3">
-                <label asp-for="Booking.ClientName" class="form-label">Ваше имя</label>
-                <input name="ClientName" value="@booking.ClientName" class="form-control" />
-                <span asp-validation-for="Booking.ClientName" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Booking.ClientPhone" class="form-label">Телефон</label>
-                <input name="ClientPhone" value="@booking.ClientPhone" class="form-control" placeholder="+7..." />
-                <span asp-validation-for="Booking.ClientPhone" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Booking.Notes" class="form-label">Комментарий</label>
-                <textarea name="Notes" class="form-control" rows="2">@booking.Notes</textarea>
-            </div>
-            <button type="submit" class="btn btn-gb-primary w-100" @(booking.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
-            <p class="small text-muted mt-2 mb-0">Регистрация не нужна — только имя и телефон.</p>
-        </form>
-    </section>
+            }
+        </div>
 
-    @if (Model.Articles.Any())
-    {
-        <section class="book-section" id="book-blog">
-            <div class="d-flex justify-content-between align-items-end gap-2 mb-3">
-                <h2 class="book-section-title mb-0">Блог</h2>
-                <a class="small" asp-controller="Blog" asp-action="Index" asp-route-username="@slug">Все статьи →</a>
-            </div>
-            <div class="blog-card-grid">
-                @foreach (var a in Model.Articles)
-                {
-                    <a class="blog-card" asp-controller="Blog" asp-action="Article" asp-route-username="@slug" asp-route-articleSlug="@a.Slug">
-                        @if (a.HasCover)
+        @if (!string.IsNullOrWhiteSpace(Model.ChatError))
+        {
+            <div class="alert alert-danger py-2 px-3">@Model.ChatError</div>
+        }
+    }
+
+    <div class="book-tab-panel is-active" data-panel="page">
+        <nav class="book-jump" aria-label="Разделы страницы">
+            @if (Model.CanBook) { <a href="#book-form">Запись</a> }
+            @if (booking.Services.Any()) { <a href="#book-services">Услуги</a> }
+            @if (Model.Promos.Any()) { <a href="#book-promos">Акции</a> }
+            @if (Model.Portfolio.Any()) { <a href="#book-portfolio">Работы</a> }
+            <a href="#book-reviews">Отзывы</a>
+            @if (Model.MapEmbedUrl != null) { <a href="#book-map">Карта</a> }
+        </nav>
+
+        @if (booking.Services.Any())
+        {
+            <section class="book-section" id="book-services">
+                <h2 class="book-section-title">Услуги</h2>
+                <div class="book-service-list">
+                    @foreach (var s in booking.Services)
+                    {
+                        var color = CalendarColors.ForService(s);
+                        if (Model.CanBook)
                         {
-                            <div class="blog-card-cover" style="background-image:url('@Url.Action("Cover", "Blog", new { id = a.Id })')"></div>
+                            <a class="book-service-card @(s.Id == booking.ServiceId ? "is-selected" : "")"
+                               style="--event-color:@color"
+                               asp-controller="Blog" asp-action="Profile" asp-route-username="@username" asp-route-serviceId="@s.Id" asp-route-date="@booking.Date.ToString("yyyy-MM-dd")">
+                                <span class="book-service-name">@s.Name</span>
+                                <span class="book-service-meta">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</span>
+                                @if (!string.IsNullOrWhiteSpace(s.Description))
+                                {
+                                    <span class="book-service-desc">@s.Description</span>
+                                }
+                            </a>
                         }
                         else
                         {
-                            <div class="blog-card-cover blog-card-cover-fallback"></div>
-                        }
-                        <div class="blog-card-body">
-                            <div class="blog-card-meta">
-                                @if (a.IsPremiumOnly)
+                            <div class="book-service-card" style="--event-color:@color">
+                                <span class="book-service-name">@s.Name</span>
+                                <span class="book-service-meta">@s.DurationMinutes мин · @s.Price.ToString("N0") ₽</span>
+                                @if (!string.IsNullOrWhiteSpace(s.Description))
                                 {
-                                    <span class="blog-pill blog-pill-premium">Premium</span>
+                                    <span class="book-service-desc">@s.Description</span>
                                 }
-                                <time>@a.PublishedAt.ToLocalTime().ToString("d MMM")</time>
                             </div>
-                            <h3 class="blog-card-title">@a.Title</h3>
-                            @if (!string.IsNullOrWhiteSpace(a.Excerpt))
-                            {
-                                <p class="blog-card-excerpt">@a.Excerpt</p>
-                            }
-                        </div>
-                    </a>
-                }
-            </div>
-        </section>
-    }
-
-    @if (Model.Portfolio.Any())
-    {
-        <section class="book-section" id="book-portfolio">
-            <h2 class="book-section-title">Работы</h2>
-            <div class="book-portfolio">
-                @foreach (var photo in Model.Portfolio)
-                {
-                    var src = Url.Action("Photo", "Studio", new { id = photo.Id });
-                    <figure class="book-portfolio-item">
-                        <button type="button" class="book-portfolio-zoom" data-avatar-zoom="@src" aria-label="Открыть фото">
-                            <img src="@src" alt="@(photo.Caption ?? "Работа мастера")" />
-                        </button>
-                        @if (!string.IsNullOrWhiteSpace(photo.Caption))
-                        {
-                            <figcaption>@photo.Caption</figcaption>
                         }
-                    </figure>
-                }
-            </div>
-        </section>
-    }
+                    }
+                </div>
+            </section>
+        }
 
-    <section class="book-section" id="book-reviews">
-        <h2 class="book-section-title">Отзывы</h2>
-        @if (Model.ReviewFlash != null)
+        @if (Model.Promos.Any())
         {
-            <div class="alert alert-success py-2 px-3">@Model.ReviewFlash</div>
+            <section class="book-section" id="book-promos">
+                <h2 class="book-section-title">Акции</h2>
+                <div class="book-promo-list">
+                    @foreach (var promo in Model.Promos)
+                    {
+                        <article class="book-promo">
+                            @if (!string.IsNullOrWhiteSpace(promo.Badge))
+                            {
+                                <span class="book-promo-badge">@promo.Badge</span>
+                            }
+                            <h3 class="book-promo-title">@promo.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(promo.Description))
+                            {
+                                <p class="mb-0">@promo.Description</p>
+                            }
+                            @if (promo.ValidUntil != null)
+                            {
+                                <div class="small text-muted mt-1">до @promo.ValidUntil.Value.ToString("d MMMM")</div>
+                            }
+                        </article>
+                    }
+                </div>
+            </section>
         }
-        @if (!Model.Reviews.Any())
+
+        @if (Model.CanBook)
         {
-            <p class="text-muted">Отзывов пока нет — можете оставить первый.</p>
+            <section class="book-section panel" id="book-form">
+                <h2 class="book-section-title">Записаться</h2>
+                <form asp-controller="Blog" asp-action="Profile" asp-route-username="@username" method="get" class="book-slot-pick mb-3">
+                    <div class="mb-3">
+                        <label class="form-label">Услуга</label>
+                        <select name="serviceId" class="form-select" onchange="this.form.submit()">
+                            @foreach (var s in booking.Services)
+                            {
+                                <option value="@s.Id" selected="@(s.Id == booking.ServiceId)">@s.Name — @s.DurationMinutes мин, @s.Price.ToString("N0") ₽</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="bookDate">Дата</label>
+                        <input id="bookDate" name="date" type="date" class="form-control" value="@booking.Date.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                    </div>
+                </form>
+
+                <form asp-controller="Book" asp-action="Index" asp-route-slug="@slug" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ServiceId" value="@booking.ServiceId" />
+                    <input type="hidden" name="Date" value="@booking.Date.ToString("yyyy-MM-dd")" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                    <div class="mb-3">
+                        <label asp-for="Booking.Time" class="form-label">Время</label>
+                        @if (!booking.AvailableTimes.Any())
+                        {
+                            <p class="text-muted small mb-0">Нет свободных слотов на эту дату</p>
+                        }
+                        else
+                        {
+                            <select name="Time" class="form-select">
+                                @foreach (var t in booking.AvailableTimes)
+                                {
+                                    <option value="@t" selected="@(t == booking.Time)">@t</option>
+                                }
+                            </select>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Booking.ClientName" class="form-label">Ваше имя</label>
+                        <input name="ClientName" value="@booking.ClientName" class="form-control" />
+                        <span asp-validation-for="Booking.ClientName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Booking.ClientPhone" class="form-label">Телефон</label>
+                        <input name="ClientPhone" value="@booking.ClientPhone" class="form-control" placeholder="+7..." />
+                        <span asp-validation-for="Booking.ClientPhone" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Booking.Notes" class="form-label">Комментарий</label>
+                        <textarea name="Notes" class="form-control" rows="2">@booking.Notes</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-gb-primary w-100" @(booking.AvailableTimes.Any() ? null : "disabled")>Записаться</button>
+                    <p class="small text-muted mt-2 mb-0">Регистрация не нужна — только имя и телефон.</p>
+                </form>
+            </section>
         }
-        else
+        else if (booking.Services.Any())
         {
-            <div class="book-review-list">
-                @foreach (var review in Model.Reviews)
+            <section class="book-section panel" id="book-form">
+                <h2 class="book-section-title">Запись</h2>
+                <p class="text-muted mb-0">Онлайн-запись сейчас недоступна. Напишите мастеру в чат.</p>
+            </section>
+        }
+
+        @if (Model.Portfolio.Any())
+        {
+            <section class="book-section" id="book-portfolio">
+                <h2 class="book-section-title">Работы</h2>
+                <div class="book-portfolio">
+                    @foreach (var photo in Model.Portfolio)
+                    {
+                        var src = Url.Action("Photo", "Studio", new { id = photo.Id });
+                        <figure class="book-portfolio-item">
+                            <button type="button" class="book-portfolio-zoom" data-avatar-zoom="@src" aria-label="Открыть фото">
+                                <img src="@src" alt="@(photo.Caption ?? "Работа мастера")" />
+                            </button>
+                            @if (!string.IsNullOrWhiteSpace(photo.Caption))
+                            {
+                                <figcaption>@photo.Caption</figcaption>
+                            }
+                        </figure>
+                    }
+                </div>
+            </section>
+        }
+
+        <section class="book-section" id="book-reviews">
+            <h2 class="book-section-title">Отзывы</h2>
+            @if (Model.ReviewFlash != null)
+            {
+                <div class="alert alert-success py-2 px-3">@Model.ReviewFlash</div>
+            }
+            @if (!Model.Reviews.Any())
+            {
+                <p class="text-muted">Отзывов пока нет — можете оставить первый.</p>
+            }
+            else
+            {
+                <div class="book-review-list">
+                    @foreach (var review in Model.Reviews)
+                    {
+                        <article class="book-review">
+                            <div class="book-review-head">
+                                <strong>@review.AuthorName</strong>
+                                <span class="book-stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                            </div>
+                            <p class="mb-0">@review.Text</p>
+                            <div class="small text-muted mt-1">@review.CreatedAt.ToLocalTime().ToString("d MMMM yyyy")</div>
+                        </article>
+                    }
+                </div>
+            }
+
+            <form asp-controller="Book" asp-action="Review" asp-route-slug="@slug" method="post" class="book-review-form mt-3">
+                @Html.AntiForgeryToken()
+                <h3 class="h6 fw-bold">Оставить отзыв</h3>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label asp-for="Review.AuthorName" class="form-label"></label>
+                        <input asp-for="Review.AuthorName" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Review.AuthorPhone" class="form-label"></label>
+                        <input asp-for="Review.AuthorPhone" class="form-control" placeholder="+7..." />
+                    </div>
+                </div>
+                <div class="mb-2 mt-2">
+                    <label asp-for="Review.Rating" class="form-label"></label>
+                    <select asp-for="Review.Rating" class="form-select">
+                        <option value="5">5 — отлично</option>
+                        <option value="4">4 — хорошо</option>
+                        <option value="3">3 — нормально</option>
+                        <option value="2">2 — слабо</option>
+                        <option value="1">1 — плохо</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Review.Text" class="form-label"></label>
+                    <textarea asp-for="Review.Text" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gb-outline">Отправить отзыв</button>
+            </form>
+        </section>
+
+        @if (Model.MapEmbedUrl != null)
+        {
+            <section class="book-section" id="book-map">
+                <h2 class="book-section-title">Как добраться</h2>
+                @if (!string.IsNullOrWhiteSpace(Model.Location))
                 {
-                    <article class="book-review">
-                        <div class="book-review-head">
-                            <strong>@review.AuthorName</strong>
-                            <span class="book-stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
-                        </div>
-                        <p class="mb-0">@review.Text</p>
-                        <div class="small text-muted mt-1">@review.CreatedAt.ToLocalTime().ToString("d MMMM yyyy")</div>
-                    </article>
+                    <p class="text-muted mb-2">@Model.Location</p>
+                }
+                <div class="book-map">
+                    <iframe src="@Model.MapEmbedUrl" title="Яндекс.Карта" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                @if (Model.MapOpenUrl != null)
+                {
+                    <a class="small d-inline-block mt-2" href="@Model.MapOpenUrl" target="_blank" rel="noopener">Открыть в Яндекс.Картах →</a>
+                }
+            </section>
+        }
+    </div>
+
+    <div class="book-tab-panel" data-panel="blog" hidden>
+        <section class="book-section" id="book-blog">
+            <div class="d-flex justify-content-between align-items-end gap-2 mb-3">
+                <h2 class="book-section-title mb-0">Блог</h2>
+                @if (Model.Articles.Any())
+                {
+                    <a class="small" asp-controller="Blog" asp-action="Index" asp-route-username="@username">Все статьи →</a>
                 }
             </div>
-        }
-
-        <form asp-controller="Book" asp-action="Review" asp-route-slug="@slug" method="post" class="book-review-form mt-3">
-            @Html.AntiForgeryToken()
-            <h3 class="h6 fw-bold">Оставить отзыв</h3>
-            <div class="row g-2">
-                <div class="col-md-6">
-                    <label asp-for="Review.AuthorName" class="form-label"></label>
-                    <input asp-for="Review.AuthorName" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Review.AuthorPhone" class="form-label"></label>
-                    <input asp-for="Review.AuthorPhone" class="form-control" placeholder="+7..." />
-                </div>
-            </div>
-            <div class="mb-2 mt-2">
-                <label asp-for="Review.Rating" class="form-label"></label>
-                <select asp-for="Review.Rating" class="form-select">
-                    <option value="5">5 — отлично</option>
-                    <option value="4">4 — хорошо</option>
-                    <option value="3">3 — нормально</option>
-                    <option value="2">2 — слабо</option>
-                    <option value="1">1 — плохо</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Review.Text" class="form-label"></label>
-                <textarea asp-for="Review.Text" class="form-control" rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn btn-gb-outline">Отправить отзыв</button>
-        </form>
-    </section>
-
-    @if (Model.MapEmbedUrl != null)
-    {
-        <section class="book-section" id="book-map">
-            <h2 class="book-section-title">Как добраться</h2>
-            @if (!string.IsNullOrWhiteSpace(Model.Location))
+            @if (!Model.Articles.Any())
             {
-                <p class="text-muted mb-2">@Model.Location</p>
+                <p class="text-muted mb-0">Статей пока нет.</p>
             }
-            <div class="book-map">
-                <iframe src="@Model.MapEmbedUrl" title="Яндекс.Карта" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-            </div>
-            @if (Model.MapOpenUrl != null)
+            else
             {
-                <a class="small d-inline-block mt-2" href="@Model.MapOpenUrl" target="_blank" rel="noopener">Открыть в Яндекс.Картах →</a>
+                <div class="blog-card-grid">
+                    @foreach (var a in Model.Articles)
+                    {
+                        <a class="blog-card" asp-controller="Blog" asp-action="Article" asp-route-username="@username" asp-route-articleSlug="@a.Slug">
+                            @if (a.HasCover)
+                            {
+                                <div class="blog-card-cover" style="background-image:url('@Url.Action("Cover", "Blog", new { id = a.Id })')"></div>
+                            }
+                            else
+                            {
+                                <div class="blog-card-cover blog-card-cover-fallback"></div>
+                            }
+                            <div class="blog-card-body">
+                                <div class="blog-card-meta">
+                                    @if (a.IsPremiumOnly)
+                                    {
+                                        <span class="blog-pill blog-pill-premium">Premium</span>
+                                    }
+                                    <time>@a.PublishedAt.ToLocalTime().ToString("d MMM")</time>
+                                </div>
+                                <h3 class="blog-card-title">@a.Title</h3>
+                                @if (!string.IsNullOrWhiteSpace(a.Excerpt))
+                                {
+                                    <p class="blog-card-excerpt">@a.Excerpt</p>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
             }
         </section>
-    }
+    </div>
+
+    <nav class="book-bottom-tabs" aria-label="Разделы профиля">
+        <button type="button" class="book-bottom-tab is-active" data-tab="page">Страница</button>
+        <button type="button" class="book-bottom-tab" data-tab="blog">
+            Блог
+            @if (Model.Articles.Count > 0)
+            {
+                <span class="book-bottom-tab-count">@Model.Articles.Count</span>
+            }
+        </button>
+    </nav>
 </div>
+
+@if (Model.ShowChat && !Model.IsAuthenticated)
+{
+    <div class="book-chat-modal" id="bookChatModal" hidden>
+        <div class="book-chat-modal-card">
+            <button type="button" class="book-chat-modal-close" data-book-chat-close aria-label="Закрыть">×</button>
+            <h2 class="h5 fw-bold mb-1">Написать мастеру</h2>
+            <p class="text-muted small mb-3">Как к вам обращаться?</p>
+            <form asp-controller="Blog" asp-action="StartChat" asp-route-username="@username" method="post">
+                @Html.AntiForgeryToken()
+                <label class="form-label" for="guestName">Ваше имя</label>
+                <input id="guestName" name="guestName" class="form-control mb-3" required minlength="2" maxlength="80" autocomplete="name" autofocus />
+                <button type="submit" class="btn btn-gb-primary w-100">Открыть чат</button>
+            </form>
+        </div>
+    </div>
+}
+
+<script>
+(function () {
+    var root = document.querySelector('[data-book-tabs]');
+    if (!root) return;
+
+    var tabs = root.querySelectorAll('[data-tab]');
+    var panels = root.querySelectorAll('[data-panel]');
+
+    function activate(name) {
+        tabs.forEach(function (t) { t.classList.toggle('is-active', t.getAttribute('data-tab') === name); });
+        panels.forEach(function (p) {
+            var on = p.getAttribute('data-panel') === name;
+            p.classList.toggle('is-active', on);
+            p.hidden = !on;
+        });
+        if (name === 'blog') window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () { activate(t.getAttribute('data-tab')); });
+    });
+
+    root.querySelectorAll('[data-book-goto-page]').forEach(function (a) {
+        a.addEventListener('click', function () { activate('page'); });
+    });
+
+    var modal = document.getElementById('bookChatModal');
+    if (modal) {
+        document.querySelectorAll('[data-book-chat-open]').forEach(function (btn) {
+            btn.addEventListener('click', function () { modal.hidden = false; });
+        });
+        document.querySelectorAll('[data-book-chat-close]').forEach(function (btn) {
+            btn.addEventListener('click', function () { modal.hidden = true; });
+        });
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) modal.hidden = true;
+        });
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.ChatError) && !Model.IsAuthenticated)
+    {
+        <text>if (modal) modal.hidden = false;</text>
+    }
+})();
+</script>

@@ -53,6 +53,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h6M8 17h4"/></svg>
             Блог
         </a>
+        <a class="nav-link @(Model.ActiveController == "Search" ? "active" : "")" asp-controller="Search" asp-action="Index">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16.5 16.5 21 21"/></svg>
+            Поиск
+        </a>
         <a class="nav-link @(Model.ActiveController == "Subscription" ? "active" : "")" asp-controller="Subscription" asp-action="Index">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7z"/><path d="M9 7V5.8A3 3 0 0 1 12 3a3 3 0 0 1 3 2.8V7"/></svg>
             Подписка

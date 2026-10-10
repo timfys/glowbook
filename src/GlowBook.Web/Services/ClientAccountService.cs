@@ -145,6 +145,60 @@ public class ClientAccountService
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>Находит или создаёт карточку клиента у мастера для чата с публичной страницы.</summary>
+    public async Task<Client> EnsureChatClientAsync(
+        MasterProfile master,
+        ApplicationUser user,
+        string? preferredName = null,
+        CancellationToken ct = default)
+    {
+        var existing = await _db.Clients
+            .FirstOrDefaultAsync(
+                c => c.MasterProfileId == master.Id && !c.IsArchived && c.LinkedUserId == user.Id,
+                ct);
+        if (existing != null)
+            return existing;
+
+        var matches = await CollectMatchingClientRecordsAsync(user, ct);
+        var forMaster = matches.FirstOrDefault(c => c.MasterProfileId == master.Id);
+        if (forMaster != null)
+        {
+            if (forMaster.LinkedUserId != user.Id)
+            {
+                forMaster.LinkedUserId = user.Id;
+                await _db.SaveChangesAsync(ct);
+            }
+
+            return forMaster;
+        }
+
+        var name = FirstNonEmpty(preferredName, user.DisplayName, user.Email, "Гость");
+        var phone = string.IsNullOrWhiteSpace(user.PhoneNumber) ? "—" : user.PhoneNumber.Trim();
+
+        var client = new Client
+        {
+            MasterProfileId = master.Id,
+            Name = name,
+            Phone = phone,
+            Email = user.Email,
+            LinkedUserId = user.Id
+        };
+        _db.Clients.Add(client);
+        await _db.SaveChangesAsync(ct);
+        return client;
+    }
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        foreach (var v in values)
+        {
+            if (!string.IsNullOrWhiteSpace(v))
+                return v.Trim();
+        }
+
+        return "Гость";
+    }
+
     public async Task<List<Client>> GetLinkedClientRecordsAsync(ApplicationUser user, CancellationToken ct = default)
     {
         var records = await CollectMatchingClientRecordsAsync(user, ct);

@@ -25,13 +25,7 @@ public class BookController : Controller
         if (profile == null)
             return NotFound();
 
-        if (!_booking.IsOnlineBookingEnabled(profile))
-            return View("Unavailable", profile);
-
-        var form = await BuildBookingFormAsync(profile, serviceId, date);
-        var page = await _pages.BuildAsync(profile, form, slug);
-        page.ReviewFlash = TempData["ReviewFlash"] as string;
-        return View(page);
+        return RedirectToAction("Profile", "Blog", new { username = profile.BookingSlug, serviceId, date = date?.ToString("yyyy-MM-dd") });
     }
 
     [HttpPost("{slug}")]
@@ -43,12 +37,15 @@ public class BookController : Controller
             return NotFound();
 
         if (!_booking.IsOnlineBookingEnabled(profile))
-            return View("Unavailable", profile);
+            return RedirectToAction("Profile", "Blog", new { username = profile.BookingSlug });
 
         if (!ModelState.IsValid)
         {
             await FillBookingFormAsync(profile, model);
-            return View(await _pages.BuildAsync(profile, model, slug));
+            var invalidPage = await _pages.BuildAsync(profile, model, slug);
+            invalidPage.CanBook = true;
+            invalidPage.ShowChat = true;
+            return View("Index", invalidPage);
         }
 
         var (ok, error) = await _booking.CreatePublicBookingAsync(profile, model);
@@ -56,7 +53,10 @@ public class BookController : Controller
         {
             ModelState.AddModelError(string.Empty, error ?? "Не удалось записаться");
             await FillBookingFormAsync(profile, model);
-            return View(await _pages.BuildAsync(profile, model, slug));
+            var errorPage = await _pages.BuildAsync(profile, model, slug);
+            errorPage.CanBook = true;
+            errorPage.ShowChat = true;
+            return View("Index", errorPage);
         }
 
         return View("Success", profile);
@@ -70,44 +70,16 @@ public class BookController : Controller
         if (profile == null)
             return NotFound();
 
-        if (!_booking.IsOnlineBookingEnabled(profile))
-            return View("Unavailable", profile);
-
         if (!ModelState.IsValid)
         {
             TempData["ReviewFlash"] = ModelState.Values.SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage).FirstOrDefault() ?? "Проверьте отзыв";
-            return RedirectToAction(nameof(Index), new { slug });
+            return RedirectToAction("Profile", "Blog", new { username = profile.BookingSlug });
         }
 
         var (_, message) = await _pages.SubmitReviewAsync(profile, model);
         TempData["ReviewFlash"] = message;
-        return RedirectToAction(nameof(Index), new { slug });
-    }
-
-    private async Task<PublicBookingForm> BuildBookingFormAsync(
-        Models.Entities.MasterProfile profile,
-        int? serviceId,
-        DateTime? date)
-    {
-        var formDate = date?.Date ?? DateTime.Today;
-        if (formDate < DateTime.Today)
-            formDate = DateTime.Today;
-
-        var selectedServiceId = serviceId ?? profile.Services.OrderBy(s => s.SortOrder).FirstOrDefault()?.Id ?? 0;
-        var times = selectedServiceId > 0
-            ? await _booking.GetAvailableTimesAsync(profile.Id, selectedServiceId, formDate)
-            : new List<string>();
-
-        return new PublicBookingForm
-        {
-            Profile = profile,
-            Services = profile.Services.OrderBy(s => s.SortOrder).ToList(),
-            ServiceId = selectedServiceId,
-            Date = formDate,
-            AvailableTimes = times,
-            Time = times.FirstOrDefault() ?? string.Empty
-        };
+        return RedirectToAction("Profile", "Blog", new { username = profile.BookingSlug });
     }
 
     private async Task FillBookingFormAsync(Models.Entities.MasterProfile profile, PublicBookingForm model)

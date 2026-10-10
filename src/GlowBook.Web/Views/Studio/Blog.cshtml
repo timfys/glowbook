@@ -1,0 +1,73 @@
+@model GlowBook.Web.Models.Blog.StudioBlogPageViewModel
+@{
+    ViewData["Title"] = "Блог";
+}
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Блог</h2>
+        <p class="text-muted small mb-0">Истории, кейсы и достижения на вашей странице</p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-gb-outline btn-sm" href="@Model.PublicBlogUrl" target="_blank" rel="noopener">Открыть блог</a>
+        <a class="btn btn-gb-primary btn-sm" asp-action="ArticleCreate">Новая статья</a>
+    </div>
+</div>
+
+@if (TempData["StudioSaved"] is string saved)
+{
+    <div class="alert alert-success py-2 px-3">@saved</div>
+}
+
+<div class="panel mb-3">
+    <div class="blog-studio-hint">
+        Публичная ссылка: <a href="@Model.PublicBlogUrl" target="_blank" rel="noopener">/u/@Model.BookingSlug/blog</a>
+        <span class="text-muted">· юзернейм можно сменить в профиле</span>
+    </div>
+</div>
+
+@if (!Model.Articles.Any())
+{
+    <div class="panel">
+        <div class="empty-state">
+            <div class="fw-semibold text-dark mb-1">Пока нет статей</div>
+            <p class="mb-3">Расскажите о кейсе, сертификате или новом протоколе — клиенты увидят это по ссылке.</p>
+            <a class="btn btn-gb-primary btn-sm" asp-action="ArticleCreate">Написать первую</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="blog-studio-list">
+        @foreach (var a in Model.Articles)
+        {
+            <article class="blog-studio-card @(a.IsPublished ? "" : "is-draft")">
+                <div class="blog-studio-card-main">
+                    <div class="blog-studio-card-meta">
+                        @if (a.IsPremiumOnly)
+                        {
+                            <span class="blog-pill blog-pill-premium">Premium</span>
+                        }
+                        <span class="blog-pill @(a.IsPublished ? "blog-pill-live" : "blog-pill-draft")">@(a.IsPublished ? "На сайте" : "Черновик")</span>
+                        <span class="text-muted small">@a.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <h3 class="blog-studio-card-title">@a.Title</h3>
+                    @if (!string.IsNullOrWhiteSpace(a.Excerpt))
+                    {
+                        <p class="blog-studio-card-excerpt">@a.Excerpt</p>
+                    }
+                </div>
+                <div class="blog-studio-card-actions">
+                    <a class="btn btn-gb-outline btn-sm" asp-action="ArticleEdit" asp-route-id="@a.Id">Изменить</a>
+                    <form asp-action="ArticleToggle" asp-route-id="@a.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-gb-ghost btn-sm">@(a.IsPublished ? "Скрыть" : "Опубликовать")</button>
+                    </form>
+                    <form asp-action="ArticleDelete" asp-route-id="@a.Id" method="post" onsubmit="return confirm('Удалить статью?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-gb-ghost btn-sm text-danger">Удалить</button>
+                    </form>
+                </div>
+            </article>
+        }
+    </div>
+}

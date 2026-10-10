@@ -12,11 +12,14 @@ CRM для косметологов на **ASP.NET Core 8**. Локально �
 
 Скрипт **сам**:
 - ставит Railway CLI через npm (если нет);
-- создаёт SSH-ключ и регистрирует его в Railway;
+- проверяет OpenSSH Client (`ssh`);
+- создаёт SSH-ключ, прописывает host key `ssh.railway.com`, регистрирует ключ в Railway;
 - открывает браузер для `railway login` (один раз на ПК);
 - привязывает репо к проекту (см. `scripts/railway-link.json`);
-- поднимает SSH-туннель на **свободный** локальный порт (если 5432 занят — возьмёт следующий);
+- поднимает нативный SSH-туннель на **свободный** локальный порт (если 5432 занят — возьмёт следующий);
 - запускает `dotnet run` с правильным `DATABASE_URL`.
+
+Нужны: **Node.js/npm**, **OpenSSH Client** (в Windows обычно уже есть), доступ в интернет на **TCP 22** (`ssh.railway.com`).
 
 Только туннель (DBeaver, без приложения):
 
@@ -43,10 +46,11 @@ npm i -g @railway/cli
 
 ```powershell
 railway login
-railway link -p 413af861-a095-41eb-9449-213a8cb55fb6 -s 289fcb1f-97d4-4519-a2dc-ea3ce55bc787
+railway link -p 413af861-a095-41eb-9449-213a8cb55fb6 -s 289fcb1f-97d4-4519-a2dc-ea3ce55bc787 -e 33157d34-7b19-44e7-80f4-85c098d5c704
 ssh-keygen -t ed25519
-railway ssh keys add
-railway connect Postgres --tunnel-only -P 15432
+railway ssh keys add --key $env:USERPROFILE\.ssh\id_ed25519.pub
+railway ssh config -s Postgres --alias glowbook-postgres -i $env:USERPROFILE\.ssh\id_ed25519
+ssh -N -o StrictHostKeyChecking=accept-new -L 15432:127.0.0.1:5432 glowbook-postgres
 ```
 
 </details>
@@ -105,9 +109,19 @@ dotnet user-secrets set "YooKassa:SecretKey" "..."
 
 ### Онлайн-запись
 
-- Публичная страница: `/book/{slug}` (slug создаётся при регистрации мастера)
-- Работает только с активным Premium
+- Публичная страница: `/book/{slug}` (slug = юзернейм мастера, задаётся в профиле)
+- Работает только с активным Premium (`GlowBook:RequirePremiumForOnlineBooking`)
+- Без Premium клиент видит «недоступно»; в кабинете ссылка и Studio закрыты
 - Клиент выбирает услугу, дату, время, оставляет имя и телефон
+- В кабинете ссылку копируют кнопкой «Скопировать ссылку» (удобно с телефона)
+- На Android со ссылкой `/book/...` открывается приложение GlowBox (App Links + `/.well-known/assetlinks.json`). Нужна свежая APK с intent-filter.
+
+### Блог мастера и поиск
+
+- Публичный профиль: `/u/{username}` · блог: `/u/{username}/blog` · статья: `/u/{username}/blog/{slug}`
+- Мастер ведёт блог в **Studio → Блог** (нужен Premium мастера): кейсы, достижения, обложки
+- Статья может быть **только Premium** — гость видит тизер, регистрируется, оплачивает Reader Premium на `/premium` и читает
+- Глобальный поиск мастеров: `/search?q=` по юзернейму (`@nick`), имени, специализации, городу
 
 ## GitHub — можно ли «чтобы открывалось в браузере»?
 

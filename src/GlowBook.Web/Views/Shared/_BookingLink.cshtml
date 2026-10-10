@@ -1,0 +1,40 @@
+@model string
+@{
+    var url = Model ?? "";
+    var label = ViewData["BookingLinkLabel"] as string ?? "Ссылка для клиентов";
+    var hint = ViewData["BookingLinkHint"] as string;
+}
+@if (!string.IsNullOrWhiteSpace(url))
+{
+    <div class="booking-link-box">
+        <div class="small text-muted mb-2">@label</div>
+        <div class="booking-link-row">
+            <code class="booking-link-url" data-booking-url>@url</code>
+            <div class="booking-link-actions">
+                <button type="button"
+                        class="btn btn-gb-primary btn-sm booking-link-copy"
+                        data-copy-url="@url"
+                        data-copy-label="Скопировать ссылку"
+                        data-copied-label="Скопировано">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <span data-copy-label-text>Скопировать ссылку</span>
+                </button>
+                <button type="button"
+                        class="btn btn-gb-outline btn-sm d-none"
+                        data-share-url="@url"
+                        data-share-title="Запись онлайн"
+                        data-share-text="Запишитесь онлайн:">
+                    Поделиться
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(hint))
+        {
+            <div class="small text-muted mt-2">@hint</div>
+        }
+        <div class="booking-link-toast small" hidden aria-live="polite">Ссылка скопирована — можно отправить клиенту</div>
+    </div>
+}

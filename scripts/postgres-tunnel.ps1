@@ -6,7 +6,9 @@ param(
     [int]$LocalPort = 0
 )
 
-$ErrorActionPreference = "Stop"
+# Continue: railway/ssh print progress on stderr; Stop treats that as fatal.
+$ErrorActionPreference = "Continue"
+$PSNativeCommandUseErrorActionPreference = $false
 . (Join-Path $PSScriptRoot "railway-common.ps1")
 
 $repoRoot = Get-RepoRoot

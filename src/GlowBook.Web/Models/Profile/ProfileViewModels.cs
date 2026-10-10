@@ -82,6 +82,12 @@ public class ProfileEditViewModel
     [Display(Name = "О себе")]
     public string? Description { get; set; }
 
+    [Required(ErrorMessage = "Укажите юзернейм")]
+    [MaxLength(32)]
+    [MinLength(3)]
+    [Display(Name = "Юзернейм")]
+    public string Username { get; set; } = string.Empty;
+
     public IFormFile? Avatar { get; set; }
 
     [Display(Name = "Удалить фото")]

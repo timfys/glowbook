@@ -52,6 +52,7 @@
     <nav class="book-jump" aria-label="Разделы страницы">
         <a href="#book-form">Запись</a>
         @if (booking.Services.Any()) { <a href="#book-services">Услуги</a> }
+        @if (Model.Articles.Any()) { <a href="#book-blog">Блог</a> }
         @if (Model.Promos.Any()) { <a href="#book-promos">Акции</a> }
         @if (Model.Portfolio.Any()) { <a href="#book-portfolio">Работы</a> }
         <a href="#book-reviews">Отзывы</a>
@@ -165,6 +166,45 @@
             <p class="small text-muted mt-2 mb-0">Регистрация не нужна — только имя и телефон.</p>
         </form>
     </section>
+
+    @if (Model.Articles.Any())
+    {
+        <section class="book-section" id="book-blog">
+            <div class="d-flex justify-content-between align-items-end gap-2 mb-3">
+                <h2 class="book-section-title mb-0">Блог</h2>
+                <a class="small" asp-controller="Blog" asp-action="Index" asp-route-username="@slug">Все статьи →</a>
+            </div>
+            <div class="blog-card-grid">
+                @foreach (var a in Model.Articles)
+                {
+                    <a class="blog-card" asp-controller="Blog" asp-action="Article" asp-route-username="@slug" asp-route-articleSlug="@a.Slug">
+                        @if (a.HasCover)
+                        {
+                            <div class="blog-card-cover" style="background-image:url('@Url.Action("Cover", "Blog", new { id = a.Id })')"></div>
+                        }
+                        else
+                        {
+                            <div class="blog-card-cover blog-card-cover-fallback"></div>
+                        }
+                        <div class="blog-card-body">
+                            <div class="blog-card-meta">
+                                @if (a.IsPremiumOnly)
+                                {
+                                    <span class="blog-pill blog-pill-premium">Premium</span>
+                                }
+                                <time>@a.PublishedAt.ToLocalTime().ToString("d MMM")</time>
+                            </div>
+                            <h3 class="blog-card-title">@a.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(a.Excerpt))
+                            {
+                                <p class="blog-card-excerpt">@a.Excerpt</p>
+                            }
+                        </div>
+                    </a>
+                }
+            </div>
+        </section>
+    }
 
     @if (Model.Portfolio.Any())
     {

@@ -52,29 +52,210 @@ Then run this script again.
     }
 }
 
-function Ensure-SshKey {
-    $sshDir = Join-Path $env:USERPROFILE ".ssh"
-    $privateKey = Join-Path $sshDir "id_ed25519"
+function Get-RailwayExecutable {
+    $cmd = Get-Command railway -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -and ($cmd.Source -like "*.exe")) {
+        return $cmd.Source
+    }
 
-    if (-not (Test-Path $privateKey)) {
-        Write-Host "No SSH key - creating ed25519..." -ForegroundColor Cyan
-        New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
-        ssh-keygen -t ed25519 -f $privateKey -N '""' -C "$env:USERNAME@glowbook-railway" | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "ssh-keygen failed."
+    $candidates = @(
+        (Join-Path $env:APPDATA "npm/node_modules/@railway/cli/bin/railway.exe"),
+        (Join-Path $env:LOCALAPPDATA "npm/node_modules/@railway/cli/bin/railway.exe"),
+        (Join-Path $env:ProgramFiles "nodejs/node_modules/@railway/cli/bin/railway.exe")
+    )
+
+    foreach ($path in $candidates) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+
+    $jsCandidates = @(
+        (Join-Path $env:APPDATA "npm/node_modules/@railway/cli/bin/railway.js"),
+        (Join-Path $env:ProgramFiles "nodejs/node_modules/@railway/cli/bin/railway.js")
+    )
+
+    foreach ($railwayJs in $jsCandidates) {
+        if (Test-Path $railwayJs) {
+            return @{ FilePath = "node"; ArgumentListPrefix = @($railwayJs) }
+        }
+    }
+
+    throw "Railway CLI not found. Run: npm i -g @railway/cli"
+}
+
+function Get-RailwayStartInfo {
+    param([string[]]$RailwayArgs)
+
+    $exe = Get-RailwayExecutable
+    if ($exe -is [hashtable]) {
+        return @{
+            FilePath     = $exe.FilePath
+            ArgumentList = @($exe.ArgumentListPrefix) + $RailwayArgs
+        }
+    }
+
+    return @{
+        FilePath     = $exe
+        ArgumentList = $RailwayArgs
+    }
+}
+
+function Invoke-Railway {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$RailwayArgs,
+
+        [string]$WorkingDirectory = "",
+
+        [switch]$PassThru,
+
+        [switch]$Interactive
+    )
+
+    $start = Get-RailwayStartInfo -RailwayArgs $RailwayArgs
+
+    if ($WorkingDirectory) {
+        Push-Location $WorkingDirectory
+    }
+
+    # Native CLIs (railway/ssh) write normal progress to stderr. With the caller's
+    # $ErrorActionPreference=Stop that becomes a terminating RemoteException.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        if ($PassThru) {
+            $output = & $start.FilePath @($start.ArgumentList) 2>&1 | ForEach-Object { "$_" }
+            return [PSCustomObject]@{
+                ExitCode = $LASTEXITCODE
+                Output   = ($output -join "`n")
+            }
+        }
+
+        if ($Interactive) {
+            & $start.FilePath @($start.ArgumentList) | Out-Host
+            return $LASTEXITCODE
+        }
+
+        & $start.FilePath @($start.ArgumentList) 2>&1 | ForEach-Object { Write-Host $_ }
+        return $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $prevEap
+        if ($WorkingDirectory) {
+            Pop-Location
         }
     }
 }
 
+function Ensure-OpenSshClient {
+    if (Get-Command ssh -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    throw @"
+OpenSSH client (ssh) not found.
+Install it, then retry:
+  Settings -> Apps -> Optional features -> OpenSSH Client
+Or in admin PowerShell:
+  Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+"@
+}
+
+function Ensure-NodeJs {
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    throw @"
+Node.js not found (needed for the Railway SSH proxy).
+Install Node.js 16+ from https://nodejs.org then retry.
+"@
+}
+
+function Get-RailwaySshProxyCommand {
+    param([string]$RepoRoot)
+
+    Ensure-NodeJs
+
+    $proxyPath = Join-Path $RepoRoot "scripts/railway-ssh-proxy.mjs"
+    if (-not (Test-Path $proxyPath)) {
+        throw "Missing SSH proxy script: $proxyPath"
+    }
+
+    # OpenSSH on Windows is picky about quoting. Prefer forward slashes.
+    $normalized = ($proxyPath -replace '\\', '/')
+    $nodeCmd = (Get-Command node -ErrorAction Stop).Source -replace '\\', '/'
+    return " `"$nodeCmd`" `"$normalized`" %h %p"
+}
+
+function Get-GlowBookSshKeyPaths {
+    $sshDir = Join-Path $env:USERPROFILE ".ssh"
+    return [PSCustomObject]@{
+        Dir        = $sshDir
+        PrivateKey = Join-Path $sshDir "id_ed25519"
+        PublicKey  = Join-Path $sshDir "id_ed25519.pub"
+    }
+}
+
+function Ensure-SshKey {
+    Ensure-OpenSshClient
+
+    $keys = Get-GlowBookSshKeyPaths
+    if (Test-Path $keys.PrivateKey) {
+        return $keys
+    }
+
+    Write-Host "No SSH key - creating ed25519..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Force -Path $keys.Dir | Out-Null
+    $comment = "$env:USERNAME@$env:COMPUTERNAME-glowbook-railway"
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & ssh-keygen -t ed25519 -f $keys.PrivateKey -N '""' -C $comment 2>&1 | Out-Null
+    }
+    finally {
+        $ErrorActionPreference = $prevEap
+    }
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $keys.PrivateKey)) {
+        throw "ssh-keygen failed."
+    }
+
+    return $keys
+}
+
+function Ensure-RailwaySshKnownHost {
+    # Do not depend on ssh-keyscan under PowerShell: its stderr banners become
+    # terminating errors when $ErrorActionPreference=Stop, and -q often yields empty stdout.
+    # Pin Railway's current ssh.railway.com host key; first connect also uses accept-new.
+    $keys = Get-GlowBookSshKeyPaths
+    $knownHosts = Join-Path $keys.Dir "known_hosts"
+    New-Item -ItemType Directory -Force -Path $keys.Dir | Out-Null
+
+    if ((Test-Path $knownHosts) -and (Select-String -Path $knownHosts -Pattern "(^|[,\s])ssh\.railway\.com([,\s]|$)" -Quiet)) {
+        return
+    }
+
+    Write-Host "Adding ssh.railway.com to known_hosts..." -ForegroundColor Cyan
+
+    $pinned = @(
+        "ssh.railway.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ8X3z81/tuP7CvmK3ZqWgwEvHUR6b04oi2lQJGld2C1"
+    )
+
+    # Avoid UTF-8 BOM: OpenSSH rejects a BOM at the start of known_hosts.
+    $text = ($pinned -join "`n") + "`n"
+    [System.IO.File]::AppendAllText($knownHosts, $text, [System.Text.UTF8Encoding]::new($false))
+}
+
 function Ensure-RailwayAuth {
-    railway whoami 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    $who = Invoke-Railway -RailwayArgs @("whoami") -PassThru
+    if ($who.ExitCode -eq 0) {
         return
     }
 
     Write-Host "Railway login (browser opens once per machine)..." -ForegroundColor Cyan
-    railway login
-    if ($LASTEXITCODE -ne 0) {
+    $code = Invoke-Railway -RailwayArgs @("login") -Interactive
+    if ($code -ne 0) {
         throw "railway login failed."
     }
 }
@@ -100,7 +281,18 @@ function Test-RailwayLinked {
 
     $linkedRoot = (Resolve-Path $RepoRoot).Path
     $config = Get-Content $configPath -Raw | ConvertFrom-Json
-    return $null -ne $config.projects.$linkedRoot
+    $projects = $config.projects
+    if (-not $projects) {
+        return $false
+    }
+
+    foreach ($prop in $projects.PSObject.Properties) {
+        if ([string]::Equals($prop.Name, $linkedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function Ensure-RailwayLink {
@@ -113,23 +305,100 @@ function Ensure-RailwayLink {
     $link = Get-RailwayLinkConfig -RepoRoot $RepoRoot
     Write-Host "Linking repo to Railway project..." -ForegroundColor Cyan
 
-    Push-Location $RepoRoot
-    try {
-        railway link -p $link.projectId -s $link.serviceId -e $link.environmentId
-        if ($LASTEXITCODE -ne 0) {
-            throw "railway link failed."
-        }
-    }
-    finally {
-        Pop-Location
+    $code = Invoke-Railway -WorkingDirectory $RepoRoot -RailwayArgs @(
+        "link",
+        "-p", $link.projectId,
+        "-s", $link.serviceId,
+        "-e", $link.environmentId
+    )
+    if ($code -ne 0) {
+        throw "railway link failed."
     }
 }
 
-function Ensure-RailwaySshKeyRegistered {
-    railway ssh keys add 2>&1 | Out-String | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "railway ssh keys add failed."
+function Test-RailwaySshKeyListed {
+    param(
+        [string]$ListOutput,
+        [string]$PublicKeyPath
+    )
+
+    $fingerprint = (& ssh-keygen -lf $PublicKeyPath 2>$null | Out-String).Trim()
+    if ($fingerprint -match "SHA256:([A-Za-z0-9+/=]+)") {
+        if ($ListOutput -match [regex]::Escape("SHA256:$($matches[1])")) {
+            return $true
+        }
     }
+
+    $pubText = (Get-Content $PublicKeyPath -Raw).Trim()
+    if ($pubText -match "\s(\S+)$") {
+        $comment = $matches[1]
+        if ($comment -and ($ListOutput -match [regex]::Escape($comment))) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Ensure-RailwaySshKeyRegistered {
+    param($SshKeys)
+
+    if (-not $SshKeys) {
+        $SshKeys = Ensure-SshKey
+    }
+
+    $pub = $SshKeys.PublicKey
+    if (-not (Test-Path $pub)) {
+        throw "Missing public key: $pub"
+    }
+
+    $listed = Invoke-Railway -RailwayArgs @("ssh", "keys", "list") -PassThru
+    if ($listed.ExitCode -eq 0 -and (Test-RailwaySshKeyListed -ListOutput $listed.Output -PublicKeyPath $pub)) {
+        return
+    }
+
+    $name = "$env:USERNAME@$env:COMPUTERNAME-glowbook"
+    Write-Host "Registering SSH key with Railway ($name)..." -ForegroundColor Cyan
+
+    $added = Invoke-Railway -RailwayArgs @(
+        "ssh", "keys", "add",
+        "--key", $pub,
+        "--name", $name
+    ) -PassThru
+
+    if ($added.ExitCode -eq 0) {
+        return
+    }
+
+    $retry = Invoke-Railway -RailwayArgs @("ssh", "keys", "list") -PassThru
+    if ($retry.ExitCode -eq 0 -and (Test-RailwaySshKeyListed -ListOutput $retry.Output -PublicKeyPath $pub)) {
+        return
+    }
+
+    throw "railway ssh keys add failed.`n$($added.Output)"
+}
+
+function Ensure-RailwaySshConfig {
+    param(
+        [string]$RepoRoot,
+        [string]$ServiceName,
+        [string]$PrivateKeyPath,
+        [string]$Alias = "glowbook-postgres"
+    )
+
+    Write-Host "Writing OpenSSH config host '$Alias'..." -ForegroundColor Cyan
+
+    $code = Invoke-Railway -WorkingDirectory $RepoRoot -RailwayArgs @(
+        "ssh", "config",
+        "-s", $ServiceName,
+        "--alias", $Alias,
+        "-i", $PrivateKeyPath
+    )
+    if ($code -ne 0) {
+        throw "railway ssh config failed for service '$ServiceName'."
+    }
+
+    return $Alias
 }
 
 function Find-FreeTcpPort {
@@ -156,11 +425,16 @@ function Find-FreeTcpPort {
 function Wait-ForTcpPort {
     param(
         [int]$Port,
-        [int]$TimeoutSec = 45
+        [int]$TimeoutSec = 60,
+        [System.Diagnostics.Process]$Process = $null
     )
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
+        if ($Process -and $Process.HasExited) {
+            throw "Tunnel process exited early (code $($Process.ExitCode))."
+        }
+
         $client = $null
         try {
             $client = [System.Net.Sockets.TcpClient]::new()
@@ -179,26 +453,6 @@ function Wait-ForTcpPort {
     }
 
     throw "Tunnel did not open on 127.0.0.1:$Port within ${TimeoutSec}s."
-}
-
-function Get-RailwayProcessStart {
-    param([string[]]$RailwayArgs)
-
-    $candidates = @(
-        (Join-Path $env:APPDATA "npm/node_modules/@railway/cli/bin/railway.js"),
-        (Join-Path $env:ProgramFiles "nodejs/node_modules/@railway/cli/bin/railway.js")
-    )
-
-    foreach ($railwayJs in $candidates) {
-        if (Test-Path $railwayJs) {
-            return @{
-                FilePath = "node"
-                ArgumentList = @($railwayJs) + $RailwayArgs
-            }
-        }
-    }
-
-    throw "Railway CLI JS entry not found. Run: npm i -g @railway/cli"
 }
 
 function Stop-StalePostgresTunnel {
@@ -223,12 +477,46 @@ function Stop-StalePostgresTunnel {
     Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
 }
 
+function Get-NodeExecutable {
+    $cmd = Get-Command node -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) {
+        return $cmd.Source
+    }
+
+    throw @"
+Node.js (node) not found on PATH.
+Install Node.js 16+ from https://nodejs.org and retry.
+"@
+}
+
+function Get-RailwaySshProxyCommand {
+    param([string]$RepoRoot)
+
+    $null = Get-NodeExecutable
+    $shim = Join-Path $RepoRoot "scripts\railway-ssh-proxy.cmd"
+    $proxy = Join-Path $RepoRoot "scripts\railway-ssh-proxy.mjs"
+    if (-not (Test-Path $shim) -or -not (Test-Path $proxy)) {
+        throw "Missing SSH proxy helper scripts in scripts/"
+    }
+
+    # .cmd shim avoids OpenSSH ProxyCommand quoting bugs on Windows.
+    # Use literal host/port (not %h/%p): PowerShell/cmd can eat percent tokens.
+    $shimUnix = ($shim -replace '\\', '/')
+    return "=$shimUnix ssh.railway.com 22"
+}
+
 function Start-RailwayPostgresTunnel {
     param(
         [string]$RepoRoot,
         [int]$LocalPort = 0,
-        [string]$ServiceName
+        [string]$ServiceName,
+        [int]$RemotePort = 5432
     )
+
+    Ensure-OpenSshClient
+    $null = Get-NodeExecutable
+    $sshKeys = Ensure-SshKey
+    Ensure-RailwaySshKnownHost
 
     if ($LocalPort -le 0) {
         $LocalPort = Find-FreeTcpPort
@@ -247,16 +535,34 @@ function Start-RailwayPostgresTunnel {
 
     Stop-StalePostgresTunnel -RepoRoot $RepoRoot
 
+    $alias = Ensure-RailwaySshConfig `
+        -RepoRoot $RepoRoot `
+        -ServiceName $ServiceName `
+        -PrivateKeyPath $sshKeys.PrivateKey
+
     $runId = Get-Date -Format "yyyyMMdd-HHmmss-fff"
     $logPath = Join-Path $RepoRoot "scripts/.postgres-tunnel-$runId.log"
     $errPath = Join-Path $RepoRoot "scripts/.postgres-tunnel-$runId.err"
     $pidFile = Join-Path $RepoRoot "scripts/.postgres-tunnel.pid"
 
-    $start = Get-RailwayProcessStart -RailwayArgs @("connect", $ServiceName, "--tunnel-only", "-P", "$LocalPort")
+    # ProxyCommand fixes Windows OpenSSH "send client banner first" stall against Railway.
+    $proxyCommand = Get-RailwaySshProxyCommand -RepoRoot $RepoRoot
+    $sshArgs = @(
+        "-N",
+        "-o", "BatchMode=yes",
+        "-o", "ExitOnForwardFailure=yes",
+        "-o", "IdentitiesOnly=yes",
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-o", "ProxyCommand$proxyCommand",
+        "-L", "${LocalPort}:127.0.0.1:${RemotePort}",
+        $alias
+    )
+
+    Write-Host "Opening SSH tunnel 127.0.0.1:${LocalPort} -> ${ServiceName}:${RemotePort} ..." -ForegroundColor Cyan
 
     $proc = Start-Process `
-        -FilePath $start.FilePath `
-        -ArgumentList $start.ArgumentList `
+        -FilePath "ssh" `
+        -ArgumentList $sshArgs `
         -WorkingDirectory $RepoRoot `
         -RedirectStandardOutput $logPath `
         -RedirectStandardError $errPath `
@@ -264,27 +570,40 @@ function Start-RailwayPostgresTunnel {
         -WindowStyle Hidden
 
     try {
-        Wait-ForTcpPort -Port $LocalPort
+        Wait-ForTcpPort -Port $LocalPort -Process $proc -TimeoutSec 45
     }
     catch {
+        $tail = @()
         if (-not $proc.HasExited) {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 200
         }
 
-        $tail = @()
-        if (Test-Path $logPath) { $tail += Get-Content $logPath -Tail 10 -ErrorAction SilentlyContinue }
-        if (Test-Path $errPath) { $tail += Get-Content $errPath -Tail 10 -ErrorAction SilentlyContinue }
-        $tailText = ($tail | Out-String)
-        throw "Failed to open SSH tunnel.`n$tailText"
+        if (Test-Path $logPath) { $tail += Get-Content $logPath -Tail 20 -ErrorAction SilentlyContinue }
+        if (Test-Path $errPath) { $tail += Get-Content $errPath -Tail 20 -ErrorAction SilentlyContinue }
+        $tailText = (($tail | Where-Object { $_ }) -join "`n")
+
+        $hint = @"
+Failed to open SSH tunnel on 127.0.0.1:$LocalPort
+
+$tailText
+
+Fix checklist:
+  1) railway login
+  2) Node.js + OpenSSH Client installed
+  3) Retry: .\scripts\postgres-tunnel.ps1
+"@
+        throw $hint
     }
 
     Set-Content -Path $pidFile -Value $proc.Id -NoNewline
 
     return [PSCustomObject]@{
-        Process  = $proc
-        Port     = $LocalPort
-        LogPath  = $logPath
-        PidFile  = $pidFile
+        Process = $proc
+        Port    = $LocalPort
+        LogPath = $logPath
+        PidFile = $pidFile
+        Alias   = $alias
     }
 }
 
@@ -315,10 +634,12 @@ function Initialize-RailwayDevEnvironment {
     param([string]$RepoRoot)
 
     Ensure-RailwayCli
-    Ensure-SshKey
+    Ensure-OpenSshClient
+    $sshKeys = Ensure-SshKey
+    Ensure-RailwaySshKnownHost
     Ensure-RailwayAuth
     Ensure-RailwayLink -RepoRoot $RepoRoot
-    Ensure-RailwaySshKeyRegistered
+    Ensure-RailwaySshKeyRegistered -SshKeys $sshKeys
 
     $link = Get-RailwayLinkConfig -RepoRoot $RepoRoot
     $postgres = Read-RailwayPostgresEnv -RepoRoot $RepoRoot
@@ -326,5 +647,6 @@ function Initialize-RailwayDevEnvironment {
     return [PSCustomObject]@{
         Link     = $link
         Postgres = $postgres
+        SshKeys  = $sshKeys
     }
 }

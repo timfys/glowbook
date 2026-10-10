@@ -61,6 +61,9 @@ builder.Services.AddScoped<ClientChatService>();
 builder.Services.AddScoped<ExternalAccountService>();
 builder.Services.AddScoped<TelegramAuthService>();
 builder.Services.AddScoped<SubscriptionService>();
+builder.Services.AddScoped<PremiumAccessService>();
+builder.Services.AddScoped<BlogService>();
+builder.Services.AddScoped<MasterSearchService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<PublicPageService>();
 builder.Services.AddScoped<AppointmentReminderService>();
@@ -125,6 +128,14 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
+        var path = ctx.Context.Request.Path.Value ?? "";
+        // Digital Asset Links must stay fresh for Android App Links verification
+        if (path.Equals("/.well-known/assetlinks.json", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public,max-age=3600";
+            return;
+        }
+
         // Safe with ?av= / asp-append-version cache busting
         ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
     }

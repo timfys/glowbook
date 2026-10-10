@@ -1,0 +1,72 @@
+@model GlowBook.Web.Models.Blog.PublicBlogListViewModel
+@{
+    ViewData["Title"] = $"Блог — {Model.BusinessName}";
+    var avatarUrl = Url.Action("Avatar", "Profile", new { id = Model.ProfileId, v = Model.AvatarVersion });
+}
+<div class="blog-public" style="--book-accent:@Model.AccentColor">
+    <header class="blog-public-hero">
+        <a class="blog-public-back" asp-action="Profile" asp-route-username="@Model.Username">← @Model.BusinessName</a>
+        <div class="blog-public-identity">
+            @if (Model.HasAvatar)
+            {
+                <img class="gb-avatar" src="@avatarUrl" alt="" />
+            }
+            else
+            {
+                <span class="gb-avatar gb-avatar-fallback">@DisplayHelpers.Initials(Model.BusinessName)</span>
+            }
+            <div>
+                <div class="blog-public-username">@@@Model.Username</div>
+                <h1 class="blog-public-title">Блог</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.Specialization))
+                {
+                    <p class="text-muted mb-0">@Model.Specialization</p>
+                }
+            </div>
+        </div>
+        @if (Model.BookingUrl != null)
+        {
+            <a class="btn btn-gb-primary btn-sm" href="@Model.BookingUrl">Записаться</a>
+        }
+    </header>
+
+    @if (!Model.Articles.Any())
+    {
+        <div class="panel empty-state">
+            <div class="fw-semibold mb-1">Пока тихо</div>
+            <p class="mb-0 text-muted">Мастер ещё не опубликовал статьи.</p>
+        </div>
+    }
+    else
+    {
+        <div class="blog-card-grid">
+            @foreach (var a in Model.Articles)
+            {
+                <a class="blog-card" asp-action="Article" asp-route-username="@Model.Username" asp-route-articleSlug="@a.Slug">
+                    @if (a.HasCover)
+                    {
+                        <div class="blog-card-cover" style="background-image:url('@Url.Action("Cover", "Blog", new { id = a.Id })')"></div>
+                    }
+                    else
+                    {
+                        <div class="blog-card-cover blog-card-cover-fallback"></div>
+                    }
+                    <div class="blog-card-body">
+                        <div class="blog-card-meta">
+                            @if (a.IsPremiumOnly)
+                            {
+                                <span class="blog-pill blog-pill-premium">Premium</span>
+                            }
+                            <time>@a.PublishedAt.ToLocalTime().ToString("d MMMM yyyy")</time>
+                        </div>
+                        <h2 class="blog-card-title">@a.Title</h2>
+                        @if (!string.IsNullOrWhiteSpace(a.Excerpt))
+                        {
+                            <p class="blog-card-excerpt">@a.Excerpt</p>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>

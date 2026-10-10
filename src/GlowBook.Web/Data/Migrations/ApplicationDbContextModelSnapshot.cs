@@ -70,6 +70,9 @@ namespace GlowBook.Web.Data.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("PremiumExpiresAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
@@ -343,6 +346,67 @@ namespace GlowBook.Web.Data.Migrations
                     b.HasIndex("ClientId", "PrescribedAt");
 
                     b.ToTable("HomeCarePrescriptions");
+                });
+
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterArticle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CoverContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<byte[]>("CoverData")
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Excerpt")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<bool>("IsPremiumOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MasterProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterProfileId", "Slug")
+                        .IsUnique();
+
+                    b.HasIndex("MasterProfileId", "IsPublished", "PublishedAt");
+
+                    b.ToTable("MasterArticles");
                 });
 
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterAvatar", b =>
@@ -735,6 +799,49 @@ namespace GlowBook.Web.Data.Migrations
                     b.ToTable("TreatmentRecords");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.UserPaymentOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountRub")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("YooKassaPaymentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("YooKassaPaymentId")
+                        .IsUnique();
+
+                    b.ToTable("UserPaymentOrders");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.WorkingHour", b =>
                 {
                     b.Property<int>("Id")
@@ -1011,6 +1118,17 @@ namespace GlowBook.Web.Data.Migrations
                     b.Navigation("MasterProfile");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterArticle", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
+                        .WithMany("Articles")
+                        .HasForeignKey("MasterProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MasterProfile");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterAvatar", b =>
                 {
                     b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
@@ -1139,6 +1257,17 @@ namespace GlowBook.Web.Data.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("GlowBook.Web.Models.Entities.UserPaymentOrder", b =>
+                {
+                    b.HasOne("GlowBook.Web.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("GlowBook.Web.Models.Entities.WorkingHour", b =>
                 {
                     b.HasOne("GlowBook.Web.Models.Entities.MasterProfile", "MasterProfile")
@@ -1222,6 +1351,8 @@ namespace GlowBook.Web.Data.Migrations
             modelBuilder.Entity("GlowBook.Web.Models.Entities.MasterProfile", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("Articles");
 
                     b.Navigation("Avatar");
 

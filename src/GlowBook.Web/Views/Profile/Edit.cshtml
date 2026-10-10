@@ -61,6 +61,15 @@
                 <span asp-validation-for="DisplayName" class="text-danger"></span>
             </div>
             <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text">@@</span>
+                    <input asp-for="Username" class="form-control" placeholder="maria_glow" autocomplete="username" />
+                </div>
+                <div class="form-text">Как в Telegram: ссылка /u/@@ваш_ник и поиск по юзернейму</div>
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
                 <label asp-for="PhoneNumber" class="form-label"></label>
                 <input asp-for="PhoneNumber" class="form-control" placeholder="+7..." />
                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>

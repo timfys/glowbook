@@ -3,6 +3,8 @@ package com.glowbook.app
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -181,14 +183,39 @@ class MainActivity : Activity() {
 
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
+            resolveDeepLink(intent)?.let { loadAppUrl(it) }
         } else {
-            loadAppUrl(BASE_URL)
+            loadAppUrl(resolveDeepLink(intent) ?: BASE_URL)
         }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        resolveDeepLink(intent)?.let { loadAppUrl(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
+    }
+
+    private fun resolveDeepLink(intent: Intent?): String? {
+        val uri = intent?.data ?: return null
+        return when {
+            uri.scheme == "https"
+                && uri.host.equals(APP_HOST, ignoreCase = true)
+                && (uri.path?.startsWith("/book") == true) -> uri.toString()
+
+            uri.scheme.equals("glowbox", ignoreCase = true)
+                && uri.host.equals("book", ignoreCase = true) -> {
+                val slug = uri.path?.trim('/')?.substringBefore('/')?.trim().orEmpty()
+                if (slug.isBlank()) "$BASE_URL/book"
+                else "$BASE_URL/book/$slug"
+            }
+
+            else -> null
+        }
     }
 
     private fun loadAppUrl(url: String) {
@@ -268,6 +295,19 @@ class MainActivity : Activity() {
                     return@runOnUiThread
                 }
                 launchContactPicker()
+            }
+        }
+
+        /** Reliable clipboard for WebView (navigator.clipboard is flaky there). */
+        @JavascriptInterface
+        fun copyText(text: String?): Boolean {
+            if (text.isNullOrEmpty()) return false
+            return try {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("GlowBox", text))
+                true
+            } catch (_: Exception) {
+                false
             }
         }
     }
@@ -404,7 +444,8 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        private const val BASE_URL = "https://glowbook-production-5e1a.up.railway.app"
+        private const val APP_HOST = "glowbook-production-5e1a.up.railway.app"
+        private const val BASE_URL = "https://$APP_HOST"
         private const val MAX_AUTO_RETRIES = 3
         private const val REQUEST_FILE_CHOOSER = 1001
         private const val REQUEST_CONTACT_PICK = 1002

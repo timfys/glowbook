@@ -45,9 +45,13 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.2 8l4.8.7-3.5 3.4.8 4.8L12 14.7 7.7 16.9l.8-4.8L5 8.7 9.8 8 12 3.5z"/></svg>
             Услуги
         </a>
-        <a class="nav-link @(Model.ActiveController == "Studio" ? "active" : "")" asp-controller="Studio" asp-action="Index">
+        <a class="nav-link @(Model.ActiveController == "Studio" && Model.ActiveAction != "Blog" && Model.ActiveAction != "ArticleCreate" && Model.ActiveAction != "ArticleEdit" ? "active" : "")" asp-controller="Studio" asp-action="Index">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
             Страница
+        </a>
+        <a class="nav-link @(Model.ActiveController == "Studio" && (Model.ActiveAction == "Blog" || Model.ActiveAction == "ArticleCreate" || Model.ActiveAction == "ArticleEdit") ? "active" : "")" asp-controller="Studio" asp-action="Blog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h6M8 17h4"/></svg>
+            Блог
         </a>
         <a class="nav-link @(Model.ActiveController == "Subscription" ? "active" : "")" asp-controller="Subscription" asp-action="Index">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7z"/><path d="M9 7V5.8A3 3 0 0 1 12 3a3 3 0 0 1 3 2.8V7"/></svg>

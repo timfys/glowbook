@@ -49,5 +49,7 @@ public class MasterProfile
 
     public ICollection<MasterReview> Reviews { get; set; } = new List<MasterReview>();
 
+    public ICollection<MasterArticle> Articles { get; set; } = new List<MasterArticle>();
+
     public Subscription? Subscription { get; set; }
 }

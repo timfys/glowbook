@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.glowbook.app",
+      "sha256_cert_fingerprints": [
+        "1E:A5:93:61:52:4B:B3:9A:2D:F8:76:C4:F3:9E:3C:86:91:52:7C:56:FB:E0:A2:FA:20:01:9B:32:8B:0F:05:DD"
+      ]
+    }
+  }
+]

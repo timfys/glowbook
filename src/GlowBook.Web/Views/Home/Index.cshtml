@@ -10,10 +10,17 @@
             <span class="gb-kicker">GlowBox</span>
             <h1>Записи и клиенты — в одном месте</h1>
             <p class="lead mt-3">Ведите расписание, храните контакты и записывайте клиентов через наше приложение.</p>
+            <form class="home-search mt-4" method="get" action="@Url.Action("Index", "Search")">
+                <div class="search-field">
+                    <span class="search-at" aria-hidden="true">@@</span>
+                    <input type="search" name="q" class="form-control search-input" placeholder="Найти мастера по @@username или имени" />
+                    <button type="submit" class="btn btn-gb-primary search-submit">Найти</button>
+                </div>
+            </form>
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <div class="d-flex flex-wrap gap-2 mt-4">
-                    <a class="btn btn-gb-primary" asp-controller="Dashboard" asp-action="Index">Открыть кабинет</a>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <a class="btn btn-gb-outline" asp-controller="Dashboard" asp-action="Index">Открыть кабинет</a>
                 </div>
             }
             else
@@ -42,10 +49,10 @@
                 <h5 class="fw-bold mb-1">350 ₽ в месяц</h5>
                 <p class="text-muted mb-3">Ваш мини-сайт и онлайн-запись по ссылке.</p>
                 <ul class="mb-0 ps-3">
-                    <li class="mb-1">Страница с портфолио, отзывами и акциями</li>
+                    <li class="mb-1">Страница с портфолио, блогом и акциями</li>
                     <li class="mb-1">Запись без регистрации клиента</li>
+                    <li class="mb-1">Premium-статьи для читателей</li>
                     <li class="mb-1">Яндекс.Карты на странице</li>
-                    <li class="mb-1">Напоминания — скоро</li>
                 </ul>
                 <a class="small d-inline-block mt-3" href="/rekvizity">Реквизиты, оферта и оплата →</a>
             </div>

@@ -1,3 +1,4 @@
+using GlowBook.Web.Models.Blog;
 using GlowBook.Web.Models.Entities;
 
 namespace GlowBook.Web.Models.Booking;
@@ -13,6 +14,8 @@ public class PublicMasterPageViewModel
     public List<MasterPromo> Promos { get; set; } = [];
 
     public List<MasterReview> Reviews { get; set; } = [];
+
+    public List<PublicArticleCard> Articles { get; set; } = [];
 
     public double? AverageRating { get; set; }
 

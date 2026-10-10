@@ -62,6 +62,7 @@
 
         <div class="tg-card-body">
             <h1 class="tg-card-name">@Model.DisplayName</h1>
+            <p class="tg-card-sub blog-public-username mb-1">@@@Model.BookingSlug</p>
             @if (!string.IsNullOrWhiteSpace(Model.Specialization))
             {
                 <p class="tg-card-sub">@Model.Specialization</p>
@@ -118,6 +119,8 @@
             </section>
 
             <a class="btn btn-gb-primary w-100 mt-3" asp-action="Edit">Редактировать профиль</a>
+            <a class="btn btn-gb-outline w-100 mt-2" asp-controller="Blog" asp-action="Profile" asp-route-username="@Model.BookingSlug" target="_blank" rel="noopener">Публичная страница /u/@Model.BookingSlug</a>
+            <a class="btn btn-gb-outline w-100 mt-2" asp-controller="Studio" asp-action="Blog">Блог</a>
             <a class="btn btn-gb-outline w-100 mt-2" asp-controller="Studio" asp-action="Index">Страница для клиентов</a>
             <a class="btn btn-gb-outline w-100 mt-2" asp-controller="Subscription" asp-action="Index">Подписка Premium</a>
         </div>

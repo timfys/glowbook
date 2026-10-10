@@ -1,7 +1,7 @@
 ﻿@inject GlowBook.Web.AssetVersion AssetVersion
 @inject Microsoft.AspNetCore.Identity.UserManager<GlowBook.Web.Models.ApplicationUser> UserManager
 @{
-    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Studio", "Subscription", "Profile", "My" };
+    var cabinetControllers = new[] { "Dashboard", "Appointments", "Clients", "Services", "Studio", "Subscription", "Profile", "My", "Search", "Premium" };
     var isCabinet = User.Identity?.IsAuthenticated == true
         && cabinetControllers.Contains(ViewContext.RouteData.Values["controller"]?.ToString());
     var av = AssetVersion.Value;
@@ -68,14 +68,22 @@
                     </button>
                 }
                 <div class="@(isCabinet ? "ms-auto d-flex align-items-center gap-2" : "collapse navbar-collapse")" id="mainNav">
+                    @if (!isCabinet)
+                    {
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item"><a class="nav-link" asp-controller="Search" asp-action="Index">Поиск мастеров</a></li>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-controller="@(isClientCabinet ? "My" : "Dashboard")" asp-action="Index">Кабинет</a></li>
+                            }
+                        </ul>
+                    }
                     <button type="button" class="btn btn-gb-ghost btn-sm gb-theme-toggle gb-theme-toggle-nav" aria-label="Тема" title="Светлая / тёмная тема">
                         <partial name="_ThemeToggleIcons" />
                     </button>
-                    @if (!isCabinet && User.Identity?.IsAuthenticated == true)
+                    @if (isCabinet)
                     {
-                        <ul class="navbar-nav me-auto">
-                            <li class="nav-item"><a class="nav-link" asp-controller="@(isClientCabinet ? "My" : "Dashboard")" asp-action="Index">Кабинет</a></li>
-                        </ul>
+                        <a class="btn btn-gb-ghost btn-sm d-none d-md-inline-flex" asp-controller="Search" asp-action="Index" title="Поиск мастеров">Поиск</a>
                     }
                     <partial name="_LoginPartial" />
                 </div>

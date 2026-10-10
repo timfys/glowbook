@@ -37,12 +37,23 @@
         <a class="btn btn-gb-outline btn-sm" asp-controller="Subscription" asp-action="Index">Подписка</a>
     </div>
 }
-@if (ViewBag.BookingUrl != null)
+@if (ViewBag.IsPremium == true && ViewBag.BookingUrl != null)
 {
     <div class="panel mb-4">
-        <div class="fw-semibold mb-1">Ссылка для онлайн-записи</div>
-        <code class="user-select-all">@ViewBag.BookingUrl</code>
-        <div class="small text-muted mt-1">Отправьте клиентам — они запишутся без регистрации. <a asp-controller="Studio" asp-action="Index">Оформить страницу</a></div>
+        @{
+            ViewData["BookingLinkLabel"] = "Ссылка для онлайн-записи";
+            ViewData["BookingLinkHint"] = "Отправьте клиентам — они запишутся без регистрации.";
+        }
+        <partial name="_BookingLink" model="(string)ViewBag.BookingUrl" />
+        <div class="small text-muted mt-2"><a asp-controller="Studio" asp-action="Index">Оформить страницу</a></div>
+    </div>
+}
+else if (ViewBag.IsPremium != true)
+{
+    <div class="panel mb-4">
+        <div class="fw-semibold mb-1">Онлайн-запись и мини-сайт</div>
+        <p class="text-muted small mb-3 mb-md-2">Доступны с Premium: публичная ссылка для клиентов, портфолио, акции и отзывы.</p>
+        <a class="btn btn-gb-primary btn-sm" asp-controller="Subscription" asp-action="Index">Подключить Premium</a>
     </div>
 }
 <div class="panel">

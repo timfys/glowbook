@@ -25,15 +25,18 @@ public class ProfileController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
     private readonly MasterProfileService _profiles;
+    private readonly BlogService _blog;
 
     public ProfileController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> users,
-        MasterProfileService profiles)
+        MasterProfileService profiles,
+        BlogService blog)
     {
         _db = db;
         _users = users;
         _profiles = profiles;
+        _blog = blog;
     }
 
     [HttpGet("")]
@@ -109,6 +112,16 @@ public class ProfileController : Controller
         profile.ShowOnMap = model.ShowOnMap;
         profile.Description = NullIfEmpty(model.Description);
 
+        var (usernameOk, usernameError) = await _blog.TrySetUsernameAsync(profile, model.Username);
+        if (!usernameOk)
+        {
+            ModelState.AddModelError(nameof(model.Username), usernameError ?? "Некорректный юзернейм");
+            model.HasAvatar = profile.HasAvatar;
+            model.ProfileId = profile.Id;
+            model.AvatarVersion = profile.AvatarUpdatedAt?.Ticks;
+            return View(model);
+        }
+
         if (model.RemoveAvatar && model.Avatar == null)
             await RemoveAvatarAsync(profile);
 
@@ -183,6 +196,7 @@ public class ProfileController : Controller
 
     private static ProfileEditViewModel ToEditModel(ApplicationUser user, MasterProfile profile) => new()
     {
+        Username = profile.BookingSlug,
         DisplayName = user.DisplayName ?? profile.BusinessName,
         PhoneNumber = user.PhoneNumber,
         BusinessName = profile.BusinessName,

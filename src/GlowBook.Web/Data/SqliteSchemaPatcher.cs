@@ -69,7 +69,55 @@ public static class SqliteSchemaPatcher
             ON "MasterReviews" ("MasterProfileId", "IsPublished", "CreatedAt");
             """);
 
-        logger.LogInformation("SQLite mini-site schema patch applied");
+        await EnsureColumnAsync(db, "AspNetUsers", "PremiumExpiresAt", "PremiumExpiresAt TEXT NULL");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "MasterArticles" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_MasterArticles" PRIMARY KEY AUTOINCREMENT,
+                "MasterProfileId" INTEGER NOT NULL,
+                "Title" TEXT NOT NULL,
+                "Slug" TEXT NOT NULL,
+                "Excerpt" TEXT NULL,
+                "Body" TEXT NOT NULL,
+                "CoverData" BLOB NULL,
+                "CoverContentType" TEXT NULL,
+                "IsPublished" INTEGER NOT NULL DEFAULT 0,
+                "IsPremiumOnly" INTEGER NOT NULL DEFAULT 0,
+                "CreatedAt" TEXT NOT NULL,
+                "UpdatedAt" TEXT NOT NULL,
+                "PublishedAt" TEXT NULL,
+                CONSTRAINT "FK_MasterArticles_MasterProfiles_MasterProfileId"
+                    FOREIGN KEY ("MasterProfileId") REFERENCES "MasterProfiles" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_MasterArticles_MasterProfileId_Slug"
+            ON "MasterArticles" ("MasterProfileId", "Slug");
+            """);
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE INDEX IF NOT EXISTS "IX_MasterArticles_MasterProfileId_IsPublished_PublishedAt"
+            ON "MasterArticles" ("MasterProfileId", "IsPublished", "PublishedAt");
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "UserPaymentOrders" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_UserPaymentOrders" PRIMARY KEY AUTOINCREMENT,
+                "UserId" TEXT NOT NULL,
+                "YooKassaPaymentId" TEXT NOT NULL,
+                "AmountRub" TEXT NOT NULL,
+                "Status" TEXT NOT NULL,
+                "CreatedAt" TEXT NOT NULL,
+                "PaidAt" TEXT NULL,
+                CONSTRAINT "FK_UserPaymentOrders_AspNetUsers_UserId"
+                    FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserPaymentOrders_YooKassaPaymentId"
+            ON "UserPaymentOrders" ("YooKassaPaymentId");
+            """);
+
+        logger.LogInformation("SQLite mini-site + blog schema patch applied");
     }
 
     private static async Task EnsureColumnAsync(ApplicationDbContext db, string table, string column, string definition)

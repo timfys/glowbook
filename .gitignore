@@ -9,6 +9,7 @@ obj/
 
 # Local JDK / Android SDK caches (never commit)
 .jdk/
+tools/jdk-temp/
 android/.gradle/
 android/app/build/
 android/build/
@@ -24,5 +25,12 @@ _*.txt
 _*.log
 *.log
 
-# Postgres tunnel local artifacts
+# Local script run artifacts (SSH / tunnel / diagnostics)
 scripts/.postgres-tunnel*
+scripts/.ssh-*
+scripts/.diag-*
+scripts/.t-*
+
+# One-off Android build dumps
+android/apk-status.txt
+android/java-find.txt

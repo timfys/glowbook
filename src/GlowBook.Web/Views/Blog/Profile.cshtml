@@ -1,0 +1,91 @@
+@model GlowBook.Web.Models.Blog.PublicBlogListViewModel
+@{
+    ViewData["Title"] = Model.BusinessName;
+    var avatarUrl = Url.Action("Avatar", "Profile", new { id = Model.ProfileId, v = Model.AvatarVersion });
+    var description = ViewBag.Description as string;
+    var location = ViewBag.Location as string;
+    var canBook = ViewBag.CanBook as bool? == true;
+}
+<div class="blog-public master-public" style="--book-accent:@Model.AccentColor">
+    <header class="master-public-hero">
+        <div class="master-public-identity">
+            @if (Model.HasAvatar)
+            {
+                <img class="gb-avatar master-public-avatar" src="@avatarUrl" alt="" />
+            }
+            else
+            {
+                <span class="gb-avatar gb-avatar-fallback master-public-avatar">@DisplayHelpers.Initials(Model.BusinessName)</span>
+            }
+            <div>
+                <div class="blog-public-username">@@@Model.Username</div>
+                <h1 class="master-public-name">@Model.BusinessName</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.Specialization))
+                {
+                    <p class="master-public-spec">@Model.Specialization</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(location))
+                {
+                    <p class="text-muted small mb-0">@location</p>
+                }
+            </div>
+        </div>
+        <div class="master-public-cta">
+            @if (canBook && Model.BookingUrl != null)
+            {
+                <a class="btn btn-gb-primary" href="@Model.BookingUrl">Записаться</a>
+            }
+            <a class="btn btn-gb-outline" asp-action="Index" asp-route-username="@Model.Username">Блог</a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(description))
+    {
+        <section class="master-public-about">
+            <h2 class="book-section-title">О мастере</h2>
+            <p class="mb-0">@description</p>
+        </section>
+    }
+
+    <section class="master-public-blog">
+        <div class="d-flex justify-content-between align-items-end gap-2 mb-3">
+            <h2 class="book-section-title mb-0">Блог</h2>
+            @if (Model.Articles.Any())
+            {
+                <a class="small" asp-action="Index" asp-route-username="@Model.Username">Все статьи →</a>
+            }
+        </div>
+        @if (!Model.Articles.Any())
+        {
+            <p class="text-muted mb-0">Статей пока нет.</p>
+        }
+        else
+        {
+            <div class="blog-card-grid">
+                @foreach (var a in Model.Articles.Take(4))
+                {
+                    <a class="blog-card" asp-action="Article" asp-route-username="@Model.Username" asp-route-articleSlug="@a.Slug">
+                        @if (a.HasCover)
+                        {
+                            <div class="blog-card-cover" style="background-image:url('@Url.Action("Cover", "Blog", new { id = a.Id })')"></div>
+                        }
+                        else
+                        {
+                            <div class="blog-card-cover blog-card-cover-fallback"></div>
+                        }
+                        <div class="blog-card-body">
+                            <div class="blog-card-meta">
+                                @if (a.IsPremiumOnly)
+                                {
+                                    <span class="blog-pill blog-pill-premium">Premium</span>
+                                }
+                                <time>@a.PublishedAt.ToLocalTime().ToString("d MMM")</time>
+                            </div>
+                            <h3 class="blog-card-title">@a.Title</h3>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </section>
+</div>

@@ -10,8 +10,13 @@ namespace GlowBook.Web.Services;
 public class PublicPageService
 {
     private readonly ApplicationDbContext _db;
+    private readonly BlogService _blog;
 
-    public PublicPageService(ApplicationDbContext db) => _db = db;
+    public PublicPageService(ApplicationDbContext db, BlogService blog)
+    {
+        _db = db;
+        _blog = blog;
+    }
 
     public async Task<PublicMasterPageViewModel> BuildAsync(
         MasterProfile profile,
@@ -42,6 +47,8 @@ public class PublicPageService
             .Take(30)
             .ToListAsync(ct);
 
+        var articles = await _blog.RecentForMasterAsync(profile.Id, 6, ct);
+
         var location = FormatLocation(profile.City, profile.Address);
         var showMap = profile.ShowOnMap && !string.IsNullOrWhiteSpace(location);
 
@@ -52,6 +59,7 @@ public class PublicPageService
             Portfolio = portfolio,
             Promos = promos,
             Reviews = reviews,
+            Articles = articles,
             ReviewCount = reviews.Count,
             AverageRating = reviews.Count == 0 ? null : Math.Round(reviews.Average(r => r.Rating), 1),
             Location = location,

@@ -1,0 +1,91 @@
+@model GlowBook.Web.Models.Blog.MasterSearchViewModel
+@{
+    ViewData["Title"] = "Поиск мастеров";
+}
+<div class="search-page">
+    <header class="search-hero">
+        <h1 class="search-title">Найти мастера</h1>
+        <p class="search-lead">По юзернейму, как в Telegram, или по имени и городу</p>
+        <form method="get" class="search-form" action="@Url.Action("Index")">
+            <div class="search-field">
+                <span class="search-at" aria-hidden="true">@@</span>
+                <input type="search"
+                       name="q"
+                       value="@Model.Query"
+                       class="form-control search-input"
+                       placeholder="username или имя"
+                       autofocus
+                       autocomplete="off" />
+                <button type="submit" class="btn btn-gb-primary search-submit">Найти</button>
+            </div>
+        </form>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Query))
+    {
+        if (!Model.Results.Any())
+        {
+            <div class="panel empty-state">
+                <div class="fw-semibold mb-1">Никого не нашли</div>
+                <p class="mb-0 text-muted">Попробуйте другой юзернейм или часть имени.</p>
+            </div>
+        }
+        else
+        {
+            <div class="search-results">
+                @foreach (var m in Model.Results)
+                {
+                    var avatarUrl = Url.Action("Avatar", "Profile", new { id = m.ProfileId, v = m.AvatarVersion });
+                    <a class="search-result" asp-controller="Blog" asp-action="Profile" asp-route-username="@m.Username">
+                        @if (m.HasAvatar)
+                        {
+                            <img class="gb-avatar" src="@avatarUrl" alt="" />
+                        }
+                        else
+                        {
+                            <span class="gb-avatar gb-avatar-fallback">@DisplayHelpers.Initials(m.BusinessName)</span>
+                        }
+                        <span class="search-result-text">
+                            <span class="search-result-name">
+                                @m.BusinessName
+                                @if (m.IsPremiumMaster)
+                                {
+                                    <span class="blog-pill blog-pill-live">Premium</span>
+                                }
+                            </span>
+                            <span class="search-result-meta">
+                                <span class="search-result-user">@@@m.Username</span>
+                                @if (!string.IsNullOrWhiteSpace(m.Specialization))
+                                {
+                                    <span>· @m.Specialization</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(m.City))
+                                {
+                                    <span>· @m.City</span>
+                                }
+                            </span>
+                            @if (m.PublishedArticles > 0)
+                            {
+                                <span class="search-result-blog">@m.PublishedArticles @DeclArticles(m.PublishedArticles) в блоге</span>
+                            }
+                        </span>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>
+
+@functions {
+    static string DeclArticles(int n)
+    {
+        var k = n % 100;
+        if (k is >= 11 and <= 14) return "статей";
+        return (n % 10) switch
+        {
+            1 => "статья",
+            2 or 3 or 4 => "статьи",
+            _ => "статей"
+        };
+    }
+}

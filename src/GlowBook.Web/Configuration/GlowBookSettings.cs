@@ -16,8 +16,8 @@ public class GlowBookSettings
     public decimal PremiumPriceRub { get; set; } = 350;
     public int PremiumDays { get; set; } = 30;
 
-    /// <summary>Временно false: публичная запись и ссылка работают без Premium.</summary>
-    public bool RequirePremiumForOnlineBooking { get; set; } = false;
+    /// <summary>true: публичная запись /book/{slug} только с активным Premium.</summary>
+    public bool RequirePremiumForOnlineBooking { get; set; } = true;
 
     /// <summary>Публичные реквизиты для ЮKassa / оферты (/rekvizity).</summary>
     public LegalSettings Legal { get; set; } = new();

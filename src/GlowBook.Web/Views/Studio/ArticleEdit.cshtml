@@ -1,0 +1,83 @@
+@model GlowBook.Web.Models.Blog.ArticleEditForm
+@{
+    ViewData["Title"] = Model.Id == null ? "Новая статья" : "Редактирование";
+    var isEdit = Model.Id != null;
+}
+<div class="page-head">
+    <div>
+        <a asp-action="Blog" class="small text-muted text-decoration-none">← Блог</a>
+        <h2 class="h4 fw-bold mb-0 mt-1">@(isEdit ? "Редактирование" : "Новая статья")</h2>
+    </div>
+</div>
+
+<div class="panel blog-editor">
+    <form asp-action="@(isEdit ? "ArticleEdit" : "ArticleCreate")"
+          asp-route-id="@(Model.Id)"
+          method="post"
+          enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control form-control-lg" placeholder="Как я собрала протокол для чувствительной кожи" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Excerpt" class="form-label"></label>
+            <input asp-for="Excerpt" class="form-control" maxlength="320" placeholder="Коротко — что внутри (видно и гостям)" />
+            <div class="form-text">Для Premium-статей гости видят только это описание.</div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Slug" class="form-label"></label>
+            <input asp-for="Slug" class="form-control" placeholder="protocol-sensitive-skin" />
+            <div class="form-text">Можно оставить пустым — сделаем из заголовка.</div>
+            <span asp-validation-for="Slug" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Body" class="form-label"></label>
+            <textarea asp-for="Body" class="form-control blog-editor-body" rows="14" placeholder="Текст статьи. Абзацы разделяйте пустой строкой."></textarea>
+            <span asp-validation-for="Body" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Обложка</label>
+            @if (Model.HasCover)
+            {
+                <div class="blog-cover-preview mb-2">
+                    <img src="@Url.Action("Cover", "Blog", new { id = Model.Id })" alt="" />
+                </div>
+                <div class="form-check mb-2">
+                    <input asp-for="RemoveCover" class="form-check-input" />
+                    <label asp-for="RemoveCover" class="form-check-label"></label>
+                </div>
+            }
+            <input asp-for="Cover" type="file" accept="image/*" class="form-control" />
+        </div>
+
+        <div class="blog-editor-flags mb-4">
+            <label class="blog-flag">
+                <input asp-for="IsPublished" class="form-check-input" />
+                <span>
+                    <strong>Опубликовать</strong>
+                    <small>Сразу на публичной странице</small>
+                </span>
+            </label>
+            <label class="blog-flag blog-flag-premium">
+                <input asp-for="IsPremiumOnly" class="form-check-input" />
+                <span>
+                    <strong>Только Premium</strong>
+                    <small>Гость видит тизер → регистрация → оплата → полный текст</small>
+                </span>
+            </label>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-gb-primary">Сохранить</button>
+            <a class="btn btn-gb-outline" asp-action="Blog">Отмена</a>
+        </div>
+    </form>
+</div>

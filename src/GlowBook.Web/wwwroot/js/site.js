@@ -373,3 +373,144 @@
     });
     sync();
 })();
+
+(function () {
+    function copyViaAndroid(text) {
+        try {
+            if (window.GlowBookAndroid && typeof window.GlowBookAndroid.copyText === 'function') {
+                return !!window.GlowBookAndroid.copyText(text);
+            }
+        } catch (_) { /* ignore */ }
+        return false;
+    }
+
+    function copyText(text) {
+        if (copyViaAndroid(text)) {
+            return Promise.resolve();
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).catch(function () {
+                return copyTextFallback(text);
+            });
+        }
+
+        return copyTextFallback(text);
+    }
+
+    function copyTextFallback(text) {
+        return new Promise(function (resolve, reject) {
+            var area = document.createElement('textarea');
+            area.value = text;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            area.style.left = '-9999px';
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            try {
+                var ok = document.execCommand('copy');
+                document.body.removeChild(area);
+                if (ok) resolve();
+                else reject(new Error('copy failed'));
+            } catch (err) {
+                document.body.removeChild(area);
+                reject(err);
+            }
+        });
+    }
+
+    function showCopied(btn) {
+        var box = btn.closest('.booking-link-box');
+        var toast = box && box.querySelector('.booking-link-toast');
+        var labelEl = btn.querySelector('[data-copy-label-text]');
+        var label = btn.getAttribute('data-copy-label') || 'Скопировать ссылку';
+        var copied = btn.getAttribute('data-copied-label') || 'Скопировано';
+        if (labelEl) labelEl.textContent = copied;
+        else btn.textContent = copied;
+        btn.disabled = true;
+        if (toast) toast.hidden = false;
+        window.setTimeout(function () {
+            if (labelEl) labelEl.textContent = label;
+            else btn.textContent = label;
+            btn.disabled = false;
+            if (toast) toast.hidden = true;
+        }, 1800);
+    }
+
+    document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url = btn.getAttribute('data-copy-url') || '';
+            if (!url) return;
+            copyText(url).then(function () {
+                showCopied(btn);
+            }).catch(function () {
+                window.prompt('Скопируйте ссылку:', url);
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-share-url]').forEach(function (btn) {
+        if (!navigator.share) return;
+        btn.classList.remove('d-none');
+        btn.addEventListener('click', function () {
+            var url = btn.getAttribute('data-share-url') || '';
+            if (!url) return;
+            navigator.share({
+                title: btn.getAttribute('data-share-title') || 'GlowBox',
+                text: btn.getAttribute('data-share-text') || '',
+                url: url
+            }).catch(function () { /* cancelled */ });
+        });
+    });
+})();
+
+(function () {
+    // Open /book/... in the Android app when installed (Chrome intent URL fallback).
+    if (!/^\/book(\/|$)/i.test(location.pathname)) return;
+    if (window.GlowBookAndroid) return;
+
+    var ua = navigator.userAgent || '';
+    if (!/Android/i.test(ua)) return;
+    if (/; wv\)/i.test(ua)) return;
+
+    var host = location.hostname || '';
+    if (host !== 'glowbook-production-5e1a.up.railway.app') return;
+
+    var path = location.pathname + location.search + location.hash;
+    var intentUrl = 'intent://' + host + path +
+        '#Intent;scheme=https;package=com.glowbook.app;S.browser_fallback_url=' +
+        encodeURIComponent(location.href) + ';end';
+
+    function tryOpenApp() {
+        location.href = intentUrl;
+    }
+
+    try {
+        if (!sessionStorage.getItem('gb-app-open-tried')) {
+            sessionStorage.setItem('gb-app-open-tried', '1');
+            window.setTimeout(tryOpenApp, 250);
+        }
+    } catch (_) { /* private mode */ }
+
+    function mountOpenAppBar() {
+        if (document.querySelector('.gb-open-app-bar')) return;
+        var bar = document.createElement('div');
+        bar.className = 'gb-open-app-bar';
+        bar.innerHTML =
+            '<span>Есть приложение GlowBox?</span>' +
+            '<button type="button" class="btn btn-gb-primary btn-sm">Открыть в приложении</button>';
+        var btn = bar.querySelector('button');
+        if (btn) btn.addEventListener('click', tryOpenApp);
+        var page = document.querySelector('.book-page');
+        if (page) page.insertBefore(bar, page.firstChild);
+        else document.body.insertBefore(bar, document.body.firstChild);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mountOpenAppBar);
+    } else {
+        mountOpenAppBar();
+    }
+})();

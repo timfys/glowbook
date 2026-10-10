@@ -1,0 +1,66 @@
+@{
+    ViewData["Title"] = "Premium";
+    var price = (decimal)(ViewBag.PremiumPrice ?? 0m);
+    var hasPremium = ViewBag.HasPremium as bool? == true;
+    var until = ViewBag.PremiumUntil as DateTime?;
+    var configured = ViewBag.YooKassaConfigured as bool? == true;
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+<div class="page-head">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Premium</h2>
+        <p class="text-muted small mb-0">Доступ к закрытым статьям мастеров</p>
+    </div>
+</div>
+
+@if (ViewBag.PaySuccess as bool? == true)
+{
+    <div class="alert alert-success">Premium активен — можно читать закрытые материалы.</div>
+}
+@if (ViewBag.PayError is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<div class="panel premium-reader-card">
+    @if (hasPremium)
+    {
+        <div class="blog-pill blog-pill-premium mb-2">Активен</div>
+        <h3 class="h5 fw-bold">У вас Premium</h3>
+        @if (until != null)
+        {
+            <p class="text-muted">до @until.Value.ToLocalTime().ToString("dd.MM.yyyy")</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            <a class="btn btn-gb-primary" href="@returnUrl">Вернуться к статье</a>
+        }
+        else
+        {
+            <a class="btn btn-gb-outline" asp-controller="Search" asp-action="Index">Найти мастеров</a>
+        }
+    }
+    else
+    {
+        <div class="text-muted small fw-bold mb-2">READER PREMIUM</div>
+        <h3 class="h4 fw-bold mb-1">@price.ToString("N0") ₽ / месяц</h3>
+        <p class="text-muted mb-3">Читайте Premium-статьи мастеров: кейсы, протоколы, закрытые разборы.</p>
+        <ul class="mb-4 ps-3">
+            <li class="mb-1">Доступ ко всем Premium-статьям на платформе</li>
+            <li class="mb-1">Безлимит на срок подписки</li>
+            <li class="mb-1">Оплата через ЮKassa</li>
+        </ul>
+        @if (configured)
+        {
+            <form asp-action="Pay" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn btn-gb-primary">Оплатить Premium</button>
+            </form>
+        }
+        else
+        {
+            <p class="text-muted small mb-0">Оплата временно недоступна — ЮKassa не настроена.</p>
+        }
+    }
+</div>

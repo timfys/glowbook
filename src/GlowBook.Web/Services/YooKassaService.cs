@@ -16,6 +16,7 @@ public class YooKassaService
     private readonly GlowBookSettings _glowBook;
     private readonly ApplicationDbContext _db;
     private readonly SubscriptionService _subscriptions;
+    private readonly PremiumAccessService _premiumAccess;
     private readonly ILogger<YooKassaService> _logger;
 
     public YooKassaService(
@@ -24,6 +25,7 @@ public class YooKassaService
         IOptions<GlowBookSettings> glowBook,
         ApplicationDbContext db,
         SubscriptionService subscriptions,
+        PremiumAccessService premiumAccess,
         ILogger<YooKassaService> logger)
     {
         _http = http;
@@ -31,6 +33,7 @@ public class YooKassaService
         _glowBook = glowBook.Value;
         _db = db;
         _subscriptions = subscriptions;
+        _premiumAccess = premiumAccess;
         _logger = logger;
     }
 
@@ -83,6 +86,55 @@ public class YooKassaService
         return (true, redirect, null);
     }
 
+    public async Task<(bool Ok, string? RedirectUrl, string? Error)> CreateUserPremiumPaymentAsync(
+        string userId,
+        string returnUrl,
+        CancellationToken ct = default)
+    {
+        if (!_settings.IsConfigured)
+            return (false, null, "YooKassa is not configured");
+
+        var idempotenceKey = Guid.NewGuid().ToString();
+        var amount = _glowBook.PremiumPriceRub.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+        var payload = new
+        {
+            amount = new { value = amount, currency = "RUB" },
+            capture = true,
+            confirmation = new { type = "redirect", return_url = returnUrl },
+            description = "GlowBox Premium — доступ к материалам",
+            metadata = new { userId, kind = "reader" }
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.yookassa.ru/v3/payments");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.ShopId}:{_settings.SecretKey}")));
+        request.Headers.Add("Idempotence-Key", idempotenceKey);
+        request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+        var response = await _http.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+            return (false, null, $"YooKassa error: {response.StatusCode}");
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        var paymentId = root.GetProperty("id").GetString()!;
+        var status = root.GetProperty("status").GetString() ?? "pending";
+        var redirect = root.GetProperty("confirmation").GetProperty("confirmation_url").GetString();
+
+        _db.UserPaymentOrders.Add(new UserPaymentOrder
+        {
+            UserId = userId,
+            YooKassaPaymentId = paymentId,
+            AmountRub = _glowBook.PremiumPriceRub,
+            Status = status
+        });
+        await _db.SaveChangesAsync(ct);
+
+        return (true, redirect, null);
+    }
+
     public async Task HandleWebhookAsync(JsonElement notification, CancellationToken ct = default)
     {
         if (!notification.TryGetProperty("event", out var eventProp))
@@ -103,6 +155,33 @@ public class YooKassaService
 
         var verified = await FetchPaymentAsync(paymentId, ct);
         var status = verified?.Status ?? (obj.TryGetProperty("status", out var st) ? st.GetString() : null) ?? "unknown";
+
+        var userOrder = await _db.UserPaymentOrders.FirstOrDefaultAsync(x => x.YooKassaPaymentId == paymentId, ct);
+        if (userOrder == null && !string.IsNullOrWhiteSpace(verified?.UserId))
+        {
+            userOrder = new UserPaymentOrder
+            {
+                UserId = verified.UserId!,
+                YooKassaPaymentId = paymentId,
+                AmountRub = _glowBook.PremiumPriceRub,
+                Status = status
+            };
+            _db.UserPaymentOrders.Add(userOrder);
+        }
+
+        if (userOrder != null)
+        {
+            userOrder.Status = status;
+            if (status == "succeeded")
+            {
+                userOrder.PaidAt ??= DateTime.UtcNow;
+                await _premiumAccess.ActivateUserPremiumAsync(userOrder.UserId, paymentId, _glowBook.PremiumDays, ct);
+                _logger.LogInformation("Reader Premium activated for user {UserId}", userOrder.UserId);
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return;
+        }
 
         var order = await _db.PaymentOrders.FirstOrDefaultAsync(x => x.YooKassaPaymentId == paymentId, ct);
         if (order == null && verified?.MasterProfileId is int fromMeta)
@@ -154,17 +233,23 @@ public class YooKassaService
         var root = doc.RootElement;
         var status = root.TryGetProperty("status", out var st) ? st.GetString() : null;
         int? masterId = null;
-        if (root.TryGetProperty("metadata", out var meta)
-            && meta.TryGetProperty("masterProfileId", out var mid)
-            && int.TryParse(mid.GetString(), out var parsed))
+        string? userId = null;
+        if (root.TryGetProperty("metadata", out var meta))
         {
-            masterId = parsed;
+            if (meta.TryGetProperty("masterProfileId", out var mid)
+                && int.TryParse(mid.GetString(), out var parsed))
+            {
+                masterId = parsed;
+            }
+
+            if (meta.TryGetProperty("userId", out var uid))
+                userId = uid.GetString();
         }
 
-        return new VerifiedPayment(status, masterId);
+        return new VerifiedPayment(status, masterId, userId);
     }
 
-    private sealed record VerifiedPayment(string? Status, int? MasterProfileId);
+    private sealed record VerifiedPayment(string? Status, int? MasterProfileId, string? UserId);
 
     public async Task<bool> TryConfirmPaymentAsync(string paymentId, CancellationToken ct = default)
     {
@@ -209,5 +294,50 @@ public class YooKassaService
         if (order == null)
             return false;
         return await TryConfirmPaymentAsync(order.YooKassaPaymentId, ct);
+    }
+
+    public async Task<bool> TryConfirmLatestUserPendingAsync(string userId, CancellationToken ct = default)
+    {
+        var order = await _db.UserPaymentOrders
+            .Where(o => o.UserId == userId && o.Status != "succeeded")
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (order == null)
+            return false;
+        return await TryConfirmUserPaymentAsync(order.YooKassaPaymentId, ct);
+    }
+
+    public async Task<bool> TryConfirmUserPaymentAsync(string paymentId, CancellationToken ct = default)
+    {
+        if (!_settings.IsConfigured)
+            return false;
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.yookassa.ru/v3/payments/{paymentId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.ShopId}:{_settings.SecretKey}")));
+
+        var response = await _http.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+            return false;
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(body);
+        var status = doc.RootElement.GetProperty("status").GetString();
+
+        var order = await _db.UserPaymentOrders.FirstOrDefaultAsync(x => x.YooKassaPaymentId == paymentId, ct);
+        if (order == null)
+            return false;
+
+        order.Status = status ?? order.Status;
+        if (status == "succeeded" && order.PaidAt == null)
+        {
+            order.PaidAt = DateTime.UtcNow;
+            await _premiumAccess.ActivateUserPremiumAsync(order.UserId, paymentId, _glowBook.PremiumDays, ct);
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return status == "succeeded";
     }
 }

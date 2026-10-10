@@ -28,6 +28,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MasterPortfolioPhoto> MasterPortfolioPhotos => Set<MasterPortfolioPhoto>();
     public DbSet<MasterPromo> MasterPromos => Set<MasterPromo>();
     public DbSet<MasterReview> MasterReviews => Set<MasterReview>();
+    public DbSet<MasterArticle> MasterArticles => Set<MasterArticle>();
+    public DbSet<UserPaymentOrder> UserPaymentOrders => Set<UserPaymentOrder>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -129,6 +131,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasOne(x => x.MasterProfile).WithMany().HasForeignKey(x => x.MasterProfileId);
         });
 
+        builder.Entity<UserPaymentOrder>(e =>
+        {
+            e.HasIndex(x => x.YooKassaPaymentId).IsUnique();
+            e.Property(x => x.YooKassaPaymentId).HasMaxLength(64);
+            e.Property(x => x.Status).HasMaxLength(32);
+            e.Property(x => x.UserId).HasMaxLength(450);
+            e.Property(x => x.AmountRub).HasPrecision(10, 2);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<ClientAvatar>(e =>
         {
             e.HasKey(x => x.UserId);
@@ -192,6 +205,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(x => x.ClientId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<MasterArticle>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(160);
+            e.Property(x => x.Slug).HasMaxLength(120);
+            e.Property(x => x.Excerpt).HasMaxLength(320);
+            e.Property(x => x.CoverContentType).HasMaxLength(100);
+            e.HasIndex(x => new { x.MasterProfileId, x.Slug }).IsUnique();
+            e.HasIndex(x => new { x.MasterProfileId, x.IsPublished, x.PublishedAt });
+            e.HasOne(x => x.MasterProfile)
+                .WithMany(x => x.Articles)
+                .HasForeignKey(x => x.MasterProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

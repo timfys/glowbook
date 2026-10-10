@@ -1,0 +1,86 @@
+@model GlowBook.Web.Models.Blog.PublicArticleViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    var avatarUrl = Url.Action("Avatar", "Profile", new { id = Model.ProfileId, v = Model.AvatarVersion });
+    var returnUrl = Url.Action("Article", "Blog", new { username = Model.Username, articleSlug = Model.Slug });
+}
+<article class="blog-article" style="--book-accent:@Model.AccentColor">
+    <header class="blog-article-head">
+        <a class="blog-public-back" asp-action="Index" asp-route-username="@Model.Username">← Блог @@@Model.Username</a>
+        <div class="blog-article-meta">
+            @if (Model.IsPremiumOnly)
+            {
+                <span class="blog-pill blog-pill-premium">Premium</span>
+            }
+            <time>@Model.PublishedAt.ToLocalTime().ToString("d MMMM yyyy")</time>
+        </div>
+        <h1 class="blog-article-title">@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Excerpt))
+        {
+            <p class="blog-article-lead">@Model.Excerpt</p>
+        }
+        <div class="blog-article-author">
+            @if (Model.HasAvatar)
+            {
+                <img class="gb-avatar gb-avatar-sm" src="@avatarUrl" alt="" />
+            }
+            else
+            {
+                <span class="gb-avatar gb-avatar-sm gb-avatar-fallback">@DisplayHelpers.Initials(Model.BusinessName)</span>
+            }
+            <div>
+                <div class="fw-semibold">@Model.BusinessName</div>
+                <div class="text-muted small">@@@Model.Username</div>
+            </div>
+        </div>
+    </header>
+
+    @if (Model.HasCover)
+    {
+        <div class="blog-article-cover">
+            <img src="@Url.Action("Cover", "Blog", new { id = Model.ArticleId })" alt="" />
+        </div>
+    }
+
+    @if (Model.CanReadFull)
+    {
+        <div class="blog-article-body">
+            @Html.Raw(Model.BodyHtml)
+        </div>
+    }
+    else
+    {
+        <div class="blog-paywall">
+            <div class="blog-paywall-glow" aria-hidden="true"></div>
+            <div class="blog-paywall-card">
+                <div class="blog-pill blog-pill-premium mb-2">Только Premium</div>
+                <h2 class="h5 fw-bold mb-2">Полный текст за подпиской</h2>
+                <p class="text-muted mb-3">
+                    Мастер открыл эту статью для Premium-читателей.
+                    @(Model.IsAuthenticated
+                        ? "Оформите Premium — и читайте без ограничений."
+                        : "Зарегистрируйтесь, оформите Premium — и читайте без ограничений.")
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (!Model.IsAuthenticated)
+                    {
+                        <a class="btn btn-gb-primary" asp-controller="Auth" asp-action="Register" asp-route-accountType="Client" asp-route-returnUrl="@returnUrl">Зарегистрироваться</a>
+                        <a class="btn btn-gb-outline" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@returnUrl">Войти</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-gb-primary" asp-controller="Premium" asp-action="Index" asp-route-returnUrl="@returnUrl">Оформить Premium</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <footer class="blog-article-foot">
+        @if (Model.BookingUrl != null)
+        {
+            <a class="btn btn-gb-primary" href="@Model.BookingUrl">Записаться к мастеру</a>
+        }
+        <a class="btn btn-gb-outline" asp-controller="Search" asp-action="Index">Найти других мастеров</a>
+    </footer>
+</article>

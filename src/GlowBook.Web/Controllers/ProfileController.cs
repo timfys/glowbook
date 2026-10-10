@@ -1,5 +1,6 @@
 using GlowBook.Web.Data;
 using GlowBook.Web.Filters;
+using GlowBook.Web.Helpers;
 using GlowBook.Web.Models;
 using GlowBook.Web.Models.Entities;
 using GlowBook.Web.Services;
@@ -58,6 +59,7 @@ public class ProfileController : Controller
             Address = profile.Address,
             Description = profile.Description,
             BookingSlug = profile.BookingSlug,
+            AccentColor = CalendarColors.Normalize(profile.PageAccentColor),
             HasAvatar = profile.HasAvatar,
             AvatarVersion = profile.AvatarUpdatedAt?.Ticks,
             IsPremium = profile.Subscription?.IsPremiumActive == true,
@@ -165,6 +167,20 @@ public class ProfileController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        await _db.SaveChangesAsync();
+        TempData["ProfileSaved"] = true;
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("avatar/remove")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveAvatar()
+    {
+        var (user, profile) = await GetCurrentAsync();
+        if (user == null || profile == null)
+            return Challenge();
+
+        await RemoveAvatarAsync(profile);
         await _db.SaveChangesAsync();
         TempData["ProfileSaved"] = true;
         return RedirectToAction(nameof(Index));

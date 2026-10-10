@@ -7,37 +7,40 @@
     var canBook = ViewBag.CanBook as bool? == true;
 }
 <div class="blog-public master-public" style="--book-accent:@Model.AccentColor">
-    <header class="master-public-hero">
-        <div class="master-public-identity">
-            @if (Model.HasAvatar)
-            {
-                <img class="gb-avatar master-public-avatar" src="@avatarUrl" alt="" />
-            }
-            else
-            {
-                <span class="gb-avatar gb-avatar-fallback master-public-avatar">@DisplayHelpers.Initials(Model.BusinessName)</span>
-            }
-            <div>
-                <div class="blog-public-username">@@@Model.Username</div>
-                <h1 class="master-public-name">@Model.BusinessName</h1>
-                @if (!string.IsNullOrWhiteSpace(Model.Specialization))
+    <div class="book-shell master-public-shell">
+        <div class="book-cover" aria-hidden="true"></div>
+        <header class="master-public-hero">
+            <div class="master-public-identity">
+                @if (Model.HasAvatar)
                 {
-                    <p class="master-public-spec">@Model.Specialization</p>
+                    <img class="gb-avatar master-public-avatar" src="@avatarUrl" alt="" />
                 }
-                @if (!string.IsNullOrWhiteSpace(location))
+                else
                 {
-                    <p class="text-muted small mb-0">@location</p>
+                    <span class="gb-avatar gb-avatar-fallback master-public-avatar">@DisplayHelpers.Initials(Model.BusinessName)</span>
                 }
+                <div>
+                    <div class="blog-public-username">@@@Model.Username</div>
+                    <h1 class="master-public-name">@Model.BusinessName</h1>
+                    @if (!string.IsNullOrWhiteSpace(Model.Specialization))
+                    {
+                        <p class="master-public-spec">@Model.Specialization</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(location))
+                    {
+                        <p class="text-muted small mb-0">@location</p>
+                    }
+                </div>
             </div>
-        </div>
-        <div class="master-public-cta">
-            @if (canBook && Model.BookingUrl != null)
-            {
-                <a class="btn btn-gb-primary" href="@Model.BookingUrl">Записаться</a>
-            }
-            <a class="btn btn-gb-outline" asp-action="Index" asp-route-username="@Model.Username">Блог</a>
-        </div>
-    </header>
+            <div class="master-public-cta">
+                @if (canBook && Model.BookingUrl != null)
+                {
+                    <a class="btn btn-gb-primary" href="@Model.BookingUrl">Записаться</a>
+                }
+                <a class="btn btn-gb-outline" asp-action="Index" asp-route-username="@Model.Username">Блог</a>
+            </div>
+        </header>
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(description))
     {

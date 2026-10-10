@@ -14,6 +14,7 @@ public class ProfileCardViewModel
     public string? Address { get; set; }
     public string? Description { get; set; }
     public string BookingSlug { get; set; } = string.Empty;
+    public string AccentColor { get; set; } = "#8b3db8";
     public bool HasAvatar { get; set; }
     public long? AvatarVersion { get; set; }
     public bool IsPremium { get; set; }

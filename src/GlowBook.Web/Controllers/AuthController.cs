@@ -19,6 +19,7 @@ public class AuthController : Controller
     private readonly TelegramAuthService _telegramAuth;
     private readonly MasterProfileService _profiles;
     private readonly ClientAccountService _clientAccounts;
+    private readonly BlogService _blog;
     private readonly ExternalAuthSettings _authSettings;
 
     public AuthController(
@@ -28,6 +29,7 @@ public class AuthController : Controller
         TelegramAuthService telegramAuth,
         MasterProfileService profiles,
         ClientAccountService clientAccounts,
+        BlogService blog,
         IOptions<ExternalAuthSettings> authSettings)
     {
         _signInManager = signInManager;
@@ -36,6 +38,7 @@ public class AuthController : Controller
         _telegramAuth = telegramAuth;
         _profiles = profiles;
         _clientAccounts = clientAccounts;
+        _blog = blog;
         _authSettings = authSettings.Value;
     }
 
@@ -107,6 +110,16 @@ public class AuthController : Controller
         if (model.AccountType == UserAccountType.Client && string.IsNullOrWhiteSpace(model.Phone))
             ModelState.AddModelError(nameof(model.Phone), "Укажите телефон — по нему найдём ваши записи у мастеров");
 
+        string? masterUsername = null;
+        if (model.AccountType == UserAccountType.Master)
+        {
+            var (normalized, usernameError) = await _blog.ValidateUsernameAvailableAsync(model.Username);
+            if (usernameError != null)
+                ModelState.AddModelError(nameof(model.Username), usernameError);
+            else
+                masterUsername = normalized;
+        }
+
         if (!ModelState.IsValid)
             return View(model);
 
@@ -129,7 +142,7 @@ public class AuthController : Controller
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
-        await AfterSignInAsync(user);
+        await AfterSignInAsync(user, masterUsername);
         return RedirectHome(user, returnUrl);
     }
 
@@ -189,10 +202,10 @@ public class AuthController : Controller
         MailRu = _authSettings.MailRu.IsConfigured
     };
 
-    private async Task AfterSignInAsync(ApplicationUser user)
+    private async Task AfterSignInAsync(ApplicationUser user, string? preferredUsername = null)
     {
         if (user.AccountType == UserAccountType.Master)
-            await _profiles.EnsureForUserAsync(user);
+            await _profiles.EnsureForUserAsync(user, preferredUsername);
         else
             await _clientAccounts.LinkClientsToUserAsync(user);
     }

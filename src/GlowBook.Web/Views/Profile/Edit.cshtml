@@ -14,7 +14,12 @@
             <a class="btn btn-gb-outline btn-sm" asp-action="Index">Назад</a>
         </div>
 
-        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <form asp-action="Edit"
+              method="post"
+              enctype="multipart/form-data"
+              data-gb-avatar="1"
+              data-has-avatar="@(Model.HasAvatar ? "1" : "0")"
+              data-avatar-url="@(Model.HasAvatar ? avatarUrl : null)">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -22,28 +27,29 @@
                 <div class="profile-avatar-picker">
                     @if (Model.HasAvatar)
                     {
-                        <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="Аватар" />
+                        <button type="button" class="profile-avatar-view" aria-label="Фото профиля">
+                            <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="Аватар" />
+                        </button>
                     }
                     else
                     {
                         <div id="avatarFallback" class="tg-card-avatar tg-card-avatar-fallback">@DisplayHelpers.Initials(Model.DisplayName)</div>
                         <img id="avatarPreview" class="tg-card-avatar d-none" alt="Аватар" />
                     }
-                    <span class="profile-avatar-camera" aria-hidden="true">
+                    <button type="button" class="profile-avatar-camera" data-avatar-change aria-label="Сменить фото">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
                             <circle cx="12" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/>
                         </svg>
-                    </span>
-                    @* Input поверх аватара (opacity 0) — тап идёт в реальный file input, UI красивый *@
+                    </button>
                     <input id="avatarInput"
                            asp-for="Avatar"
                            type="file"
                            accept="image/*"
-                           class="profile-avatar-hit"
+                           class="profile-avatar-input-hidden"
                            aria-label="Выбрать фото" />
                 </div>
-                <div class="small text-muted mt-2">Нажмите на фото, чтобы заменить</div>
+                <div class="small text-muted mt-2">Нажмите на фото — открыть или сменить, как в Telegram</div>
                 <div id="avatarClientError" class="text-danger small d-none mt-1"></div>
                 <span asp-validation-for="Avatar" class="text-danger d-block"></span>
                 @if (Model.HasAvatar)

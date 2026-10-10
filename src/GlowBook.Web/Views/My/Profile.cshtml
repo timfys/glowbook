@@ -23,14 +23,17 @@
               method="post"
               enctype="multipart/form-data"
               class="profile-avatar-picker"
-              data-avatar-autosubmit="1">
+              data-gb-avatar="1"
+              data-avatar-autosubmit="1"
+              data-has-avatar="@(Model.HasAvatar ? "1" : "0")"
+              data-avatar-url="@(Model.HasAvatar ? avatarUrl : null)"
+              data-remove-url="@Url.Action("RemoveAvatar")">
             @Html.AntiForgeryToken()
             @if (Model.HasAvatar)
             {
                 <button type="button"
                         class="profile-avatar-view"
-                        data-avatar-zoom="@avatarUrl"
-                        aria-label="Открыть фото">
+                        aria-label="Фото профиля">
                     <img id="avatarPreview" class="gb-account-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
                 </button>
             }
@@ -52,7 +55,7 @@
                    class="profile-avatar-input-hidden"
                    aria-label="Сменить фото" />
         </form>
-        <div class="small text-muted mt-2">Нажмите на фото, чтобы открыть · на камеру — сменить</div>
+        <div class="small text-muted mt-2">Нажмите на фото — открыть, сменить или удалить</div>
         <div id="avatarClientError" class="text-danger small d-none mt-1"></div>
     </div>
 

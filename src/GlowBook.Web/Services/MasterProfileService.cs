@@ -17,13 +17,19 @@ public class MasterProfileService
             .Include(x => x.Subscription)
             .FirstOrDefaultAsync(x => x.UserId == userId, ct);
 
-    public async Task<MasterProfile> EnsureForUserAsync(ApplicationUser user, CancellationToken ct = default)
+    public async Task<MasterProfile> EnsureForUserAsync(
+        ApplicationUser user,
+        string? preferredUsername = null,
+        CancellationToken ct = default)
     {
         var profile = await GetForUserAsync(user.Id, ct);
         if (profile != null)
             return profile;
 
-        var slugBase = Slugify(user.DisplayName ?? user.Email ?? user.Id);
+        var preferred = BlogService.NormalizeUsername(preferredUsername);
+        var slugBase = preferred != null && BlogService.IsValidUsername(preferred)
+            ? preferred
+            : Slugify(user.DisplayName ?? user.Email ?? user.Id);
         var slug = await EnsureUniqueSlugAsync(slugBase, ct);
 
         profile = new MasterProfile

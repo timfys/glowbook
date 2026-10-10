@@ -48,6 +48,10 @@ public class RegisterViewModel
     [Required(ErrorMessage = "Выберите тип аккаунта")]
     [Display(Name = "Тип аккаунта")]
     public UserAccountType AccountType { get; set; } = UserAccountType.Master;
+
+    [MaxLength(32)]
+    [Display(Name = "Юзернейм")]
+    public string? Username { get; set; }
 }
 
 public class AuthProvidersViewModel

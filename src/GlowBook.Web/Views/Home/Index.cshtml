@@ -1,66 +1,100 @@
-﻿@using GlowBook.Web.Models.Enums
+﻿@using GlowBook.Web.Models
+@using GlowBook.Web.Models.Enums
+@using GlowBook.Web.Services
+@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Главная";
+    var homeUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var cabinetHome = homeUser != null ? AccountRouting.HomeFor(homeUser) : null;
 }
 
-<section class="hero">
-    <div class="row align-items-center g-5">
-        <div class="col-lg-7">
-            <span class="gb-kicker">GlowBox</span>
-            <h1>Записи и клиенты — в одном месте</h1>
-            <p class="lead mt-3">Ведите расписание, храните контакты и записывайте клиентов через наше приложение.</p>
-            <form class="home-search mt-4" method="get" action="@Url.Action("Index", "Search")">
-                <div class="search-field">
-                    <span class="search-at" aria-hidden="true">@@</span>
-                    <input type="search" name="q" class="form-control search-input" placeholder="Найти мастера по @@username или имени" />
-                    <button type="submit" class="btn btn-gb-primary search-submit">Найти</button>
-                </div>
-            </form>
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <div class="d-flex flex-wrap gap-2 mt-3">
-                    <a class="btn btn-gb-outline" asp-controller="Dashboard" asp-action="Index">Открыть кабинет</a>
-                </div>
-            }
-            else
-            {
-                <div class="home-start mt-4" id="start">
-                    <p class="text-muted mb-2 fw-semibold">Кто вы?</p>
-                    <div class="account-type-picker home-role-picker">
-                        <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Master">
-                            <span class="account-type-title">Мастер</span>
-                            <span class="account-type-desc">Кабинет, клиенты, календарь и онлайн-запись</span>
-                        </a>
-                        <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Client">
-                            <span class="account-type-title">Клиент</span>
-                            <span class="account-type-desc">Мои записи и визиты у мастеров</span>
-                        </a>
-                    </div>
-                    <p class="text-muted small mt-3 mb-0">
-                        Уже есть аккаунт? <a asp-controller="Auth" asp-action="Login">Войти</a>
-                    </p>
-                </div>
-            }
-        </div>
-        <div class="col-lg-5">
-            <div class="feature-card pricing-card">
-                <div class="text-muted small fw-bold mb-2">PREMIUM</div>
-                <h5 class="fw-bold mb-1">350 ₽ в месяц</h5>
-                <p class="text-muted mb-3">Ваш мини-сайт и онлайн-запись по ссылке.</p>
-                <ul class="mb-0 ps-3">
-                    <li class="mb-1">Страница с портфолио, блогом и акциями</li>
-                    <li class="mb-1">Запись без регистрации клиента</li>
-                    <li class="mb-1">Premium-статьи для читателей</li>
-                    <li class="mb-1">Яндекс.Карты на странице</li>
-                </ul>
-                <a class="small d-inline-block mt-3" href="/rekvizity">Реквизиты, оферта и оплата →</a>
-            </div>
-        </div>
+<section class="hero home-hero">
+    <h1 class="home-brand">GlowBox</h1>
+    <p class="home-tagline">Записи и клиенты — в одном месте</p>
+    <p class="lead home-lead">CRM для мастеров красоты и удобный поиск мастера для клиентов.</p>
+    <div class="home-jump">
+        <a class="home-jump-link" href="#home-search">Поиск</a>
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <a class="home-jump-link" href="#home-login">Вход</a>
+            <a class="home-jump-link" href="#home-register">Регистрация</a>
+        }
+        else
+        {
+            <a class="home-jump-link" href="@cabinetHome">Кабинет</a>
+        }
     </div>
 </section>
 
-<div class="row g-3 pb-5">
+<section class="home-block" id="home-search" aria-labelledby="home-search-title">
+    <div class="home-block-head">
+        <span class="home-block-kicker">Поиск</span>
+        <h2 class="home-block-title" id="home-search-title">Найти мастера</h2>
+        <p class="home-block-lead">По юзернейму, как в Telegram, или по имени и городу</p>
+    </div>
+    <form class="home-search" method="get" action="@Url.Action("Index", "Search")">
+        <div class="search-field">
+            <span class="search-at" aria-hidden="true">@@</span>
+            <input type="search" name="q" class="form-control search-input" placeholder="username или имя" autocomplete="off" />
+            <button type="submit" class="btn btn-gb-primary search-submit">Найти</button>
+        </div>
+    </form>
+</section>
+
+@if (cabinetHome != null)
+{
+    <section class="home-block home-block-cabinet">
+        <div class="home-block-head">
+            <span class="home-block-kicker">Кабинет</span>
+            <h2 class="home-block-title">Вы уже вошли</h2>
+            <p class="home-block-lead">Откройте рабочее пространство или продолжите поиск мастеров выше</p>
+        </div>
+        <a class="btn btn-gb-primary" href="@cabinetHome">Открыть кабинет</a>
+    </section>
+}
+else
+{
+    <div class="home-auth-grid">
+        <section class="home-block home-block-login" id="home-login" aria-labelledby="home-login-title">
+            <div class="home-block-head">
+                <span class="home-block-kicker">Авторизация</span>
+                <h2 class="home-block-title" id="home-login-title">Вход</h2>
+                <p class="home-block-lead">Уже есть аккаунт — зайдите по email или через Mail.ru</p>
+            </div>
+            <a class="btn btn-gb-primary w-100" asp-controller="Auth" asp-action="Login">Войти</a>
+        </section>
+
+        <section class="home-block home-block-register" id="home-register" aria-labelledby="home-register-title">
+            <div class="home-block-head">
+                <span class="home-block-kicker">Регистрация</span>
+                <h2 class="home-block-title" id="home-register-title">Создать аккаунт</h2>
+                <p class="home-block-lead">Выберите, кто вы — и зарегистрируйтесь</p>
+            </div>
+            <div class="account-type-picker home-role-picker">
+                <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Master">
+                    <span class="account-type-title">Мастер</span>
+                    <span class="account-type-desc">Кабинет, клиенты, календарь и онлайн-запись</span>
+                </a>
+                <a class="account-type-option" asp-controller="Auth" asp-action="Register" asp-route-accountType="@UserAccountType.Client">
+                    <span class="account-type-title">Клиент</span>
+                    <span class="account-type-desc">Мои записи и визиты у мастеров</span>
+                </a>
+            </div>
+        </section>
+    </div>
+}
+
+<section class="home-premium-strip">
+    <div>
+        <div class="home-premium-kicker">Premium</div>
+        <h2 class="home-premium-title">350 ₽ в месяц</h2>
+        <p class="home-premium-lead mb-0">Мини-сайт, онлайн-запись, блог и Яндекс.Карты на вашей странице.</p>
+    </div>
+    <a class="btn btn-gb-outline btn-sm" href="/rekvizity">Реквизиты и оферта</a>
+</section>
+
+<div class="row g-3 pb-5 home-features">
     <div class="col-md-4">
         <div class="feature-card h-100">
             <div class="feature-icon">

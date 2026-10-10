@@ -18,7 +18,12 @@
     <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@ViewBag.TodayCount</div><div class="stat-label">Записей сегодня</div></div></div>
     <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@(((decimal)ViewBag.RevenueToday).ToString("N0")) ₽</div><div class="stat-label">Выручка сегодня</div></div></div>
     <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@(((decimal)ViewBag.RevenueMonth).ToString("N0")) ₽</div><div class="stat-label">Выручка за месяц</div></div></div>
-    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-value">@ViewBag.ClientsCount</div><div class="stat-label">Клиентов</div></div></div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card stat-card-link" asp-controller="Clients" asp-action="Index">
+            <div class="stat-value">@ViewBag.ClientsCount</div>
+            <div class="stat-label">Клиентов</div>
+        </a>
+    </div>
 </div>
 @if (ViewBag.IsPremium == true)
 {

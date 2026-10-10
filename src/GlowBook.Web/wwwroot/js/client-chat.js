@@ -4,7 +4,12 @@
     var form = document.getElementById('gbChatForm');
     var input = document.getElementById('gbChatInput');
     var fileInput = document.getElementById('gbChatFile');
-    var fileNameEl = document.getElementById('gbChatFileName');
+    var attachBtn = document.getElementById('gbChatAttachBtn');
+    var preview = document.getElementById('gbChatAttachPreview');
+    var thumb = document.getElementById('gbChatAttachThumb');
+    var nameEl = document.getElementById('gbChatAttachName');
+    var sizeEl = document.getElementById('gbChatAttachSize');
+    var clearBtn = document.getElementById('gbChatAttachClear');
     if (!chat || !box || !form || !input) return;
 
     var clientRecordId = parseInt(chat.getAttribute('data-client-record-id') || '0', 10);
@@ -13,6 +18,7 @@
     var streamUrl = chat.getAttribute('data-stream-url') || '';
     var attachmentPattern = chat.getAttribute('data-attachment-url-pattern') || '/chat/api/attachment/{0}';
     var currentUserId = chat.getAttribute('data-current-user-id') || '';
+    var previewObjectUrl = null;
 
     var lastId = 0;
     box.querySelectorAll('[data-id]').forEach(function (el) {
@@ -21,17 +27,93 @@
     });
     scrollToBottom();
 
-    if (fileInput) {
-        fileInput.addEventListener('change', function () {
-            if (!fileNameEl) return;
-            if (fileInput.files && fileInput.files.length > 0) {
-                fileNameEl.textContent = fileInput.files[0].name;
-                fileNameEl.hidden = false;
+    function formatBytes(n) {
+        if (!n && n !== 0) return '';
+        if (n < 1024) return n + ' Б';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' КБ';
+        return (n / (1024 * 1024)).toFixed(1) + ' МБ';
+    }
+
+    function clearAttachPreview() {
+        if (previewObjectUrl) {
+            try { URL.revokeObjectURL(previewObjectUrl); } catch (_) {}
+            previewObjectUrl = null;
+        }
+        if (fileInput) fileInput.value = '';
+        if (thumb) {
+            thumb.style.backgroundImage = '';
+            thumb.textContent = '';
+            thumb.classList.remove('is-file');
+        }
+        if (nameEl) nameEl.textContent = '';
+        if (sizeEl) sizeEl.textContent = '';
+        if (preview) preview.hidden = true;
+    }
+
+    function showAttachPreview(file) {
+        if (!file || !preview) return;
+        if (previewObjectUrl) {
+            try { URL.revokeObjectURL(previewObjectUrl); } catch (_) {}
+            previewObjectUrl = null;
+        }
+        if (nameEl) nameEl.textContent = file.name || 'Файл';
+        if (sizeEl) sizeEl.textContent = formatBytes(file.size);
+        if (thumb) {
+            if (file.type && file.type.indexOf('image/') === 0) {
+                previewObjectUrl = URL.createObjectURL(file);
+                thumb.style.backgroundImage = 'url("' + previewObjectUrl + '")';
+                thumb.textContent = '';
+                thumb.classList.remove('is-file');
             } else {
-                fileNameEl.textContent = '';
-                fileNameEl.hidden = true;
+                thumb.style.backgroundImage = '';
+                thumb.textContent = 'PDF';
+                thumb.classList.add('is-file');
+            }
+        }
+        preview.hidden = false;
+    }
+
+    function pickFile(accept, capture) {
+        if (!fileInput) return;
+        fileInput.setAttribute('accept', accept || '*/*');
+        if (capture) fileInput.setAttribute('capture', 'environment');
+        else fileInput.removeAttribute('capture');
+        fileInput.click();
+    }
+
+    if (attachBtn) {
+        attachBtn.addEventListener('click', function () {
+            if (window.GbMedia && typeof window.GbMedia.openSheet === 'function') {
+                window.GbMedia.openSheet('Вложение', [
+                    {
+                        label: 'Фото',
+                        onClick: function () { pickFile('image/*', false); }
+                    },
+                    {
+                        label: 'Снимок',
+                        onClick: function () { pickFile('image/*', true); }
+                    },
+                    {
+                        label: 'Файл',
+                        onClick: function () { pickFile('image/*,.pdf,application/pdf', false); }
+                    }
+                ]);
+            } else {
+                pickFile('image/*,.pdf', false);
             }
         });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            var file = fileInput.files && fileInput.files[0];
+            if (file) showAttachPreview(file);
+            else clearAttachPreview();
+        });
+    }
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearAttachPreview);
     }
 
     form.addEventListener('submit', function (e) {
@@ -69,11 +151,14 @@
         var isImage = msg.isImageAttachment || msg.IsImageAttachment;
 
         if (isImage) {
-            return '<div class="gb-chat-attachment"><a href="' + escapeAttr(url) + '" target="_blank" rel="noopener">' +
-                '<img class="gb-chat-attachment-img" src="' + escapeAttr(url) + '" alt="' + escapeAttr(fileName) + '" loading="lazy" /></a></div>';
+            return '<div class="gb-chat-attachment">' +
+                '<button type="button" class="gb-chat-attachment-zoom" data-gb-zoom="' + escapeAttr(url) + '" aria-label="Открыть фото">' +
+                '<img class="gb-chat-attachment-img" src="' + escapeAttr(url) + '" alt="' + escapeAttr(fileName) + '" loading="lazy" /></button></div>';
         }
-        return '<div class="gb-chat-attachment"><a class="gb-chat-file-link" href="' + escapeAttr(url) + '" download="' + escapeAttr(fileName) + '">' +
-            '📎 ' + escapeHtml(fileName) + '</a></div>';
+        return '<div class="gb-chat-attachment">' +
+            '<a class="gb-chat-file-chip" href="' + escapeAttr(url) + '" download="' + escapeAttr(fileName) + '">' +
+            '<span class="gb-chat-file-chip-icon" aria-hidden="true">PDF</span>' +
+            '<span class="gb-chat-file-chip-name">' + escapeHtml(fileName) + '</span></a></div>';
     }
 
     function escapeHtml(text) {
@@ -138,11 +223,7 @@
 
     function clearForm() {
         input.value = '';
-        if (fileInput) fileInput.value = '';
-        if (fileNameEl) {
-            fileNameEl.textContent = '';
-            fileNameEl.hidden = true;
-        }
+        clearAttachPreview();
     }
 
     function sendMessage() {

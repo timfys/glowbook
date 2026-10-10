@@ -14,7 +14,7 @@
         <div class="alert alert-danger py-2 px-3 mb-3">@TempData["AvatarError"]</div>
     }
 
-    <article class="tg-card">
+    <article class="tg-card" style="--book-accent:@Model.AccentColor">
         <div class="tg-card-cover">
             <a class="tg-card-edit" asp-action="Edit" title="Изменить">
                 Изменить
@@ -26,15 +26,18 @@
                   method="post"
                   enctype="multipart/form-data"
                   class="profile-avatar-picker profile-avatar-picker-card"
+                  data-gb-avatar="1"
                   data-avatar-autosubmit="1"
+                  data-has-avatar="@(Model.HasAvatar ? "1" : "0")"
+                  data-avatar-url="@(Model.HasAvatar ? avatarUrl : null)"
+                  data-remove-url="@Url.Action("RemoveAvatar")"
                   id="avatarQuickForm">
                 @Html.AntiForgeryToken()
                 @if (Model.HasAvatar)
                 {
                     <button type="button"
                             class="profile-avatar-view"
-                            data-avatar-zoom="@avatarUrl"
-                            aria-label="Открыть фото">
+                            aria-label="Фото профиля">
                         <img id="avatarPreview" class="tg-card-avatar" src="@avatarUrl" alt="@Model.DisplayName" />
                     </button>
                 }
@@ -56,7 +59,7 @@
                        class="profile-avatar-input-hidden"
                        aria-label="Сменить фото" />
             </form>
-            <div class="small text-muted mt-2 ms-1">Нажмите на фото, чтобы открыть · на камеру — сменить</div>
+            <div class="small text-muted mt-2 ms-1">Нажмите на фото — как в Telegram: открыть, сменить или удалить</div>
             <div id="avatarClientError" class="text-danger small d-none mt-1 ms-1"></div>
         </div>
 

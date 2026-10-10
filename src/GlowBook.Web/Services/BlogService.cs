@@ -265,6 +265,23 @@ public class BlogService
         return Regex.IsMatch(username, @"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$");
     }
 
+    public async Task<(string? Normalized, string? Error)> ValidateUsernameAvailableAsync(
+        string? username,
+        CancellationToken ct = default)
+    {
+        var normalized = NormalizeUsername(username);
+        if (normalized == null)
+            return (null, "Укажите юзернейм");
+        if (!IsValidUsername(normalized))
+            return (null, "Юзернейм: 3–32 символа, латиница, цифры, _ и -");
+
+        var taken = await _db.MasterProfiles.AnyAsync(p => p.BookingSlug == normalized, ct);
+        if (taken)
+            return (null, "Этот юзернейм уже занят");
+
+        return (normalized, null);
+    }
+
     public async Task<(bool Ok, string? Error)> TrySetUsernameAsync(
         MasterProfile profile,
         string? username,

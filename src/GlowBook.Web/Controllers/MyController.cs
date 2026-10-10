@@ -143,7 +143,7 @@ public class MyController : Controller
 
         if (avatar is not { Length: > 0 })
         {
-            TempData["AvatarError"] = "Р’С‹Р±РµСЂРёС‚Рµ С„РѕС‚Рѕ";
+            TempData["AvatarError"] = "Выберите фото";
             return RedirectToAction(nameof(Profile));
         }
 
@@ -155,7 +155,23 @@ public class MyController : Controller
         }
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = "Р¤РѕС‚Рѕ РѕР±РЅРѕРІР»РµРЅРѕ";
+        TempData["Success"] = "Фото обновлено";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpPost("avatar/remove")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveAvatar()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var existing = await _db.ClientAvatars.FirstOrDefaultAsync(a => a.UserId == user.Id);
+        if (existing != null)
+            _db.ClientAvatars.Remove(existing);
+
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Фото удалено";
         return RedirectToAction(nameof(Profile));
     }
 

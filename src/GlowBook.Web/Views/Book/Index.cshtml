@@ -9,72 +9,73 @@
     var booking = Model.Booking;
 }
 <div class="book-page" style="--book-accent:@Model.AccentColor" data-book-tabs>
-    <div class="book-cover" aria-hidden="true"></div>
-
     @if (profile != null)
     {
-        <header class="book-hero-card">
-            @if (profile.HasAvatar)
-            {
-                var bookAvatarUrl = Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks });
-                <button type="button" class="tg-card-avatar-btn" data-avatar-zoom="@bookAvatarUrl" aria-label="Открыть фото крупнее">
-                    <img class="gb-avatar book-avatar" src="@bookAvatarUrl" alt="@profile.BusinessName" />
-                </button>
-            }
-            else
-            {
-                <span class="gb-avatar gb-avatar-fallback book-avatar">@DisplayHelpers.Initials(profile.BusinessName)</span>
-            }
-            <div class="book-hero-text">
-                <div class="book-hero-username">@@@username</div>
-                <h1 class="h4 fw-bold mb-0">
-                    @profile.BusinessName
-                    @if (Model.IsPremiumMaster)
-                    {
-                        <span class="badge badge-premium align-middle">Premium</span>
-                    }
-                </h1>
-                @if (!string.IsNullOrWhiteSpace(profile.Specialization))
+        <div class="book-shell">
+            <div class="book-cover" aria-hidden="true"></div>
+            <header class="book-hero-card">
+                @if (profile.HasAvatar)
                 {
-                    <p class="text-muted mb-1">@profile.Specialization</p>
-                }
-                <div class="book-hero-meta">
-                    @if (Model.AverageRating != null)
-                    {
-                        <span class="book-rating">★ @Model.AverageRating.Value.ToString("0.0") <span class="text-muted">(@Model.ReviewCount)</span></span>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(Model.Location))
-                    {
-                        <span class="text-muted">@Model.Location</span>
-                    }
-                </div>
-            </div>
-        </header>
-
-        @if (!string.IsNullOrWhiteSpace(profile.Description))
-        {
-            <p class="book-about">@profile.Description</p>
-        }
-
-        <div class="book-hero-cta">
-            @if (Model.CanBook)
-            {
-                <a class="btn btn-gb-primary" href="#book-form" data-book-goto-page>Записаться</a>
-            }
-            @if (Model.ShowChat)
-            {
-                if (Model.IsAuthenticated)
-                {
-                    <form asp-controller="Blog" asp-action="StartChat" asp-route-username="@username" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-gb-outline">Написать</button>
-                    </form>
+                    var bookAvatarUrl = Url.Action("Avatar", "Profile", new { id = profile.Id, v = profile.AvatarUpdatedAt?.Ticks });
+                    <button type="button" class="tg-card-avatar-btn" data-avatar-zoom="@bookAvatarUrl" aria-label="Открыть фото крупнее">
+                        <img class="gb-avatar book-avatar" src="@bookAvatarUrl" alt="@profile.BusinessName" />
+                    </button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-gb-outline" data-book-chat-open>Написать</button>
+                    <span class="gb-avatar gb-avatar-fallback book-avatar">@DisplayHelpers.Initials(profile.BusinessName)</span>
                 }
+                <div class="book-hero-text">
+                    <div class="book-hero-username">@@@username</div>
+                    <h1 class="h4 fw-bold mb-0">
+                        @profile.BusinessName
+                        @if (Model.IsPremiumMaster)
+                        {
+                            <span class="badge badge-premium align-middle">Premium</span>
+                        }
+                    </h1>
+                    @if (!string.IsNullOrWhiteSpace(profile.Specialization))
+                    {
+                        <p class="text-muted mb-1">@profile.Specialization</p>
+                    }
+                    <div class="book-hero-meta">
+                        @if (Model.AverageRating != null)
+                        {
+                            <span class="book-rating">★ @Model.AverageRating.Value.ToString("0.0") <span class="text-muted">(@Model.ReviewCount)</span></span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.Location))
+                        {
+                            <span class="text-muted">@Model.Location</span>
+                        }
+                    </div>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(profile.Description))
+            {
+                <p class="book-about">@profile.Description</p>
             }
+
+            <div class="book-hero-cta">
+                @if (Model.CanBook)
+                {
+                    <a class="btn btn-gb-primary" href="#book-form" data-book-goto-page>Записаться</a>
+                }
+                @if (Model.ShowChat)
+                {
+                    if (Model.IsAuthenticated)
+                    {
+                        <form asp-controller="Blog" asp-action="StartChat" asp-route-username="@username" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-gb-outline">Написать</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-gb-outline" data-book-chat-open>Написать</button>
+                    }
+                }
+            </div>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(Model.ChatError))

@@ -44,191 +44,6 @@
 })();
 
 (function () {
-    var input = document.getElementById('avatarInput');
-    var preview = document.getElementById('avatarPreview');
-    var fallback = document.getElementById('avatarFallback');
-    var errBox = document.getElementById('avatarClientError');
-    if (!input) {
-        return;
-    }
-
-    function showError(msg) {
-        if (!errBox) return;
-        errBox.textContent = msg || '';
-        errBox.classList.toggle('d-none', !msg);
-    }
-
-    function setPreviewFromFile(file) {
-        if (!preview || !file) return;
-        try {
-            preview.src = URL.createObjectURL(file);
-            preview.classList.remove('d-none');
-            if (fallback) fallback.classList.add('d-none');
-        } catch (_) { /* WebView may lack createObjectURL */ }
-    }
-
-    function canReplaceInputFiles() {
-        try {
-            return typeof DataTransfer !== 'undefined' && typeof File !== 'undefined';
-        } catch (_) {
-            return false;
-        }
-    }
-
-    function resizeImage(file) {
-        return new Promise(function (resolve, reject) {
-            if (!file) {
-                reject(new Error('Файл не выбран'));
-                return;
-            }
-            if (typeof URL === 'undefined' || !URL.createObjectURL) {
-                resolve(file);
-                return;
-            }
-
-            var url = URL.createObjectURL(file);
-            var img = new Image();
-            img.onload = function () {
-                try { URL.revokeObjectURL(url); } catch (_) {}
-                var maxSide = 1024;
-                var w = img.naturalWidth || img.width;
-                var h = img.naturalHeight || img.height;
-                var scale = Math.min(1, maxSide / Math.max(w, h || 1));
-                var cw = Math.max(1, Math.round(w * scale));
-                var ch = Math.max(1, Math.round(h * scale));
-                var canvas = document.createElement('canvas');
-                canvas.width = cw;
-                canvas.height = ch;
-                var ctx = canvas.getContext && canvas.getContext('2d');
-                if (!ctx || !canvas.toBlob) {
-                    resolve(file);
-                    return;
-                }
-                ctx.drawImage(img, 0, 0, cw, ch);
-                canvas.toBlob(function (blob) {
-                    if (!blob || !canReplaceInputFiles()) {
-                        resolve(file);
-                        return;
-                    }
-                    try {
-                        resolve(new File([blob], 'avatar.jpg', { type: 'image/jpeg', lastModified: Date.now() }));
-                    } catch (_) {
-                        resolve(file);
-                    }
-                }, 'image/jpeg', 0.82);
-            };
-            img.onerror = function () {
-                try { URL.revokeObjectURL(url); } catch (_) {}
-                // Keep original — WebView/HEIC often fails decode but upload may still work
-                resolve(file);
-            };
-            img.src = url;
-        });
-    }
-
-    input.addEventListener('change', function () {
-        var file = input.files && input.files[0];
-        var form = input.closest('form');
-        var autoSubmit = form && form.getAttribute('data-avatar-autosubmit') === '1';
-        showError('');
-        if (!file) return;
-
-        setPreviewFromFile(file);
-
-        function maybeSubmit() {
-            if (autoSubmit && form) {
-                form.submit();
-            }
-        }
-
-        // Optional compress — never wipe the chosen file on failure (critical for Android WebView)
-        if (!canReplaceInputFiles()) {
-            maybeSubmit();
-            return;
-        }
-
-        resizeImage(file).then(function (ready) {
-            if (ready && ready !== file) {
-                try {
-                    var dt = new DataTransfer();
-                    dt.items.add(ready);
-                    input.files = dt.files;
-                    setPreviewFromFile(ready);
-                } catch (_) {
-                    // Keep original file in the input
-                }
-            }
-            maybeSubmit();
-        }).catch(function () {
-            maybeSubmit();
-        });
-    });
-
-    document.querySelectorAll('[data-avatar-change]').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var form = btn.closest('form');
-            var fileInput = form && form.querySelector('#avatarInput');
-            if (fileInput) fileInput.click();
-        });
-    });
-})();
-
-(function () {
-    var overlay = document.createElement('div');
-    overlay.className = 'avatar-lightbox';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.innerHTML =
-        '<button type="button" class="avatar-lightbox-close" aria-label="Закрыть">&times;</button>' +
-        '<img alt="" />';
-    document.body.appendChild(overlay);
-
-    var image = overlay.querySelector('img');
-    var closeBtn = overlay.querySelector('.avatar-lightbox-close');
-
-    function openLightbox(src, alt, round) {
-        image.src = src;
-        image.alt = alt || '';
-        overlay.classList.toggle('is-round', !!round);
-        overlay.classList.add('is-open');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeLightbox() {
-        overlay.classList.remove('is-open', 'is-round');
-        image.removeAttribute('src');
-        document.body.style.overflow = '';
-    }
-
-    function bindAvatarZoomTrigger(el) {
-        el.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            openLightbox(
-                el.getAttribute('data-avatar-zoom'),
-                (el.querySelector('img') || {}).alt || '',
-                el.hasAttribute('data-avatar-zoom-round'));
-        });
-    }
-
-    document.querySelectorAll('[data-avatar-zoom]').forEach(bindAvatarZoomTrigger);
-
-    closeBtn.addEventListener('click', closeLightbox);
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) {
-            closeLightbox();
-        }
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
-            closeLightbox();
-        }
-    });
-})();
-
-(function () {
     var form = document.querySelector('[data-client-form="1"]');
     if (!form) {
         return;
@@ -360,12 +175,26 @@
     if (!form) return;
 
     var options = form.querySelectorAll('.account-type-option');
+    var usernameWrap = document.getElementById('registerUsernameWrap');
+
+    function isMasterSelected() {
+        var checked = form.querySelector('input[name="AccountType"]:checked');
+        var val = checked ? checked.value : null;
+        if (val == null) {
+            var hidden = form.querySelector('input[name="AccountType"][type="hidden"]');
+            val = hidden ? hidden.value : 'Master';
+        }
+        return val === 'Master' || val === '0';
+    }
 
     function sync() {
         options.forEach(function (el) {
             var input = el.querySelector('input[type="radio"]');
             el.classList.toggle('is-selected', input && input.checked);
         });
+        if (usernameWrap) {
+            usernameWrap.style.display = isMasterSelected() ? '' : 'none';
+        }
     }
 
     form.querySelectorAll('input[name="AccountType"]').forEach(function (r) {

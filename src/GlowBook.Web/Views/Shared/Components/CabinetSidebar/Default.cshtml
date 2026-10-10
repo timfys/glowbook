@@ -85,6 +85,14 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.2 8l4.8.7-3.5 3.4.8 4.8L12 14.7 7.7 16.9l.8-4.8L5 8.7 9.8 8 12 3.5z"/></svg>
         <span>Услуги</span>
     </a>
+    <a class="gb-bottom-nav-item @(Model.ActiveController == "Studio" && (Model.ActiveAction == "Blog" || Model.ActiveAction == "ArticleCreate" || Model.ActiveAction == "ArticleEdit") ? "active" : "")" asp-controller="Studio" asp-action="Blog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h6M8 17h4"/></svg>
+        <span>Блог</span>
+    </a>
+    <a class="gb-bottom-nav-item @(Model.ActiveController == "Search" ? "active" : "")" asp-controller="Search" asp-action="Index">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16.5 16.5 21 21"/></svg>
+        <span>Поиск</span>
+    </a>
     <a class="gb-bottom-nav-item @(Model.ActiveController == "Profile" || Model.ActiveController == "Subscription" ? "active" : "")" asp-controller="Profile" asp-action="Index">
         @if (Model.Profile.HasAvatar)
         {

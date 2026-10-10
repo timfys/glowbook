@@ -3,6 +3,10 @@ package com.glowbook.app
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -12,6 +16,7 @@ import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.Gravity
@@ -22,6 +27,7 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -37,6 +43,7 @@ class MainActivity : Activity() {
     private lateinit var errorPanel: LinearLayout
     private lateinit var loadingPanel: LinearLayout
     private lateinit var errorText: TextView
+    private lateinit var mediaGallery: MediaGallery
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var pendingContactPick = false
     private var retryCount = 0
@@ -46,6 +53,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        mediaGallery = MediaGallery(this)
+        ensureNotificationChannel()
 
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#F6F3F8"))
@@ -121,9 +130,20 @@ class MainActivity : Activity() {
         settings.loadWithOverviewMode = true
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
 
-        webView.addJavascriptInterface(ContactBridge(), "GlowBookAndroid")
+        webView.addJavascriptInterface(AndroidBridge(), "GlowBookAndroid")
 
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                val uri = request?.url
+                if (uri != null) {
+                    mediaGallery.intercept(uri)?.let { return it }
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 retryCount = 0
                 hideError()
@@ -185,16 +205,80 @@ class MainActivity : Activity() {
 
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
-            resolveDeepLink(intent)?.let { loadAppUrl(it) }
+            resolveOpenUrl(intent)?.let { loadAppUrl(it) }
         } else {
-            loadAppUrl(resolveDeepLink(intent) ?: BASE_URL)
+            loadAppUrl(resolveOpenUrl(intent) ?: BASE_URL)
         }
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-        resolveDeepLink(intent)?.let { loadAppUrl(it) }
+        resolveOpenUrl(intent)?.let { loadAppUrl(it) }
+    }
+
+    private fun resolveOpenUrl(intent: Intent?): String? {
+        val fromNotify = intent?.getStringExtra(EXTRA_OPEN_URL)?.trim().orEmpty()
+        if (fromNotify.isNotEmpty()) return absolutizeUrl(fromNotify)
+        return resolveDeepLink(intent)
+    }
+
+    private fun absolutizeUrl(url: String): String {
+        if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
+            return url
+        }
+        return if (url.startsWith("/")) "$BASE_URL$url" else "$BASE_URL/$url"
+    }
+
+    private fun ensureNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val mgr = getSystemService(NotificationManager::class.java) ?: return
+        val channel = NotificationChannel(
+            NOTIFY_CHANNEL_ID,
+            "GlowBox",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Сообщения и записи"
+            enableVibration(true)
+        }
+        mgr.createNotificationChannel(channel)
+    }
+
+    private fun postLocalNotification(title: String, body: String, url: String) {
+        if (Build.VERSION.SDK_INT >= 33
+            && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val absolute = absolutizeUrl(url)
+        val tapIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_OPEN_URL, absolute)
+            data = Uri.parse(absolute)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val pending = PendingIntent.getActivity(this, absolute.hashCode(), tapIntent, flags)
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, NOTIFY_CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+
+        val notification = builder
+            .setContentTitle(title.ifBlank { "GlowBox" })
+            .setContentText(body)
+            .setStyle(Notification.BigTextStyle().bigText(body))
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .setPriority(Notification.PRIORITY_HIGH)
+            .build()
+
+        val mgr = getSystemService(NotificationManager::class.java) ?: return
+        mgr.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), notification)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -291,7 +375,27 @@ class MainActivity : Activity() {
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    inner class ContactBridge {
+    private fun hasMediaPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= 33) {
+            checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+        } else {
+            checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun mediaPermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= 33) {
+            arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO
+            )
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }
+
+    inner class AndroidBridge {
         @JavascriptInterface
         fun pickContact() {
             runOnUiThread {
@@ -320,6 +424,90 @@ class MainActivity : Activity() {
                 false
             }
         }
+
+        @JavascriptInterface
+        fun hasNativeGallery(): Boolean = true
+
+        @JavascriptInterface
+        fun hasGalleryPermission(): Boolean = hasMediaPermission()
+
+        @JavascriptInterface
+        fun requestGalleryPermission() {
+            runOnUiThread {
+                if (hasMediaPermission()) {
+                    notifyGalleryPermission(true)
+                    return@runOnUiThread
+                }
+                @Suppress("DEPRECATION")
+                requestPermissions(mediaPermissions(), REQUEST_READ_MEDIA)
+            }
+        }
+
+        @JavascriptInterface
+        fun listGallery(offset: Int, limit: Int): String {
+            if (!hasMediaPermission()) {
+                return JSONObject()
+                    .put("error", "permission")
+                    .put("items", org.json.JSONArray())
+                    .put("hasMore", false)
+                    .toString()
+            }
+            return try {
+                mediaGallery.listMedia(offset, limit)
+            } catch (_: Exception) {
+                JSONObject()
+                    .put("error", "query")
+                    .put("items", org.json.JSONArray())
+                    .put("hasMore", false)
+                    .toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun listDocuments(offset: Int, limit: Int): String {
+            if (!hasMediaPermission()) {
+                return JSONObject()
+                    .put("error", "permission")
+                    .put("items", org.json.JSONArray())
+                    .put("hasMore", false)
+                    .toString()
+            }
+            return try {
+                mediaGallery.listDocuments(offset, limit)
+            } catch (_: Exception) {
+                JSONObject()
+                    .put("error", "query")
+                    .put("items", org.json.JSONArray())
+                    .put("hasMore", false)
+                    .toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun requestNotificationPermission() {
+            runOnUiThread {
+                if (Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    @Suppress("DEPRECATION")
+                    requestPermissions(
+                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                        REQUEST_POST_NOTIFICATIONS
+                    )
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun showNotification(title: String?, body: String?, url: String?) {
+            val t = title?.trim().orEmpty().ifBlank { "GlowBox" }
+            val b = body?.trim().orEmpty().ifBlank { "Новое уведомление" }
+            val u = url?.trim().orEmpty().ifBlank { BASE_URL }
+            runOnUiThread {
+                postLocalNotification(t, b, u)
+            }
+        }
     }
 
     private fun launchContactPicker() {
@@ -332,22 +520,45 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun notifyGalleryPermission(granted: Boolean) {
+        webView.post {
+            webView.evaluateJavascript(
+                "window.GlowBook&&window.GlowBook.onGalleryPermission&&window.GlowBook.onGalleryPermission(${if (granted) "true" else "false"})",
+                null
+            )
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != REQUEST_READ_CONTACTS) return
-
-        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (pendingContactPick) {
-                pendingContactPick = false
-                launchContactPicker()
+        when (requestCode) {
+            REQUEST_READ_CONTACTS -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (pendingContactPick) {
+                        pendingContactPick = false
+                        launchContactPicker()
+                    }
+                } else {
+                    pendingContactPick = false
+                    notifyContactError()
+                }
             }
-        } else {
-            pendingContactPick = false
-            notifyContactError()
+
+            REQUEST_READ_MEDIA -> {
+                val granted = grantResults.isNotEmpty() &&
+                    grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+                // Partial grant (Android 14+) still lets MediaStore return selected items
+                val anyGranted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+                notifyGalleryPermission(granted || anyGranted || hasMediaPermission())
+            }
+
+            REQUEST_POST_NOTIFICATIONS -> {
+                // No-op: next showNotification will work if granted
+            }
         }
     }
 
@@ -460,5 +671,9 @@ class MainActivity : Activity() {
         private const val REQUEST_FILE_CHOOSER = 1001
         private const val REQUEST_CONTACT_PICK = 1002
         private const val REQUEST_READ_CONTACTS = 1003
+        private const val REQUEST_READ_MEDIA = 1004
+        private const val REQUEST_POST_NOTIFICATIONS = 1005
+        private const val NOTIFY_CHANNEL_ID = "glowbox_alerts"
+        private const val EXTRA_OPEN_URL = "open_url"
     }
 }

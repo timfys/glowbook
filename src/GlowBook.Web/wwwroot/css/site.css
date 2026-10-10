@@ -1732,10 +1732,11 @@ body.gb-has-cabinet-nav .gb-theme-fab {
 
 @media (max-width: 991.98px) {
     body.gb-chat-active .gb-chat {
-        min-height: 0;
+        min-height: 240px;
         max-width: none;
-        /* Leave room for the fixed composer */
-        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        /* Height is set from JS via visualViewport — keeps composer flush above IME */
+        height: var(--gb-chat-height, auto);
+        max-height: var(--gb-chat-height, none);
     }
 
     body.gb-chat-active .gb-chat-messages {
@@ -1745,37 +1746,21 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     }
 
     body.gb-chat-active .gb-chat-form {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: calc(var(--gb-bottom-nav, 0px) + env(safe-area-inset-bottom, 0px) + var(--gb-keyboard-inset, 0px));
-        z-index: 60;
+        position: relative;
+        flex-shrink: 0;
         margin: 0;
         border-top: 1px solid var(--gb-border);
         background: var(--gb-surface);
-        box-shadow: 0 -8px 24px rgba(20, 16, 28, 0.08);
-        transition: bottom 0.12s ease;
+        z-index: 2;
     }
 
-    /* Keyboard up: sit above IME, hide bottom tab bar so it doesn't steal space */
     body.gb-chat-active.gb-chat-keyboard-open {
         padding-bottom: 0 !important;
     }
 
-    body.gb-chat-active.gb-chat-keyboard-open .gb-chat-form {
-        bottom: var(--gb-keyboard-inset, 0px);
-    }
-
     body.gb-chat-active.gb-chat-keyboard-open .gb-bottom-nav,
     body.gb-chat-active.gb-chat-keyboard-open .gb-theme-fab {
-        transform: translateY(110%);
-        pointer-events: none;
-        opacity: 0;
-        transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    body.gb-chat-active.gb-chat-keyboard-open .gb-chat {
-        padding-bottom: calc(4.75rem + var(--gb-keyboard-inset, 0px));
+        display: none !important;
     }
 }
 
@@ -3185,6 +3170,42 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     color: var(--book-accent, var(--gb-primary-dark));
     font-size: 0.92rem;
     letter-spacing: -0.02em;
+}
+
+.gb-username-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+.gb-username-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.gb-username-edit-btn {
+    border: 0;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    color: var(--gb-primary-dark);
+    background: color-mix(in srgb, var(--gb-primary) 14%, transparent);
+    cursor: pointer;
+}
+.gb-username-edit-btn:hover {
+    background: color-mix(in srgb, var(--gb-primary) 24%, transparent);
+}
+.gb-username-form {
+    width: 100%;
+    max-width: 420px;
+}
+.gb-username-input-group .input-group-text {
+    font-weight: 700;
+    color: var(--gb-primary-dark);
 }
 .blog-public-title,
 .master-public-name {

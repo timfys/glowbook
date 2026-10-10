@@ -145,6 +145,26 @@ public class ProfileController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost("username")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateUsername(string? username)
+    {
+        var (user, profile) = await GetCurrentAsync();
+        if (user == null || profile == null)
+            return Challenge();
+
+        var (ok, error) = await _blog.TrySetUsernameAsync(profile, username);
+        if (!ok)
+        {
+            TempData["UsernameError"] = error ?? "Некорректный юзернейм";
+            return RedirectToAction(nameof(Index));
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["ProfileSaved"] = true;
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpPost("avatar")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(8 * 1024 * 1024)]

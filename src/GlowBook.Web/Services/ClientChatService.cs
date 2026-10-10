@@ -23,17 +23,20 @@ public class ClientChatService
     private readonly ClientAccountService _accounts;
     private readonly IHubContext<ClientChatHub> _hub;
     private readonly ChatRealtimeNotifier _realtime;
+    private readonly UserNotifyService _notify;
 
     public ClientChatService(
         ApplicationDbContext db,
         ClientAccountService accounts,
         IHubContext<ClientChatHub> hub,
-        ChatRealtimeNotifier realtime)
+        ChatRealtimeNotifier realtime,
+        UserNotifyService notify)
     {
         _db = db;
         _accounts = accounts;
         _hub = hub;
         _realtime = realtime;
+        _notify = notify;
     }
 
     public async Task<List<ClientMessage>> GetMessagesAsync(int clientId, CancellationToken ct = default)
@@ -166,7 +169,45 @@ public class ClientChatService
             .SendAsync("ReceiveMessage", dto, ct);
         _realtime.Publish(threadId, dto);
 
+        await NotifyChatRecipientsAsync(client, senderUserId, dto, threadId, ct);
+
         return message;
+    }
+
+    private async Task NotifyChatRecipientsAsync(
+        Client client,
+        string senderUserId,
+        ClientMessageDto dto,
+        int threadId,
+        CancellationToken ct)
+    {
+        var preview = !string.IsNullOrWhiteSpace(dto.Body)
+            ? dto.Body.Trim()
+            : (dto.HasAttachment ? "Вложение" : "Новое сообщение");
+        if (preview.Length > 120) preview = preview[..117] + "…";
+
+        var url = $"/chat/thread/{threadId}";
+        var recipients = new HashSet<string>(StringComparer.Ordinal);
+
+        if (!string.IsNullOrEmpty(client.MasterProfile?.UserId)
+            && !string.Equals(client.MasterProfile.UserId, senderUserId, StringComparison.Ordinal))
+            recipients.Add(client.MasterProfile.UserId);
+
+        if (!string.IsNullOrEmpty(client.LinkedUserId)
+            && !string.Equals(client.LinkedUserId, senderUserId, StringComparison.Ordinal))
+            recipients.Add(client.LinkedUserId);
+
+        foreach (var userId in recipients)
+        {
+            await _notify.NotifyAsync(
+                userId,
+                "GlowBox · " + dto.SenderName,
+                preview,
+                url,
+                "chat",
+                threadId,
+                ct);
+        }
     }
 
     public async Task<(byte[] Data, string ContentType, string FileName)?> GetAttachmentAsync(

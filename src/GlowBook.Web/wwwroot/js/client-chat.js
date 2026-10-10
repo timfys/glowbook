@@ -321,67 +321,69 @@
     }
 
     var chatInputFocused = false;
-    var viewportBaseline = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight;
 
-    function syncKeyboardInset() {
+    function layoutChatToViewport() {
+        document.body.classList.toggle('gb-chat-keyboard-open', chatInputFocused);
+
         var vv = window.visualViewport;
-        var inset = 0;
-        if (vv) {
-            // Covered area under the visual viewport (software keyboard).
-            inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-            // Fallback when innerHeight already shrank (adjustResize) or WebView quirks.
-            if (inset < 80 && chatInputFocused) {
-                var shrink = Math.round(viewportBaseline - vv.height);
-                if (shrink > 80) inset = shrink;
+        // Bottom edge of what the user actually sees (above the IME).
+        var viewportBottom = vv
+            ? Math.round(vv.offsetTop + vv.height)
+            : window.innerHeight;
+
+        var top = Math.max(0, Math.round(chat.getBoundingClientRect().top));
+
+        var bottomGap = 4;
+        if (!chatInputFocused) {
+            var nav = document.querySelector('.gb-bottom-nav');
+            if (nav) {
+                var navStyle = window.getComputedStyle(nav);
+                if (navStyle.display !== 'none' && navStyle.visibility !== 'hidden') {
+                    bottomGap += Math.round(nav.getBoundingClientRect().height);
+                }
             }
         }
 
-        document.documentElement.style.setProperty('--gb-keyboard-inset', inset + 'px');
-        // Focus is the source of truth: with adjustResize inset can stay 0 while IME is open.
-        document.body.classList.toggle('gb-chat-keyboard-open', chatInputFocused || inset > 80);
+        var height = Math.max(220, viewportBottom - top - bottomGap);
+        document.documentElement.style.setProperty('--gb-chat-height', height + 'px');
+        chat.style.height = height + 'px';
+        chat.style.maxHeight = height + 'px';
 
         if (chatInputFocused) {
-            try {
-                form.scrollIntoView({ block: 'end', behavior: 'auto' });
-            } catch (_) {
-                form.scrollIntoView(false);
-            }
             scrollToBottom();
         }
+    }
+
+    function scheduleChatLayout() {
+        layoutChatToViewport();
+        requestAnimationFrame(layoutChatToViewport);
+        window.setTimeout(layoutChatToViewport, 180);
+        window.setTimeout(layoutChatToViewport, 380);
     }
 
     function bindKeyboardAvoidance() {
         var vv = window.visualViewport;
         if (vv) {
-            vv.addEventListener('resize', syncKeyboardInset);
-            vv.addEventListener('scroll', syncKeyboardInset);
+            vv.addEventListener('resize', layoutChatToViewport);
+            vv.addEventListener('scroll', layoutChatToViewport);
         }
-        window.addEventListener('resize', syncKeyboardInset);
+        window.addEventListener('resize', layoutChatToViewport);
         input.addEventListener('focus', function () {
             chatInputFocused = true;
             document.body.classList.add('gb-chat-keyboard-open');
-            window.setTimeout(syncKeyboardInset, 50);
-            window.setTimeout(syncKeyboardInset, 250);
-            window.setTimeout(syncKeyboardInset, 450);
+            scheduleChatLayout();
         });
         input.addEventListener('blur', function () {
             chatInputFocused = false;
             window.setTimeout(function () {
                 if (!chatInputFocused) {
                     document.body.classList.remove('gb-chat-keyboard-open');
-                    syncKeyboardInset();
+                    scheduleChatLayout();
                 }
             }, 80);
         });
-        // Refresh baseline when returning to the page without keyboard.
-        window.addEventListener('pageshow', function () {
-            viewportBaseline = window.visualViewport
-                ? window.visualViewport.height
-                : window.innerHeight;
-        });
-        syncKeyboardInset();
+        window.addEventListener('pageshow', layoutChatToViewport);
+        layoutChatToViewport();
     }
 
     requestNotificationPermission();

@@ -13,6 +13,10 @@
     {
         <div class="alert alert-danger py-2 px-3 mb-3">@TempData["AvatarError"]</div>
     }
+    @if (TempData["UsernameError"] != null)
+    {
+        <div class="alert alert-danger py-2 px-3 mb-3">@TempData["UsernameError"]</div>
+    }
 
     <article class="tg-card" style="--book-accent:@Model.AccentColor">
         <div class="tg-card-cover">
@@ -65,7 +69,34 @@
 
         <div class="tg-card-body">
             <h1 class="tg-card-name">@Model.DisplayName</h1>
-            <p class="tg-card-sub blog-public-username mb-1">@@@Model.BookingSlug</p>
+            <div class="gb-username-row mb-1" id="gbUsernameRow">
+                <div class="gb-username-display" id="gbUsernameDisplay">
+                    <span class="tg-card-sub blog-public-username mb-0">@@@Model.BookingSlug</span>
+                    <button type="button" class="gb-username-edit-btn" id="gbUsernameEditBtn">Изменить</button>
+                </div>
+                <form class="gb-username-form d-none"
+                      id="gbUsernameForm"
+                      asp-action="UpdateUsername"
+                      method="post"
+                      autocomplete="off">
+                    @Html.AntiForgeryToken()
+                    <div class="input-group input-group-sm gb-username-input-group">
+                        <span class="input-group-text">@@</span>
+                        <input type="text"
+                               name="username"
+                               class="form-control"
+                               value="@Model.BookingSlug"
+                               maxlength="32"
+                               pattern="[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?"
+                               placeholder="maria_glow"
+                               autocomplete="username"
+                               required />
+                        <button type="submit" class="btn btn-gb-primary btn-sm">Сохранить</button>
+                        <button type="button" class="btn btn-gb-outline btn-sm" id="gbUsernameCancel">Отмена</button>
+                    </div>
+                    <div class="form-text">3–32 символа: латиница, цифры, _ и -</div>
+                </form>
+            </div>
             @if (!string.IsNullOrWhiteSpace(Model.Specialization))
             {
                 <p class="tg-card-sub">@Model.Specialization</p>
@@ -129,3 +160,37 @@
         </div>
     </article>
 </div>
+
+<script>
+(function () {
+    var display = document.getElementById('gbUsernameDisplay');
+    var form = document.getElementById('gbUsernameForm');
+    var editBtn = document.getElementById('gbUsernameEditBtn');
+    var cancelBtn = document.getElementById('gbUsernameCancel');
+    if (!display || !form || !editBtn || !cancelBtn) return;
+
+    var input = form.querySelector('input[name="username"]');
+
+    function openEdit() {
+        display.classList.add('d-none');
+        form.classList.remove('d-none');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }
+
+    function closeEdit() {
+        form.classList.add('d-none');
+        display.classList.remove('d-none');
+    }
+
+    editBtn.addEventListener('click', openEdit);
+    cancelBtn.addEventListener('click', closeEdit);
+
+    @if (TempData["UsernameError"] != null)
+    {
+        <text>openEdit();</text>
+    }
+})();
+</script>

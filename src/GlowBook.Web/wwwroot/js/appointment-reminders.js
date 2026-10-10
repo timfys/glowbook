@@ -86,29 +86,34 @@
     }
 
     function showNotification(heading, appt) {
+        var title = 'GlowBox · ' + heading;
+        var subtitle = pickField(appt, 'subtitle', 'Subtitle');
+        var when = formatTime(pickField(appt, 'startsAt', 'StartsAt'));
+        var apptTitle = pickField(appt, 'title', 'Title') || 'Запись';
+        var body = [apptTitle, subtitle, when].filter(Boolean).join(' · ');
+        var url = pickField(appt, 'editUrl', 'EditUrl') || '/';
+
+        if (window.GlowBookAndroid && typeof window.GlowBookAndroid.showNotification === 'function') {
+            try {
+                window.GlowBookAndroid.showNotification(title, body, url);
+                return;
+            } catch (_) { /* fall through */ }
+        }
+
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
-        var title = pickField(appt, 'title', 'Title') || 'Запись';
-        var subtitle = pickField(appt, 'subtitle', 'Subtitle');
-        var startsAt = pickField(appt, 'startsAt', 'StartsAt');
         var id = pickField(appt, 'id', 'Id');
-        var editUrl = pickField(appt, 'editUrl', 'EditUrl');
-
-        var bodyParts = [formatTime(startsAt), title];
-        if (subtitle) bodyParts.push(subtitle);
-        var body = bodyParts.filter(Boolean).join(' · ');
-
         try {
-            var notification = new Notification('GlowBox · ' + heading, {
+            var notification = new Notification(title, {
                 body: body,
                 tag: 'gb-appt-' + id,
                 requireInteraction: false
             });
 
-            if (editUrl) {
+            if (url) {
                 notification.onclick = function () {
                     window.focus();
-                    window.location.href = editUrl;
+                    window.location.href = url;
                     notification.close();
                 };
             }

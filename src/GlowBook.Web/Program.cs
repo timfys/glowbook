@@ -68,6 +68,7 @@ builder.Services.AddScoped<MasterSearchService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<PublicPageService>();
 builder.Services.AddScoped<AppointmentReminderService>();
+builder.Services.AddScoped<UserNotifyService>();
 builder.Services.AddHttpClient<YooKassaService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -147,6 +148,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapHub<ClientChatHub>("/hubs/chat");
+app.MapHub<UserNotifyHub>("/hubs/notify");
 app.MapRazorPages();
 
 app.Run();

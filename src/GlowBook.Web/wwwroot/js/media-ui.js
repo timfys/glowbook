@@ -461,6 +461,12 @@
         return root;
     }
 
+    function hasNativeGalleryBridge() {
+        return !!(window.GlowBookAndroid
+            && typeof window.GlowBookAndroid.hasNativeGallery === 'function'
+            && window.GlowBookAndroid.hasNativeGallery());
+    }
+
     function openAttachPicker(options) {
         options = options || {};
         var onConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : function () {};
@@ -473,25 +479,32 @@
         var mediaInput = root.querySelector('#gbAttachMediaInput');
         var cameraInput = root.querySelector('#gbAttachCameraInput');
         var docInput = root.querySelector('#gbAttachDocInput');
-        var items = []; // { id, file, url, selected, kind: image|video|file }
+        var native = hasNativeGalleryBridge();
+        // { id, file?, url?, thumbUrl?, itemUrl?, name?, mime?, size?, selected, kind, native? }
+        var items = [];
+        var galleryStatus = ''; // '', loading, need-permission, empty, error
+        var docsStatus = '';
+        var confirming = false;
 
         function revokeAll() {
             items.forEach(function (it) {
-                if (it.url) {
+                if (it.url && it.url.indexOf('blob:') === 0) {
                     try { URL.revokeObjectURL(it.url); } catch (_) {}
                 }
             });
         }
 
-        function selectedFiles() {
-            return items.filter(function (it) { return it.selected; }).map(function (it) { return it.file; });
+        function selectedItems() {
+            return items.filter(function (it) { return it.selected; });
         }
 
         function syncCount() {
-            var n = selectedFiles().length;
+            var n = selectedItems().length;
             countEl.textContent = n === 0 ? 'Ничего не выбрано' : ('Выбрано: ' + n);
-            confirmBtn.disabled = n === 0;
-            confirmBtn.textContent = n === 0 ? 'Прикрепить' : ('Прикрепить ' + n);
+            confirmBtn.disabled = n === 0 || confirming;
+            confirmBtn.textContent = confirming
+                ? 'Загрузка…'
+                : (n === 0 ? 'Прикрепить' : ('Прикрепить ' + n));
         }
 
         function setTab(name) {
@@ -501,14 +514,45 @@
             root.querySelectorAll('[data-gb-attach-pane]').forEach(function (pane) {
                 pane.classList.toggle('is-active', pane.getAttribute('data-gb-attach-pane') === name);
             });
+            if (name === 'file' && native && !items.some(function (it) { return it.kind === 'file' && it.native; })) {
+                loadNativeDocuments();
+            }
+        }
+
+        function upsertNative(raw, forceSelect) {
+            if (!raw || !raw.id) return;
+            var existing = items.find(function (it) { return it.id === raw.id; });
+            if (existing) {
+                if (forceSelect) existing.selected = true;
+                return;
+            }
+            if (items.filter(function (it) { return it.selected; }).length >= maxItems && !forceSelect) {
+                // still show in grid, just not auto-selected
+            }
+            items.push({
+                id: raw.id,
+                native: true,
+                file: null,
+                url: raw.thumbUrl || null,
+                thumbUrl: raw.thumbUrl || null,
+                itemUrl: raw.itemUrl || null,
+                name: raw.name || 'file',
+                mime: raw.mime || '',
+                size: raw.size || 0,
+                selected: !!forceSelect,
+                kind: raw.kind || 'image'
+            });
         }
 
         function addFiles(fileListLike, forceSelect) {
             var list = Array.prototype.slice.call(fileListLike || []);
             list.forEach(function (file) {
-                if (!file || items.length >= maxItems) return;
+                if (!file) return;
                 var exists = items.some(function (it) {
-                    return it.file.name === file.name && it.file.size === file.size && it.file.lastModified === file.lastModified;
+                    return it.file
+                        && it.file.name === file.name
+                        && it.file.size === file.size
+                        && it.file.lastModified === file.lastModified;
                 });
                 if (exists) return;
                 var kind = file.type && file.type.indexOf('video/') === 0
@@ -520,9 +564,74 @@
                     file: file,
                     url: url,
                     selected: forceSelect !== false,
-                    kind: kind
+                    kind: kind,
+                    name: file.name,
+                    mime: file.type,
+                    size: file.size
                 });
             });
+            render();
+        }
+
+        function parseBridgeJson(raw) {
+            try { return JSON.parse(raw || '{}'); } catch (_) { return { items: [], error: 'parse' }; }
+        }
+
+        function loadNativeGallery() {
+            if (!native) return;
+            galleryStatus = 'loading';
+            renderGallery();
+            if (!window.GlowBookAndroid.hasGalleryPermission()) {
+                galleryStatus = 'need-permission';
+                renderGallery();
+                window.GlowBook = window.GlowBook || {};
+                window.GlowBook.onGalleryPermission = function (ok) {
+                    if (ok) loadNativeGallery();
+                    else {
+                        galleryStatus = 'need-permission';
+                        renderGallery();
+                    }
+                };
+                window.GlowBookAndroid.requestGalleryPermission();
+                return;
+            }
+            var data = parseBridgeJson(window.GlowBookAndroid.listGallery(0, 100));
+            if (data.error === 'permission') {
+                galleryStatus = 'need-permission';
+                renderGallery();
+                return;
+            }
+            (data.items || []).forEach(function (raw) { upsertNative(raw, false); });
+            galleryStatus = (data.items || []).length ? '' : 'empty';
+            render();
+        }
+
+        function loadNativeDocuments() {
+            if (!native) return;
+            docsStatus = 'loading';
+            renderFiles();
+            if (!window.GlowBookAndroid.hasGalleryPermission()) {
+                docsStatus = 'need-permission';
+                renderFiles();
+                window.GlowBook = window.GlowBook || {};
+                window.GlowBook.onGalleryPermission = function (ok) {
+                    if (ok) loadNativeDocuments();
+                    else {
+                        docsStatus = 'need-permission';
+                        renderFiles();
+                    }
+                };
+                window.GlowBookAndroid.requestGalleryPermission();
+                return;
+            }
+            var data = parseBridgeJson(window.GlowBookAndroid.listDocuments(0, 80));
+            if (data.error === 'permission') {
+                docsStatus = 'need-permission';
+                renderFiles();
+                return;
+            }
+            (data.items || []).forEach(function (raw) { upsertNative(raw, false); });
+            docsStatus = '';
             render();
         }
 
@@ -537,29 +646,58 @@
             cameraTile.addEventListener('click', function () { cameraInput.click(); });
             grid.appendChild(cameraTile);
 
-            var galleryTile = el('button', 'gb-attach-tile gb-attach-tile-action');
-            galleryTile.type = 'button';
-            galleryTile.innerHTML = '<span class="gb-attach-tile-icon" aria-hidden="true">' +
-                '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="10.5" r="1.6" fill="currentColor"/><path d="M4.5 17l4.2-4.2a1.2 1.2 0 0 1 1.6 0L14 16.5l1.7-1.7a1.2 1.2 0 0 1 1.6 0L19.5 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>' +
-                '</span><span>Галерея</span>';
-            galleryTile.addEventListener('click', function () { mediaInput.click(); });
-            grid.appendChild(galleryTile);
+            if (!native) {
+                var galleryTile = el('button', 'gb-attach-tile gb-attach-tile-action');
+                galleryTile.type = 'button';
+                galleryTile.innerHTML = '<span class="gb-attach-tile-icon" aria-hidden="true">' +
+                    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="10.5" r="1.6" fill="currentColor"/><path d="M4.5 17l4.2-4.2a1.2 1.2 0 0 1 1.6 0L14 16.5l1.7-1.7a1.2 1.2 0 0 1 1.6 0L19.5 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>' +
+                    '</span><span>Галерея</span>';
+                galleryTile.addEventListener('click', function () { mediaInput.click(); });
+                grid.appendChild(galleryTile);
+            }
+
+            if (galleryStatus === 'loading') {
+                var loading = el('div', 'gb-attach-file-empty');
+                loading.textContent = 'Загрузка галереи…';
+                loading.style.gridColumn = '1 / -1';
+                grid.appendChild(loading);
+            } else if (galleryStatus === 'need-permission') {
+                var perm = el('button', 'gb-attach-tile gb-attach-tile-action');
+                perm.type = 'button';
+                perm.style.gridColumn = 'span 2';
+                perm.innerHTML = '<span>Разрешить доступ к фото</span>';
+                perm.addEventListener('click', function () {
+                    window.GlowBook = window.GlowBook || {};
+                    window.GlowBook.onGalleryPermission = function (ok) {
+                        if (ok) loadNativeGallery();
+                    };
+                    window.GlowBookAndroid.requestGalleryPermission();
+                });
+                grid.appendChild(perm);
+            } else if (galleryStatus === 'empty') {
+                var empty = el('div', 'gb-attach-file-empty');
+                empty.textContent = 'В галерее пока пусто';
+                empty.style.gridColumn = '1 / -1';
+                grid.appendChild(empty);
+            }
 
             items.filter(function (it) { return it.kind !== 'file'; }).forEach(function (it) {
                 var tile = el('button', 'gb-attach-tile' + (it.selected ? ' is-selected' : ''));
                 tile.type = 'button';
                 tile.setAttribute('aria-pressed', it.selected ? 'true' : 'false');
+                var mediaSrc = it.thumbUrl || it.url || '';
                 if (it.kind === 'video') {
                     tile.innerHTML =
-                        '<video class="gb-attach-tile-media" src="' + it.url + '" muted playsinline preload="metadata"></video>' +
+                        '<span class="gb-attach-tile-media" style="background-image:url(\'' + mediaSrc.replace(/'/g, '%27') + '\')"></span>' +
                         '<span class="gb-attach-tile-badge">VIDEO</span>' +
                         (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
                 } else {
                     tile.innerHTML =
-                        '<span class="gb-attach-tile-media" style="background-image:url(\'' + it.url + '\')"></span>' +
+                        '<span class="gb-attach-tile-media" style="background-image:url(\'' + mediaSrc.replace(/'/g, '%27') + '\')"></span>' +
                         (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
                 }
                 tile.addEventListener('click', function () {
+                    if (!it.selected && selectedItems().length >= maxItems) return;
                     it.selected = !it.selected;
                     render();
                 });
@@ -569,9 +707,30 @@
 
         function renderFiles() {
             fileList.innerHTML = '';
+            if (docsStatus === 'loading') {
+                fileList.innerHTML = '<p class="gb-attach-file-empty">Загрузка файлов…</p>';
+                return;
+            }
+            if (docsStatus === 'need-permission') {
+                var permBtn = el('button', 'gb-attach-file-btn');
+                permBtn.type = 'button';
+                permBtn.innerHTML = '<span class="gb-attach-file-btn-title">Разрешить доступ</span><span class="gb-attach-file-btn-sub">Чтобы показать PDF с устройства</span>';
+                permBtn.addEventListener('click', function () {
+                    window.GlowBook = window.GlowBook || {};
+                    window.GlowBook.onGalleryPermission = function (ok) {
+                        if (ok) loadNativeDocuments();
+                    };
+                    window.GlowBookAndroid.requestGalleryPermission();
+                });
+                fileList.appendChild(permBtn);
+                return;
+            }
+
             var docs = items.filter(function (it) { return it.kind === 'file'; });
             if (!docs.length) {
-                fileList.innerHTML = '<p class="gb-attach-file-empty">Выберите PDF из файлов устройства</p>';
+                fileList.innerHTML = native
+                    ? '<p class="gb-attach-file-empty">PDF на устройстве не найдены — можно выбрать вручную выше</p>'
+                    : '<p class="gb-attach-file-empty">Выберите PDF из файлов устройства</p>';
                 return;
             }
             docs.forEach(function (it) {
@@ -584,9 +743,11 @@
                     '  <span class="gb-attach-file-row-size"></span>' +
                     '</span>' +
                     (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
-                row.querySelector('.gb-attach-file-row-name').textContent = it.file.name || 'document.pdf';
-                row.querySelector('.gb-attach-file-row-size').textContent = Math.max(1, Math.round(it.file.size / 1024)) + ' КБ';
+                row.querySelector('.gb-attach-file-row-name').textContent = it.name || (it.file && it.file.name) || 'document.pdf';
+                var sz = it.size || (it.file && it.file.size) || 0;
+                row.querySelector('.gb-attach-file-row-size').textContent = Math.max(1, Math.round(sz / 1024)) + ' КБ';
                 row.addEventListener('click', function () {
+                    if (!it.selected && selectedItems().length >= maxItems) return;
                     it.selected = !it.selected;
                     render();
                 });
@@ -609,9 +770,50 @@
                 mediaInput.value = '';
                 cameraInput.value = '';
                 docInput.value = '';
+                galleryStatus = '';
+                docsStatus = '';
+                confirming = false;
                 render();
             }, 180);
             document.body.style.overflow = '';
+        }
+
+        function materializeSelected(done) {
+            var selected = selectedItems();
+            if (!selected.length) {
+                done([]);
+                return;
+            }
+            var out = [];
+            var i = 0;
+
+            function next() {
+                if (i >= selected.length) {
+                    done(out);
+                    return;
+                }
+                var it = selected[i++];
+                if (it.file) {
+                    out.push(it.file);
+                    next();
+                    return;
+                }
+                if (!it.itemUrl) {
+                    next();
+                    return;
+                }
+                fetch(it.itemUrl)
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('fetch');
+                        return res.blob();
+                    })
+                    .then(function (blob) {
+                        out.push(new File([blob], it.name || 'file', { type: it.mime || blob.type || 'application/octet-stream' }));
+                        next();
+                    })
+                    .catch(function () { next(); });
+            }
+            next();
         }
 
         root.querySelectorAll('[data-gb-attach-tab]').forEach(function (tab) {
@@ -637,24 +839,34 @@
             setTab('file');
         };
         confirmBtn.onclick = function () {
-            var files = selectedFiles();
-            if (!files.length) return;
-            // Keep object URLs only if caller needs them — pass raw Files
-            var copy = files.slice();
-            closePicker();
-            onConfirm(copy);
+            if (!selectedItems().length || confirming) return;
+            confirming = true;
+            syncCount();
+            materializeSelected(function (files) {
+                confirming = false;
+                if (!files.length) {
+                    syncCount();
+                    return;
+                }
+                closePicker();
+                onConfirm(files);
+            });
         };
 
         revokeAll();
         items = [];
+        galleryStatus = '';
+        docsStatus = '';
+        confirming = false;
         setTab('gallery');
         render();
         root.removeAttribute('hidden');
         requestAnimationFrame(function () { root.classList.add('is-open'); });
         document.body.style.overflow = 'hidden';
 
-        // Immediately open gallery on mobile for TG-like speed — still show our UI behind/after
-        // Don't auto-open native picker: user sees our grid first with Camera + Gallery tiles.
+        if (native) {
+            loadNativeGallery();
+        }
     }
 
     window.GbMedia = {

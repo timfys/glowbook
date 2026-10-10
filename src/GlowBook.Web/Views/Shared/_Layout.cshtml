@@ -112,6 +112,11 @@
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/site.js?av=@av" asp-append-version="true"></script>
     <script src="~/js/media-ui.js?av=@av" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+        <script src="~/js/push-notify.js?av=@av" asp-append-version="true"></script>
+    }
     @if (isCabinet)
     {
         <div id="gbAppointmentReminders" hidden data-api-url="@Url.Action("Upcoming", "AppointmentReminders")"></div>

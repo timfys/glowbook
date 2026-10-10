@@ -13,11 +13,16 @@ public class BookingService
 {
     private readonly ApplicationDbContext _db;
     private readonly GlowBookSettings _settings;
+    private readonly UserNotifyService _notify;
 
-    public BookingService(ApplicationDbContext db, IOptions<GlowBookSettings> settings)
+    public BookingService(
+        ApplicationDbContext db,
+        IOptions<GlowBookSettings> settings,
+        UserNotifyService notify)
     {
         _db = db;
         _settings = settings.Value;
+        _notify = notify;
     }
 
     public async Task<MasterProfile?> GetBookableProfileAsync(string slug, CancellationToken ct = default) =>
@@ -135,6 +140,18 @@ public class BookingService
         });
 
         await _db.SaveChangesAsync(ct);
+
+        var when = startsAt.ToString("dd.MM HH:mm");
+        var who = form.ClientName.Trim();
+        var what = service.Name;
+        await _notify.NotifyAsync(
+            profile.UserId,
+            "GlowBox · Новая запись",
+            $"{who} · {what} · {when}",
+            "/Appointments/Calendar",
+            "booking",
+            ct: ct);
+
         return (true, null);
     }
 }

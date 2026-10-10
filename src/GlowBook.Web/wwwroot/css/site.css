@@ -1727,6 +1727,56 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     gap: 0.65rem;
     max-height: 55vh;
     min-height: 280px;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991.98px) {
+    body.gb-chat-active .gb-chat {
+        min-height: 0;
+        max-width: none;
+        /* Leave room for the fixed composer */
+        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.gb-chat-active .gb-chat-messages {
+        max-height: none;
+        min-height: 0;
+        flex: 1 1 auto;
+    }
+
+    body.gb-chat-active .gb-chat-form {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(var(--gb-bottom-nav, 0px) + env(safe-area-inset-bottom, 0px) + var(--gb-keyboard-inset, 0px));
+        z-index: 60;
+        margin: 0;
+        border-top: 1px solid var(--gb-border);
+        background: var(--gb-surface);
+        box-shadow: 0 -8px 24px rgba(20, 16, 28, 0.08);
+        transition: bottom 0.12s ease;
+    }
+
+    /* Keyboard up: sit above IME, hide bottom tab bar so it doesn't steal space */
+    body.gb-chat-active.gb-chat-keyboard-open {
+        padding-bottom: 0 !important;
+    }
+
+    body.gb-chat-active.gb-chat-keyboard-open .gb-chat-form {
+        bottom: var(--gb-keyboard-inset, 0px);
+    }
+
+    body.gb-chat-active.gb-chat-keyboard-open .gb-bottom-nav,
+    body.gb-chat-active.gb-chat-keyboard-open .gb-theme-fab {
+        transform: translateY(110%);
+        pointer-events: none;
+        opacity: 0;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    body.gb-chat-active.gb-chat-keyboard-open .gb-chat {
+        padding-bottom: calc(4.75rem + var(--gb-keyboard-inset, 0px));
+    }
 }
 
 .gb-chat-bubble {

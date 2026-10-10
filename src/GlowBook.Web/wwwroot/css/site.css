@@ -1879,36 +1879,107 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     background: rgba(255, 255, 255, 0.16);
 }
 
+.gb-chat-attachment-video {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    max-height: 240px;
+    border-radius: 12px;
+    background: #000;
+}
+
 .gb-chat-attach-preview {
     display: flex;
-    align-items: center;
-    gap: 0.7rem;
+    align-items: flex-start;
+    gap: 0.55rem;
     padding: 0.55rem 0.65rem;
     border-radius: 14px;
     background: color-mix(in srgb, var(--gb-primary) 8%, var(--gb-bg-2));
     border: 1px solid color-mix(in srgb, var(--gb-primary) 18%, var(--gb-border));
 }
 
-.gb-chat-attach-thumb {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: var(--gb-surface) center/cover no-repeat;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 1.25rem;
-    border: 1px solid var(--gb-border);
+.gb-chat-attach-strip {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0.1rem;
+    -webkit-overflow-scrolling: touch;
 }
 
-.gb-chat-attach-thumb.is-file {
-    background-color: var(--gb-surface);
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: var(--gb-primary-dark);
-    letter-spacing: 0.04em;
+.gb-chat-attach-item {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    background: var(--gb-surface) center/cover no-repeat;
+    border: 1px solid var(--gb-border);
+    overflow: hidden;
 }
+
+.gb-chat-attach-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gb-chat-attach-item.is-file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.35rem;
+    background: var(--gb-surface);
+}
+
+.gb-chat-attach-item-file {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--gb-primary-dark);
+}
+
+.gb-chat-attach-item-name {
+    font-size: 0.58rem;
+    color: var(--gb-muted);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gb-chat-attach-item-badge {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+    padding: 0.1rem 0.25rem;
+}
+
+.gb-chat-attach-item-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
 .gb-chat-file-chip-icon {
     font-size: 0.68rem;
     font-weight: 800;
@@ -1916,19 +1987,6 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     color: var(--gb-primary-dark);
 }
 .gb-chat-bubble.is-mine .gb-chat-file-chip-icon { color: #fff; }
-
-.gb-chat-attach-meta { min-width: 0; flex: 1; }
-.gb-chat-attach-name {
-    font-weight: 700;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.gb-chat-attach-size {
-    font-size: 0.78rem;
-    color: var(--gb-muted);
-}
 
 .gb-chat-attach-clear {
     width: 32px;
@@ -1940,10 +1998,239 @@ body.gb-has-cabinet-nav .gb-theme-fab {
     font-size: 1.35rem;
     line-height: 1;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .gb-chat-attach-clear:hover {
     background: color-mix(in srgb, var(--gb-primary) 12%, transparent);
     color: var(--gb-text);
+}
+
+/* Telegram-like gallery attach picker */
+.gb-attach-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 92;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+.gb-attach-picker.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.gb-attach-picker-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(16, 12, 24, 0.5);
+}
+.gb-attach-picker-panel {
+    position: relative;
+    width: min(520px, 100%);
+    max-height: min(78vh, 640px);
+    display: flex;
+    flex-direction: column;
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 20px 20px 0 0;
+    box-shadow: var(--gb-shadow-lg);
+    padding: 0.45rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    transform: translateY(18px);
+    transition: transform 0.2s ease;
+}
+.gb-attach-picker.is-open .gb-attach-picker-panel { transform: translateY(0); }
+.gb-attach-picker-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--gb-border);
+    margin: 0.2rem auto 0.55rem;
+}
+.gb-attach-picker-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+}
+.gb-attach-tab {
+    border: 0;
+    background: color-mix(in srgb, var(--gb-primary) 7%, var(--gb-bg-2));
+    color: var(--gb-muted);
+    font-weight: 750;
+    padding: 0.65rem 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.gb-attach-tab.is-active {
+    background: color-mix(in srgb, var(--gb-primary) 16%, var(--gb-bg-2));
+    color: var(--gb-primary-dark);
+}
+.gb-attach-pane { display: none; min-height: 0; flex: 1; overflow: auto; }
+.gb-attach-pane.is-active { display: block; }
+.gb-attach-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    padding-bottom: 0.5rem;
+}
+.gb-attach-tile {
+    position: relative;
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 0;
+    background: var(--gb-bg-2);
+    color: var(--gb-text);
+    cursor: pointer;
+}
+.gb-attach-tile-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px dashed color-mix(in srgb, var(--gb-primary) 35%, var(--gb-border));
+    background: color-mix(in srgb, var(--gb-primary) 8%, var(--gb-surface));
+    color: var(--gb-primary-dark);
+}
+.gb-attach-tile-icon { display: inline-flex; color: var(--gb-primary-dark); }
+.gb-attach-tile-media {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+}
+.gb-attach-tile-badge {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: rgba(0,0,0,0.55);
+    border-radius: 4px;
+    padding: 0.12rem 0.3rem;
+}
+.gb-attach-tile-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gb-primary), var(--gb-accent));
+    box-shadow: 0 0 0 2px #fff;
+}
+.gb-attach-tile-check::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 5px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.gb-attach-tile.is-selected {
+    box-shadow: inset 0 0 0 2px var(--gb-primary);
+}
+.gb-attach-file-btn {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--gb-primary) 28%, var(--gb-border));
+    background: color-mix(in srgb, var(--gb-primary) 8%, var(--gb-surface));
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+}
+.gb-attach-file-btn-title {
+    display: block;
+    font-weight: 800;
+    color: var(--gb-text);
+}
+.gb-attach-file-btn-sub {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.85rem;
+    color: var(--gb-muted);
+}
+.gb-attach-file-empty {
+    color: var(--gb-muted);
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0;
+}
+.gb-attach-file-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-bg-2);
+    border-radius: 12px;
+    padding: 0.7rem 0.8rem;
+    margin-bottom: 0.45rem;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+}
+.gb-attach-file-row.is-selected {
+    border-color: color-mix(in srgb, var(--gb-primary) 45%, var(--gb-border));
+    background: color-mix(in srgb, var(--gb-primary) 10%, var(--gb-surface));
+}
+.gb-attach-file-row-icon {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--gb-primary-dark);
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--gb-primary) 12%, var(--gb-surface));
+}
+.gb-attach-file-row-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.gb-attach-file-row-name {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gb-attach-file-row-size { font-size: 0.78rem; color: var(--gb-muted); }
+.gb-attach-picker-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--gb-border);
+    margin-top: 0.35rem;
+}
+.gb-attach-picker-count {
+    font-size: 0.88rem;
+    font-weight: 650;
+    color: var(--gb-muted);
+}
+.gb-attach-confirm { white-space: nowrap; }
+.gb-attach-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+
+[data-theme="dark"] .gb-attach-picker-panel,
+[data-theme="dark"] .gb-chat-attach-preview {
+    background: var(--gb-surface);
+}
+[data-theme="dark"] .gb-attach-tile-check {
+    box-shadow: 0 0 0 2px var(--gb-surface);
 }
 
 /* Telegram-like media sheet & avatar editor */
@@ -3105,8 +3392,24 @@ body.gb-has-cabinet-nav .gb-theme-fab {
 }
 
 @media (max-width: 576px) {
-    .search-field { flex-wrap: wrap; border-radius: 18px; padding: 0.55rem; }
-    .search-input { width: 100%; flex: 1 1 100%; }
-    .search-submit { width: 100%; }
-    .search-at { padding-left: 0.35rem; }
+    .search-field {
+        flex-wrap: wrap;
+        align-items: center;
+        border-radius: 18px;
+        padding: 0.55rem;
+    }
+    .search-at {
+        flex: 0 0 auto;
+        padding-left: 0.35rem;
+        line-height: 1;
+    }
+    .search-input {
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto !important;
+    }
+    .search-submit {
+        flex: 1 1 100%;
+        width: 100%;
+    }
 }

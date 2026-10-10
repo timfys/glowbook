@@ -11,10 +11,13 @@ public class ClientChatService
 {
     private static readonly HashSet<string> AllowedAttachmentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "application/pdf"
+        "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
+        "application/pdf",
+        "video/mp4", "video/webm", "video/quicktime"
     };
 
-    private const long MaxAttachmentBytes = 5 * 1024 * 1024;
+    private const long MaxImagePdfBytes = 5 * 1024 * 1024;
+    private const long MaxVideoBytes = 25 * 1024 * 1024;
 
     private readonly ApplicationDbContext _db;
     private readonly ClientAccountService _accounts;
@@ -103,16 +106,25 @@ public class ClientChatService
             if (attachmentData.Length == 0)
                 return null;
 
-            if (attachmentData.Length > MaxAttachmentBytes)
-                return null;
-
             contentType = DetectAttachmentContentType(attachmentData, attachmentContentType);
             if (contentType == null)
                 return null;
 
+            var maxBytes = contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                ? MaxVideoBytes
+                : MaxImagePdfBytes;
+            if (attachmentData.Length > maxBytes)
+                return null;
+
             fileName = SanitizeFileName(attachmentFileName);
             if (string.IsNullOrWhiteSpace(fileName))
-                fileName = contentType == "application/pdf" ? "document.pdf" : "image.jpg";
+            {
+                fileName = contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                    ? "video.mp4"
+                    : contentType == "application/pdf"
+                        ? "document.pdf"
+                        : "image.jpg";
+            }
         }
 
         if (string.IsNullOrWhiteSpace(text) && attachmentData == null)
@@ -320,7 +332,11 @@ public class ClientChatService
         }
 
         if (HasAttachment(message))
-            return IsImageAttachment(message) ? "Фото" : (message.AttachmentFileName ?? "Файл");
+        {
+            if (IsImageAttachment(message)) return "Фото";
+            if (IsVideoAttachment(message)) return "Видео";
+            return message.AttachmentFileName ?? "Файл";
+        }
 
         return "Нет сообщений";
     }
@@ -340,6 +356,7 @@ public class ClientChatService
         AttachmentFileName = m.AttachmentFileName,
         AttachmentContentType = m.AttachmentContentType,
         IsImageAttachment = IsImageAttachment(m),
+        IsVideoAttachment = IsVideoAttachment(m),
         AttachmentUrl = HasAttachment(m) ? $"/chat/api/attachment/{m.Id}" : null
     };
 
@@ -350,6 +367,10 @@ public class ClientChatService
     public static bool IsImageAttachment(ClientMessage m) =>
         HasAttachment(m)
         && (m.AttachmentContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? false);
+
+    public static bool IsVideoAttachment(ClientMessage m) =>
+        HasAttachment(m)
+        && (m.AttachmentContentType?.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ?? false);
 
     private static string? DetectAttachmentContentType(byte[] data, string? reported)
     {
@@ -365,6 +386,16 @@ public class ClientChatService
             return "image/webp";
         if (data.Length >= 4 && data[0] == 0x25 && data[1] == 0x50 && data[2] == 0x44 && data[3] == 0x46)
             return "application/pdf";
+        if (data.Length >= 4 && data[0] == 0x1A && data[1] == 0x45 && data[2] == 0xDF && data[3] == 0xA3)
+            return "video/webm";
+        if (data.Length >= 12
+            && data[4] == (byte)'f' && data[5] == (byte)'t' && data[6] == (byte)'y' && data[7] == (byte)'p')
+        {
+            if (!string.IsNullOrWhiteSpace(reported)
+                && reported.Contains("quicktime", StringComparison.OrdinalIgnoreCase))
+                return "video/quicktime";
+            return "video/mp4";
+        }
 
         if (!string.IsNullOrWhiteSpace(reported))
         {
@@ -402,6 +433,7 @@ public class ClientMessageDto
     public string? AttachmentFileName { get; set; }
     public string? AttachmentContentType { get; set; }
     public bool IsImageAttachment { get; set; }
+    public bool IsVideoAttachment { get; set; }
     public string? AttachmentUrl { get; set; }
 }
 

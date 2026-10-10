@@ -25,7 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- HTTPS booking links → open in app when installed (Android App Links) -->
+            <!-- HTTPS public pages → open in app when installed (Android App Links) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -33,14 +33,22 @@
                 <data
                     android:scheme="https"
                     android:host="glowbook-production-5e1a.up.railway.app"
+                    android:pathPrefix="/u" />
+                <data
+                    android:scheme="https"
+                    android:host="glowbook-production-5e1a.up.railway.app"
                     android:pathPrefix="/book" />
             </intent-filter>
 
-            <!-- Custom scheme fallback: glowbox://book/{slug} -->
+            <!-- Custom scheme fallback: glowbox://u/{username}, glowbox://book/{slug} -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="glowbox"
+                    android:host="u"
+                    android:pathPrefix="/" />
                 <data
                     android:scheme="glowbox"
                     android:host="book"

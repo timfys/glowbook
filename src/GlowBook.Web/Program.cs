@@ -47,7 +47,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 8 * 1024 * 1024;
+    // Chat videos up to 25 MB; per-action RequestFormLimits can tighten where needed.
+    options.MultipartBodyLengthLimit = 26 * 1024 * 1024;
 });
 
 builder.Services.Configure<GlowBookSettings>(builder.Configuration.GetSection(GlowBookSettings.SectionName));

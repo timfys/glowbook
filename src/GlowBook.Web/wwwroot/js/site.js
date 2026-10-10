@@ -296,8 +296,8 @@
 })();
 
 (function () {
-    // Open /book/... in the Android app when installed (Chrome intent URL fallback).
-    if (!/^\/book(\/|$)/i.test(location.pathname)) return;
+    // Open /u/... and /book/... in the Android app when installed (Chrome intent URL fallback).
+    if (!/^\/(u|book)(\/|$)/i.test(location.pathname)) return;
     if (window.GlowBookAndroid) return;
 
     var ua = navigator.userAgent || '';
@@ -332,7 +332,7 @@
             '<button type="button" class="btn btn-gb-primary btn-sm">Открыть в приложении</button>';
         var btn = bar.querySelector('button');
         if (btn) btn.addEventListener('click', tryOpenApp);
-        var page = document.querySelector('.book-page');
+        var page = document.querySelector('.book-page, .master-public, .blog-public, .blog-article');
         if (page) page.insertBefore(bar, page.firstChild);
         else document.body.insertBefore(bar, document.body.firstChild);
     }

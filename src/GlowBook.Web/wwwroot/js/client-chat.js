@@ -3,12 +3,9 @@
     var box = document.getElementById('gbChatMessages');
     var form = document.getElementById('gbChatForm');
     var input = document.getElementById('gbChatInput');
-    var fileInput = document.getElementById('gbChatFile');
     var attachBtn = document.getElementById('gbChatAttachBtn');
     var preview = document.getElementById('gbChatAttachPreview');
-    var thumb = document.getElementById('gbChatAttachThumb');
-    var nameEl = document.getElementById('gbChatAttachName');
-    var sizeEl = document.getElementById('gbChatAttachSize');
+    var strip = document.getElementById('gbChatAttachStrip');
     var clearBtn = document.getElementById('gbChatAttachClear');
     if (!chat || !box || !form || !input) return;
 
@@ -18,7 +15,8 @@
     var streamUrl = chat.getAttribute('data-stream-url') || '';
     var attachmentPattern = chat.getAttribute('data-attachment-url-pattern') || '/chat/api/attachment/{0}';
     var currentUserId = chat.getAttribute('data-current-user-id') || '';
-    var previewObjectUrl = null;
+    var pendingFiles = [];
+    var pendingUrls = [];
 
     var lastId = 0;
     box.querySelectorAll('[data-id]').forEach(function (el) {
@@ -27,88 +25,81 @@
     });
     scrollToBottom();
 
-    function formatBytes(n) {
-        if (!n && n !== 0) return '';
-        if (n < 1024) return n + ' Б';
-        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' КБ';
-        return (n / (1024 * 1024)).toFixed(1) + ' МБ';
+    function revokePendingUrls() {
+        pendingUrls.forEach(function (url) {
+            try { URL.revokeObjectURL(url); } catch (_) {}
+        });
+        pendingUrls = [];
     }
 
     function clearAttachPreview() {
-        if (previewObjectUrl) {
-            try { URL.revokeObjectURL(previewObjectUrl); } catch (_) {}
-            previewObjectUrl = null;
-        }
-        if (fileInput) fileInput.value = '';
-        if (thumb) {
-            thumb.style.backgroundImage = '';
-            thumb.textContent = '';
-            thumb.classList.remove('is-file');
-        }
-        if (nameEl) nameEl.textContent = '';
-        if (sizeEl) sizeEl.textContent = '';
+        revokePendingUrls();
+        pendingFiles = [];
+        if (strip) strip.innerHTML = '';
         if (preview) preview.hidden = true;
     }
 
-    function showAttachPreview(file) {
-        if (!file || !preview) return;
-        if (previewObjectUrl) {
-            try { URL.revokeObjectURL(previewObjectUrl); } catch (_) {}
-            previewObjectUrl = null;
-        }
-        if (nameEl) nameEl.textContent = file.name || 'Файл';
-        if (sizeEl) sizeEl.textContent = formatBytes(file.size);
-        if (thumb) {
-            if (file.type && file.type.indexOf('image/') === 0) {
-                previewObjectUrl = URL.createObjectURL(file);
-                thumb.style.backgroundImage = 'url("' + previewObjectUrl + '")';
-                thumb.textContent = '';
-                thumb.classList.remove('is-file');
-            } else {
-                thumb.style.backgroundImage = '';
-                thumb.textContent = 'PDF';
-                thumb.classList.add('is-file');
-            }
-        }
-        preview.hidden = false;
-    }
+    function showAttachPreview(files) {
+        clearAttachPreview();
+        pendingFiles = Array.prototype.slice.call(files || []).filter(Boolean);
+        if (!pendingFiles.length || !strip || !preview) return;
 
-    function pickFile(accept, capture) {
-        if (!fileInput) return;
-        fileInput.setAttribute('accept', accept || '*/*');
-        if (capture) fileInput.setAttribute('capture', 'environment');
-        else fileInput.removeAttribute('capture');
-        fileInput.click();
+        pendingFiles.forEach(function (file, index) {
+            var tile = document.createElement('div');
+            tile.className = 'gb-chat-attach-item';
+            var isImage = file.type && file.type.indexOf('image/') === 0;
+            var isVideo = file.type && file.type.indexOf('video/') === 0;
+            if (isImage || isVideo) {
+                var url = URL.createObjectURL(file);
+                pendingUrls.push(url);
+                if (isVideo) {
+                    tile.innerHTML = '<video src="' + url + '" muted playsinline preload="metadata"></video><span class="gb-chat-attach-item-badge">VIDEO</span>';
+                } else {
+                    tile.style.backgroundImage = 'url("' + url + '")';
+                }
+            } else {
+                tile.classList.add('is-file');
+                tile.innerHTML = '<span class="gb-chat-attach-item-file">PDF</span><span class="gb-chat-attach-item-name"></span>';
+                tile.querySelector('.gb-chat-attach-item-name').textContent = file.name || 'Файл';
+            }
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'gb-chat-attach-item-remove';
+            remove.setAttribute('aria-label', 'Убрать');
+            remove.innerHTML = '&times;';
+            remove.addEventListener('click', function () {
+                pendingFiles.splice(index, 1);
+                showAttachPreview(pendingFiles.slice());
+            });
+            tile.appendChild(remove);
+            strip.appendChild(tile);
+        });
+        preview.hidden = false;
     }
 
     if (attachBtn) {
         attachBtn.addEventListener('click', function () {
-            if (window.GbMedia && typeof window.GbMedia.openSheet === 'function') {
-                window.GbMedia.openSheet('Вложение', [
-                    {
-                        label: 'Фото',
-                        onClick: function () { pickFile('image/*', false); }
-                    },
-                    {
-                        label: 'Снимок',
-                        onClick: function () { pickFile('image/*', true); }
-                    },
-                    {
-                        label: 'Файл',
-                        onClick: function () { pickFile('image/*,.pdf,application/pdf', false); }
+            if (window.GbMedia && typeof window.GbMedia.openAttachPicker === 'function') {
+                window.GbMedia.openAttachPicker({
+                    maxItems: 12,
+                    onConfirm: function (files) {
+                        showAttachPreview(files);
                     }
-                ]);
-            } else {
-                pickFile('image/*,.pdf', false);
+                });
+                return;
             }
-        });
-    }
 
-    if (fileInput) {
-        fileInput.addEventListener('change', function () {
-            var file = fileInput.files && fileInput.files[0];
-            if (file) showAttachPreview(file);
-            else clearAttachPreview();
+            var fallback = document.createElement('input');
+            fallback.type = 'file';
+            fallback.accept = 'image/*,video/*,.pdf,application/pdf';
+            fallback.multiple = true;
+            fallback.hidden = true;
+            document.body.appendChild(fallback);
+            fallback.addEventListener('change', function () {
+                showAttachPreview(fallback.files);
+                fallback.remove();
+            });
+            fallback.click();
         });
     }
 
@@ -149,11 +140,16 @@
         var url = msg.attachmentUrl || msg.AttachmentUrl || attachmentUrl(id);
         var fileName = msg.attachmentFileName || msg.AttachmentFileName || 'Файл';
         var isImage = msg.isImageAttachment || msg.IsImageAttachment;
+        var isVideo = msg.isVideoAttachment || msg.IsVideoAttachment;
 
         if (isImage) {
             return '<div class="gb-chat-attachment">' +
                 '<button type="button" class="gb-chat-attachment-zoom" data-gb-zoom="' + escapeAttr(url) + '" aria-label="Открыть фото">' +
                 '<img class="gb-chat-attachment-img" src="' + escapeAttr(url) + '" alt="' + escapeAttr(fileName) + '" loading="lazy" /></button></div>';
+        }
+        if (isVideo) {
+            return '<div class="gb-chat-attachment">' +
+                '<video class="gb-chat-attachment-video" src="' + escapeAttr(url) + '" controls playsinline preload="metadata"></video></div>';
         }
         return '<div class="gb-chat-attachment">' +
             '<a class="gb-chat-file-chip" href="' + escapeAttr(url) + '" download="' + escapeAttr(fileName) + '">' +
@@ -207,7 +203,7 @@
         var body = msg.body || msg.Body || '';
         var hasAttachment = msg.hasAttachment || msg.HasAttachment;
         var senderName = msg.senderName || msg.SenderName || 'Новое сообщение';
-        var text = body || (hasAttachment ? 'Отправлен файл' : 'Новое сообщение');
+        var text = body || (hasAttachment ? 'Вложение' : 'Новое сообщение');
 
         try {
             new Notification('GlowBox · ' + senderName, { body: text, tag: 'gb-chat-' + clientRecordId });
@@ -221,38 +217,46 @@
         }
     }
 
-    function clearForm() {
-        input.value = '';
-        clearAttachPreview();
+    function postOne(text, file) {
+        var formData = new FormData();
+        if (text) formData.append('message', text);
+        if (file) formData.append('file', file);
+        return fetch(sendUrl, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        }).then(function (r) {
+            if (!r.ok) throw new Error('send failed');
+            return r.json();
+        });
     }
 
     function sendMessage() {
         var text = (input.value || '').trim();
-        var file = fileInput && fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
-        if (!text && !file) return;
+        var files = pendingFiles.slice();
+        if (!text && !files.length) return;
 
         var sendBtn = document.getElementById('gbChatSend');
         if (sendBtn) sendBtn.disabled = true;
 
-        var formData = new FormData();
-        if (text) formData.append('message', text);
-        if (file) formData.append('file', file);
+        var chain = Promise.resolve();
+        if (files.length) {
+            files.forEach(function (file, index) {
+                chain = chain.then(function () {
+                    return postOne(index === 0 ? text : '', file).then(appendMessage);
+                });
+            });
+        } else {
+            chain = postOne(text, null).then(appendMessage);
+        }
 
-        fetch(sendUrl, {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-        })
-            .then(function (r) {
-                if (!r.ok) throw new Error('send failed');
-                return r.json();
-            })
-            .then(function (msg) {
-                appendMessage(msg);
-                clearForm();
+        chain
+            .then(function () {
+                input.value = '';
+                clearAttachPreview();
             })
             .catch(function () {
-                alert('Не удалось отправить сообщение');
+                alert('Не удалось отправить. Фото/PDF до 5 МБ, видео до 25 МБ.');
             })
             .finally(function () {
                 if (sendBtn) sendBtn.disabled = false;

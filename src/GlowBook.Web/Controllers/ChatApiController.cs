@@ -31,7 +31,8 @@ public class ChatApiController : Controller
     }
 
     [HttpPost("{clientRecordId:int}/send")]
-    [RequestSizeLimit(6 * 1024 * 1024)]
+    [RequestSizeLimit(26 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 26 * 1024 * 1024)]
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Send(int clientRecordId, string? message, IFormFile? file, CancellationToken ct)
     {

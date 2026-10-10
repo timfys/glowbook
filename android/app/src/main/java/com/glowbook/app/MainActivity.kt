@@ -202,10 +202,18 @@ class MainActivity : Activity() {
 
     private fun resolveDeepLink(intent: Intent?): String? {
         val uri = intent?.data ?: return null
+        val path = uri.path.orEmpty()
         return when {
             uri.scheme == "https"
                 && uri.host.equals(APP_HOST, ignoreCase = true)
-                && (uri.path?.startsWith("/book") == true) -> uri.toString()
+                && (path.startsWith("/u") || path.startsWith("/book")) -> uri.toString()
+
+            uri.scheme.equals("glowbox", ignoreCase = true)
+                && uri.host.equals("u", ignoreCase = true) -> {
+                val username = uri.path?.trim('/')?.trim().orEmpty()
+                if (username.isBlank()) BASE_URL
+                else "$BASE_URL/u/$username"
+            }
 
             uri.scheme.equals("glowbox", ignoreCase = true)
                 && uri.host.equals("book", ignoreCase = true) -> {

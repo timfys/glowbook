@@ -424,10 +424,244 @@
         openLightbox(src, (zoom.querySelector('img') || zoom).alt || '', zoom.hasAttribute('data-avatar-zoom-round'));
     });
 
+    function ensureAttachPicker() {
+        var root = document.getElementById('gbAttachPicker');
+        if (root) return root;
+
+        root = el('div', 'gb-attach-picker');
+        root.id = 'gbAttachPicker';
+        root.setAttribute('hidden', '');
+        root.innerHTML =
+            '<div class="gb-attach-picker-backdrop" data-gb-attach-close></div>' +
+            '<div class="gb-attach-picker-panel" role="dialog" aria-modal="true" aria-label="Галерея">' +
+            '  <div class="gb-attach-picker-handle" aria-hidden="true"></div>' +
+            '  <div class="gb-attach-picker-tabs">' +
+            '    <button type="button" class="gb-attach-tab is-active" data-gb-attach-tab="gallery">Галерея</button>' +
+            '    <button type="button" class="gb-attach-tab" data-gb-attach-tab="file">Файл</button>' +
+            '  </div>' +
+            '  <div class="gb-attach-pane is-active" data-gb-attach-pane="gallery">' +
+            '    <div class="gb-attach-grid" id="gbAttachGrid"></div>' +
+            '  </div>' +
+            '  <div class="gb-attach-pane" data-gb-attach-pane="file">' +
+            '    <button type="button" class="gb-attach-file-btn" id="gbAttachPickDoc">' +
+            '      <span class="gb-attach-file-btn-title">Документ</span>' +
+            '      <span class="gb-attach-file-btn-sub">PDF до 5 МБ</span>' +
+            '    </button>' +
+            '    <div class="gb-attach-file-list" id="gbAttachFileList"></div>' +
+            '  </div>' +
+            '  <div class="gb-attach-picker-foot">' +
+            '    <div class="gb-attach-picker-count" id="gbAttachCount">Ничего не выбрано</div>' +
+            '    <button type="button" class="btn btn-gb-primary gb-attach-confirm" id="gbAttachConfirm" disabled>Прикрепить</button>' +
+            '  </div>' +
+            '  <input type="file" id="gbAttachMediaInput" accept="image/*,video/*" multiple hidden />' +
+            '  <input type="file" id="gbAttachCameraInput" accept="image/*,video/*" capture="environment" hidden />' +
+            '  <input type="file" id="gbAttachDocInput" accept=".pdf,application/pdf" hidden />' +
+            '</div>';
+        document.body.appendChild(root);
+        return root;
+    }
+
+    function openAttachPicker(options) {
+        options = options || {};
+        var onConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : function () {};
+        var maxItems = options.maxItems || 12;
+        var root = ensureAttachPicker();
+        var grid = root.querySelector('#gbAttachGrid');
+        var fileList = root.querySelector('#gbAttachFileList');
+        var countEl = root.querySelector('#gbAttachCount');
+        var confirmBtn = root.querySelector('#gbAttachConfirm');
+        var mediaInput = root.querySelector('#gbAttachMediaInput');
+        var cameraInput = root.querySelector('#gbAttachCameraInput');
+        var docInput = root.querySelector('#gbAttachDocInput');
+        var items = []; // { id, file, url, selected, kind: image|video|file }
+
+        function revokeAll() {
+            items.forEach(function (it) {
+                if (it.url) {
+                    try { URL.revokeObjectURL(it.url); } catch (_) {}
+                }
+            });
+        }
+
+        function selectedFiles() {
+            return items.filter(function (it) { return it.selected; }).map(function (it) { return it.file; });
+        }
+
+        function syncCount() {
+            var n = selectedFiles().length;
+            countEl.textContent = n === 0 ? 'Ничего не выбрано' : ('Выбрано: ' + n);
+            confirmBtn.disabled = n === 0;
+            confirmBtn.textContent = n === 0 ? 'Прикрепить' : ('Прикрепить ' + n);
+        }
+
+        function setTab(name) {
+            root.querySelectorAll('[data-gb-attach-tab]').forEach(function (tab) {
+                tab.classList.toggle('is-active', tab.getAttribute('data-gb-attach-tab') === name);
+            });
+            root.querySelectorAll('[data-gb-attach-pane]').forEach(function (pane) {
+                pane.classList.toggle('is-active', pane.getAttribute('data-gb-attach-pane') === name);
+            });
+        }
+
+        function addFiles(fileListLike, forceSelect) {
+            var list = Array.prototype.slice.call(fileListLike || []);
+            list.forEach(function (file) {
+                if (!file || items.length >= maxItems) return;
+                var exists = items.some(function (it) {
+                    return it.file.name === file.name && it.file.size === file.size && it.file.lastModified === file.lastModified;
+                });
+                if (exists) return;
+                var kind = file.type && file.type.indexOf('video/') === 0
+                    ? 'video'
+                    : (file.type && file.type.indexOf('image/') === 0 ? 'image' : 'file');
+                var url = (kind === 'image' || kind === 'video') ? URL.createObjectURL(file) : null;
+                items.push({
+                    id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7),
+                    file: file,
+                    url: url,
+                    selected: forceSelect !== false,
+                    kind: kind
+                });
+            });
+            render();
+        }
+
+        function renderGallery() {
+            grid.innerHTML = '';
+
+            var cameraTile = el('button', 'gb-attach-tile gb-attach-tile-action');
+            cameraTile.type = 'button';
+            cameraTile.innerHTML = '<span class="gb-attach-tile-icon" aria-hidden="true">' +
+                '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="14" r="3.1" stroke="currentColor" stroke-width="1.7"/></svg>' +
+                '</span><span>Камера</span>';
+            cameraTile.addEventListener('click', function () { cameraInput.click(); });
+            grid.appendChild(cameraTile);
+
+            var galleryTile = el('button', 'gb-attach-tile gb-attach-tile-action');
+            galleryTile.type = 'button';
+            galleryTile.innerHTML = '<span class="gb-attach-tile-icon" aria-hidden="true">' +
+                '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="10.5" r="1.6" fill="currentColor"/><path d="M4.5 17l4.2-4.2a1.2 1.2 0 0 1 1.6 0L14 16.5l1.7-1.7a1.2 1.2 0 0 1 1.6 0L19.5 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>' +
+                '</span><span>Галерея</span>';
+            galleryTile.addEventListener('click', function () { mediaInput.click(); });
+            grid.appendChild(galleryTile);
+
+            items.filter(function (it) { return it.kind !== 'file'; }).forEach(function (it) {
+                var tile = el('button', 'gb-attach-tile' + (it.selected ? ' is-selected' : ''));
+                tile.type = 'button';
+                tile.setAttribute('aria-pressed', it.selected ? 'true' : 'false');
+                if (it.kind === 'video') {
+                    tile.innerHTML =
+                        '<video class="gb-attach-tile-media" src="' + it.url + '" muted playsinline preload="metadata"></video>' +
+                        '<span class="gb-attach-tile-badge">VIDEO</span>' +
+                        (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
+                } else {
+                    tile.innerHTML =
+                        '<span class="gb-attach-tile-media" style="background-image:url(\'' + it.url + '\')"></span>' +
+                        (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
+                }
+                tile.addEventListener('click', function () {
+                    it.selected = !it.selected;
+                    render();
+                });
+                grid.appendChild(tile);
+            });
+        }
+
+        function renderFiles() {
+            fileList.innerHTML = '';
+            var docs = items.filter(function (it) { return it.kind === 'file'; });
+            if (!docs.length) {
+                fileList.innerHTML = '<p class="gb-attach-file-empty">Выберите PDF из файлов устройства</p>';
+                return;
+            }
+            docs.forEach(function (it) {
+                var row = el('button', 'gb-attach-file-row' + (it.selected ? ' is-selected' : ''));
+                row.type = 'button';
+                row.innerHTML =
+                    '<span class="gb-attach-file-row-icon">PDF</span>' +
+                    '<span class="gb-attach-file-row-meta">' +
+                    '  <span class="gb-attach-file-row-name"></span>' +
+                    '  <span class="gb-attach-file-row-size"></span>' +
+                    '</span>' +
+                    (it.selected ? '<span class="gb-attach-tile-check" aria-hidden="true"></span>' : '');
+                row.querySelector('.gb-attach-file-row-name').textContent = it.file.name || 'document.pdf';
+                row.querySelector('.gb-attach-file-row-size').textContent = Math.max(1, Math.round(it.file.size / 1024)) + ' КБ';
+                row.addEventListener('click', function () {
+                    it.selected = !it.selected;
+                    render();
+                });
+                fileList.appendChild(row);
+            });
+        }
+
+        function render() {
+            renderGallery();
+            renderFiles();
+            syncCount();
+        }
+
+        function closePicker() {
+            root.classList.remove('is-open');
+            setTimeout(function () {
+                root.setAttribute('hidden', '');
+                revokeAll();
+                items = [];
+                mediaInput.value = '';
+                cameraInput.value = '';
+                docInput.value = '';
+                render();
+            }, 180);
+            document.body.style.overflow = '';
+        }
+
+        root.querySelectorAll('[data-gb-attach-tab]').forEach(function (tab) {
+            tab.onclick = function () { setTab(tab.getAttribute('data-gb-attach-tab')); };
+        });
+        root.querySelectorAll('[data-gb-attach-close]').forEach(function (btn) {
+            btn.onclick = closePicker;
+        });
+        root.querySelector('#gbAttachPickDoc').onclick = function () { docInput.click(); };
+        mediaInput.onchange = function () {
+            addFiles(mediaInput.files, true);
+            mediaInput.value = '';
+            setTab('gallery');
+        };
+        cameraInput.onchange = function () {
+            addFiles(cameraInput.files, true);
+            cameraInput.value = '';
+            setTab('gallery');
+        };
+        docInput.onchange = function () {
+            addFiles(docInput.files, true);
+            docInput.value = '';
+            setTab('file');
+        };
+        confirmBtn.onclick = function () {
+            var files = selectedFiles();
+            if (!files.length) return;
+            // Keep object URLs only if caller needs them — pass raw Files
+            var copy = files.slice();
+            closePicker();
+            onConfirm(copy);
+        };
+
+        revokeAll();
+        items = [];
+        setTab('gallery');
+        render();
+        root.removeAttribute('hidden');
+        requestAnimationFrame(function () { root.classList.add('is-open'); });
+        document.body.style.overflow = 'hidden';
+
+        // Immediately open gallery on mobile for TG-like speed — still show our UI behind/after
+        // Don't auto-open native picker: user sees our grid first with Camera + Gallery tiles.
+    }
+
     window.GbMedia = {
         openSheet: openSheet,
         closeSheet: closeSheet,
         openLightbox: openLightbox,
-        openAvatarEditor: openAvatarEditor
+        openAvatarEditor: openAvatarEditor,
+        openAttachPicker: openAttachPicker
     };
 })();

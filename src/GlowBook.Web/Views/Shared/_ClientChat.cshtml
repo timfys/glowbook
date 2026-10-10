@@ -35,6 +35,10 @@
                             <img class="gb-chat-attachment-img" src="@dto.AttachmentUrl" alt="@dto.AttachmentFileName" loading="lazy" />
                         </button>
                     }
+                    else if (dto.IsVideoAttachment)
+                    {
+                        <video class="gb-chat-attachment-video" src="@dto.AttachmentUrl" controls playsinline preload="metadata"></video>
+                    }
                     else
                     {
                         <a class="gb-chat-file-chip" href="@dto.AttachmentUrl" download="@dto.AttachmentFileName">
@@ -51,20 +55,15 @@
 
     <form class="gb-chat-form" id="gbChatForm">
         <div class="gb-chat-attach-preview" id="gbChatAttachPreview" hidden>
-            <div class="gb-chat-attach-thumb" id="gbChatAttachThumb" aria-hidden="true"></div>
-            <div class="gb-chat-attach-meta">
-                <div class="gb-chat-attach-name" id="gbChatAttachName"></div>
-                <div class="gb-chat-attach-size" id="gbChatAttachSize"></div>
-            </div>
-            <button type="button" class="gb-chat-attach-clear" id="gbChatAttachClear" aria-label="Убрать вложение">&times;</button>
+            <div class="gb-chat-attach-strip" id="gbChatAttachStrip"></div>
+            <button type="button" class="gb-chat-attach-clear" id="gbChatAttachClear" aria-label="Убрать вложения">&times;</button>
         </div>
         <div class="gb-chat-toolbar">
-            <button type="button" class="gb-chat-file-btn" id="gbChatAttachBtn" title="Прикрепить" aria-label="Прикрепить">
+            <button type="button" class="gb-chat-file-btn" id="gbChatAttachBtn" title="Галерея" aria-label="Галерея">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M8 12.5l6.5-6.5a3 3 0 1 1 4.24 4.24l-7.5 7.5a4.24 4.24 0 0 1-6-6l8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
-            <input type="file" id="gbChatFile" name="file" hidden />
             <textarea class="form-control gb-chat-input" id="gbChatInput" name="message" rows="1" maxlength="2000" placeholder="Сообщение…"></textarea>
             <button type="submit" class="gb-chat-send-btn" id="gbChatSend" aria-label="Отправить">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
